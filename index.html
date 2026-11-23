@@ -25,6 +25,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
 
+  <!-- Chart.js para gráficas interactivas -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -473,8 +476,18 @@
       historyFilterGame: 'all',
       historySearch: '',
       statsFilterGame: 'all',
+      statsDonutMode: 'plays', // 'plays' | 'hours'
       expandedMatchId: null,
     };
+
+    let activeChartInstances = [];
+
+    function destroyActiveCharts() {
+      activeChartInstances.forEach((ch) => {
+        try { ch.destroy(); } catch (e) {}
+      });
+      activeChartInstances = [];
+    }
 
     let syncState = {
       mode: 'local', // 'connecting' | 'sheets' | 'local'
@@ -620,6 +633,9 @@
       const meta = document.getElementById('meta-theme-color');
       if (meta) meta.content = isDark ? '#0F1815' : '#142620';
       try { localStorage.setItem(KEYS.THEME, isDark ? 'dark' : 'light'); } catch (e) {}
+      if (typeof uiState !== 'undefined' && uiState.activeTab === 'stats' && document.getElementById('view-stats')) {
+        renderStatsTab();
+      }
     }
 
     function initTheme() {
@@ -968,6 +984,7 @@
       syncState.errorMessage = reason;
       renderSyncBadge();
       updateNavBadge();
+      if (tabName !== 'stats') destroyActiveCharts();
       renderActiveTab();
     }
 
@@ -2305,10 +2322,16 @@
     }
 
     // =========================================================================
-    // 12. TAB 3: ESTADÍSTICAS VISUALES (DONUT SVG, RANKING, INSIGHTS)
+    // 12. TAB 3: ESTADÍSTICAS Y GRÁFICAS INTERACTIVAS (CHART.JS)
     // =========================================================================
+    const PLAYER_CHART_PALETTE = [
+      '#2B7A58', '#D9911E', '#2563EB', '#D04E36', '#7C3AED',
+      '#0D9488', '#E11D48', '#0284C7', '#CA8A04', '#475569'
+    ];
+
     function renderStatsTab() {
       const container = document.getElementById('view-stats');
+      destroyActiveCharts();
 
       if (matchHistory.length === 0) {
         container.innerHTML = `
@@ -2316,9 +2339,9 @@
             <div class="w-14 h-14 mx-auto rounded-2xl bg-emeraldBrand/12 text-emeraldBrand flex items-center justify-center mb-3">
               <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7" rx="1"/><rect x="13" y="6" width="3" height="11" rx="1"/><rect x="19" y="13" width="2" height="4" rx="1"/></svg>
             </div>
-            <h3 class="font-display text-lg font-extrabold text-ink dark:text-white">Tus estadísticas aparecerán aquí</h3>
+            <h3 class="font-display text-lg font-extrabold text-ink dark:text-white">Tus gráficas y estadísticas aparecerán aquí</h3>
             <p class="text-xs text-inkMuted dark:text-white/60 mt-1.5 max-w-xs mx-auto leading-relaxed">
-              En cuanto registres tus primeras partidas verás el ranking de jugadores, porcentajes de victoria, gráficas de juegos más jugados y récords por juego.
+              En cuanto registres tus primeras partidas verás gráficas interactivas de juegos más jugados, evolución de puntuaciones, ritmo mensual y clasificación de jugadores.
             </p>
             <button type="button" data-nav="log" class="btn-tap mt-5 px-5 py-2.5 rounded-xl bg-pine dark:bg-emeraldBrand text-white text-xs font-bold">Registrar partida</button>
           </div>
@@ -2327,6 +2350,10 @@
       }
 
       const playedGameIds = [...new Set(matchHistory.map((m) => m.gameId))];
+      if (uiState.statsFilterGame !== 'all' && !playedGameIds.includes(uiState.statsFilterGame)) {
+        uiState.statsFilterGame = 'all';
+      }
+
       const subset = uiState.statsFilterGame === 'all'
         ? matchHistory
         : matchHistory.filter((m) => m.gameId === uiState.statsFilterGame);
@@ -2374,122 +2401,192 @@
         });
       });
 
-      // Donut SVG por juego (solo en vista global)
-      let donutCardHtml = '';
+      // Datos para Donut de Juegos (solo vista global)
+      let sortedGamesData = [];
       if (uiState.statsFilterGame === 'all') {
-        const gameCounts = {};
-        subset.forEach((m) => { gameCounts[m.gameId] = (gameCounts[m.gameId] || 0) + 1; });
-        const sortedGames = Object.entries(gameCounts)
-          .map(([gid, count]) => ({ game: getGameById(gid), count, pct: Math.round((count / totalPlays) * 100) }))
-          .sort((a, b) => b.count - a.count);
-
-        const radius = 52;
-        const circ = 2 * Math.PI * radius;
-        let offset = 0;
-        const slices = sortedGames.map((item) => {
-          const dash = (item.count / totalPlays) * circ;
-          const svg = `<circle cx="70" cy="70" r="${radius}" fill="none" stroke="${item.game.color}" stroke-width="18" stroke-dasharray="${dash.toFixed(2)} ${(circ - dash).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" />`;
-          offset += dash;
-          return svg;
-        }).join('');
-
-        donutCardHtml = `
-          <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5">
-            <h3 class="font-display text-sm font-extrabold text-ink dark:text-white mb-4">Juegos más jugados</h3>
-            <div class="flex flex-col sm:flex-row items-center gap-5">
-              <div class="relative w-[140px] h-[140px] shrink-0">
-                <svg viewBox="0 0 140 140" class="w-full h-full -rotate-90">
-                  <circle cx="70" cy="70" r="${radius}" fill="none" stroke="rgba(128,128,128,0.12)" stroke-width="18" />
-                  ${slices}
-                </svg>
-                <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums leading-none">${totalPlays}</span>
-                  <span class="text-[10px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55 mt-0.5">partidas</span>
-                </div>
-              </div>
-              <div class="flex-1 w-full space-y-2">
-                ${sortedGames.slice(0, 6).map((item) => `
-                  <div class="flex items-center justify-between gap-2 text-xs">
-                    <div class="flex items-center gap-2 min-w-0">
-                      <span class="w-3 h-3 rounded-full shrink-0" style="background:${item.game.color}"></span>
-                      <span class="font-bold text-ink dark:text-white truncate">${esc(item.game.name)}</span>
-                    </div>
-                    <span class="text-inkMuted dark:text-white/60 font-semibold tabular-nums shrink-0">${item.count} (${item.pct}%)</span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-        `;
+        const gameAgg = {};
+        subset.forEach((m) => {
+          if (!gameAgg[m.gameId]) gameAgg[m.gameId] = { count: 0, mins: 0 };
+          gameAgg[m.gameId].count += 1;
+          gameAgg[m.gameId].mins += Number(m.duration) || 0;
+        });
+        sortedGamesData = Object.entries(gameAgg)
+          .map(([gid, info]) => ({
+            game: getGameById(gid),
+            count: info.count,
+            hours: Number((info.mins / 60).toFixed(1)),
+            pct: Math.round((info.count / totalPlays) * 100),
+          }))
+          .sort((a, b) => (uiState.statsDonutMode === 'hours' ? b.hours - a.hours : b.count - a.count));
       }
 
-      // Curiosidades específicas si filtras por un juego con extras
-      let insightsHtml = '';
-      if (uiState.statsFilterGame !== 'all') {
-        const g = getGameById(uiState.statsFilterGame);
-        if (g.extraType === 'splendor') {
-          const counts = { '20 puntos': 0, '10 coronas': 0, '10 de un color': 0 };
-          subset.forEach((m) => {
-            const wt = m.meta?.winType || '';
-            if (counts[wt] !== undefined) counts[wt]++;
-          });
-          insightsHtml = `
-            <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5">
-              <h3 class="font-display text-sm font-extrabold text-ink dark:text-white mb-3">Cómo se gana en Splendor Duel</h3>
-              <div class="grid grid-cols-3 gap-2">
-                ${Object.entries(counts).map(([k, v]) => `
-                  <div class="p-3 rounded-2xl bg-canvas dark:bg-surfaceDarkAlt text-center">
-                    <div class="font-display text-xl font-extrabold text-[#2563EB] tabular-nums">${v}</div>
-                    <div class="text-[11px] font-bold text-inkMuted dark:text-white/65 mt-0.5">${k}</div>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          `;
-        } else if (g.extraType === 'tfm') {
-          const corps = {};
-          subset.forEach((m) => {
-            (m.players || []).forEach((p) => {
-              if (!p.tag) return;
-              if (!corps[p.tag]) corps[p.tag] = { plays: 0, wins: 0 };
-              corps[p.tag].plays++;
-              if (p.winner) corps[p.tag].wins++;
-            });
-          });
-          const corpList = Object.entries(corps).sort((a, b) => b[1].wins - a[1].wins || b[1].plays - a[1].plays).slice(0, 6);
-          if (corpList.length > 0) {
-            insightsHtml = `
-              <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5">
-                <h3 class="font-display text-sm font-extrabold text-ink dark:text-white mb-3">Rendimiento por Corporación</h3>
-                <div class="space-y-2">
-                  ${corpList.map(([name, c]) => `
-                    <div class="flex items-center justify-between text-xs p-2.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt">
-                      <span class="font-bold text-ink dark:text-white">${esc(name)}</span>
-                      <span class="tabular-nums text-inkMuted dark:text-white/65">${c.wins}V / ${c.plays}P (${Math.round((c.wins / c.plays) * 100)}%)</span>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            `;
-          }
-        }
-      }
+      // Datos para evolución de puntuaciones (cuando hay un juego con puntos seleccionado)
+      const selectedGameObj = uiState.statsFilterGame !== 'all' ? getGameById(uiState.statsFilterGame) : null;
+      const chronologicalScored = selectedGameObj && selectedGameObj.scoringType === 'points'
+        ? [...subset]
+            .filter((m) => (m.players || []).some((p) => p.score !== null && p.score !== undefined && !isNaN(p.score)))
+            .sort((a, b) => (a.createdAtMs || 0) - (b.createdAtMs || 0))
+            .slice(-12)
+        : [];
+      const showScoreLineChart = chronologicalScored.length >= 2;
 
-      // Actividad últimos 6 meses
+      // Datos de actividad últimos 6 meses (partidas + horas)
       const now = new Date();
       const months = [];
       for (let i = 5; i >= 0; i--) {
         const dt = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
         const label = dt.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
-        months.push({ key, label, count: 0 });
+        months.push({ key, label: label.charAt(0).toUpperCase() + label.slice(1), count: 0, mins: 0 });
       }
       subset.forEach((m) => {
         const k = String(m.date || '').slice(0, 7);
         const found = months.find((x) => x.key === k);
-        if (found) found.count++;
+        if (found) {
+          found.count += 1;
+          found.mins += Number(m.duration) || 0;
+        }
       });
-      const maxMonth = Math.max(1, ...months.map((x) => x.count));
+
+      // Datos extra específicos de Splendor Duel o Terraforming Mars
+      let extraChartConfig = null;
+      if (selectedGameObj && selectedGameObj.extraType === 'splendor') {
+        const counts = { '20 puntos': 0, '10 coronas': 0, '10 de un color': 0 };
+        subset.forEach((m) => {
+          const wt = m.meta?.winType || '';
+          if (counts[wt] !== undefined) counts[wt]++;
+        });
+        extraChartConfig = {
+          type: 'splendor',
+          title: 'Cómo se gana en Splendor Duel',
+          labels: Object.keys(counts),
+          values: Object.values(counts),
+          colors: ['#2563EB', '#D9911E', '#7C3AED'],
+        };
+      } else if (selectedGameObj && selectedGameObj.extraType === 'tfm') {
+        const corps = {};
+        subset.forEach((m) => {
+          (m.players || []).forEach((p) => {
+            if (!p.tag) return;
+            if (!corps[p.tag]) corps[p.tag] = { plays: 0, wins: 0 };
+            corps[p.tag].plays++;
+            if (p.winner) corps[p.tag].wins++;
+          });
+        });
+        const corpList = Object.entries(corps)
+          .sort((a, b) => b[1].wins - a[1].wins || b[1].plays - a[1].plays)
+          .slice(0, 8);
+        if (corpList.length > 0) {
+          extraChartConfig = {
+            type: 'tfm',
+            title: 'Rendimiento por Corporación',
+            labels: corpList.map(([name]) => name),
+            wins: corpList.map(([, c]) => c.wins),
+            losses: corpList.map(([, c]) => Math.max(0, c.plays - c.wins)),
+          };
+        }
+      }
+
+      const donutCardHtml = uiState.statsFilterGame === 'all' ? `
+        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div>
+              <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Distribución de tu ludoteca</h3>
+              <p class="text-[11px] text-inkMuted dark:text-white/55">Toca cualquier segmento para ver el detalle</p>
+            </div>
+            <div class="inline-flex p-0.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12">
+              <button type="button" data-action="set-stats-donut-mode" data-val="plays"
+                class="btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold ${uiState.statsDonutMode === 'plays' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+                Partidas
+              </button>
+              <button type="button" data-action="set-stats-donut-mode" data-val="hours"
+                class="btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold ${uiState.statsDonutMode === 'hours' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+                Horas
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-center gap-5">
+            <div class="relative w-[176px] h-[176px] shrink-0">
+              <canvas id="chart-games-donut"></canvas>
+              <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums leading-none">
+                  ${uiState.statsDonutMode === 'hours' ? `${totalHours}h` : totalPlays}
+                </span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55 mt-0.5">
+                  ${uiState.statsDonutMode === 'hours' ? 'en mesa' : 'partidas'}
+                </span>
+              </div>
+            </div>
+
+            <div class="flex-1 w-full space-y-2">
+              ${sortedGamesData.slice(0, 6).map((item) => `
+                <div class="flex items-center justify-between gap-2 text-xs">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-3 h-3 rounded-full shrink-0" style="background:${item.game.color}"></span>
+                    <span class="font-bold text-ink dark:text-white truncate">${esc(item.game.name)}</span>
+                  </div>
+                  <span class="text-inkMuted dark:text-white/60 font-semibold tabular-nums shrink-0">
+                    ${uiState.statsDonutMode === 'hours' ? `${item.hours} h` : `${item.count} (${item.pct}%)`}
+                  </span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      ` : '';
+
+      const scoreLineCardHtml = showScoreLineChart ? `
+        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Evolución de puntuaciones</h3>
+              <p class="text-[11px] text-inkMuted dark:text-white/55">Últimas ${chronologicalScored.length} partidas de ${esc(selectedGameObj.name)}</p>
+            </div>
+            <span class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider text-white" style="background:${selectedGameObj.color};">Tendencia</span>
+          </div>
+          <div class="relative w-full h-[230px]">
+            <canvas id="chart-score-evolution"></canvas>
+          </div>
+        </div>
+      ` : '';
+
+      const playersBarCardHtml = leaderboard.length > 0 ? `
+        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Victorias vs Partidas por Jugador</h3>
+              <p class="text-[11px] text-inkMuted dark:text-white/55">Comparativa visual del rendimiento en mesa</p>
+            </div>
+          </div>
+          <div class="relative w-full" style="height:${Math.max(170, Math.min(340, leaderboard.slice(0, 8).length * 42 + 44))}px;">
+            <canvas id="chart-players-bar"></canvas>
+          </div>
+        </div>
+      ` : '';
+
+      const extraChartCardHtml = extraChartConfig ? `
+        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+          <h3 class="font-display text-sm font-extrabold text-ink dark:text-white mb-3">${esc(extraChartConfig.title)}</h3>
+          <div class="relative w-full h-[210px]">
+            <canvas id="chart-game-extra"></canvas>
+          </div>
+        </div>
+      ` : '';
+
+      const monthlyCardHtml = `
+        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Ritmo mensual (6 meses)</h3>
+              <p class="text-[11px] text-inkMuted dark:text-white/55">Partidas jugadas (barras) y horas en mesa (línea)</p>
+            </div>
+          </div>
+          <div class="relative w-full h-[220px]">
+            <canvas id="chart-monthly-activity"></canvas>
+          </div>
+        </div>
+      `;
 
       container.innerHTML = `
         <!-- Filtro por juego -->
@@ -2539,10 +2636,19 @@
           </div>
         </div>
 
-        <!-- Ranking de Jugadores -->
+        <!-- Sección de Gráficas Interactivas -->
+        <div class="space-y-4">
+          ${donutCardHtml}
+          ${scoreLineCardHtml}
+          ${playersBarCardHtml}
+          ${extraChartCardHtml}
+          ${monthlyCardHtml}
+        </div>
+
+        <!-- Ranking Detallado de Jugadores -->
         <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Clasificación de Jugadores</h3>
+            <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Clasificación Detallada</h3>
             <span class="text-[11px] font-semibold text-inkMuted dark:text-white/55">Victorias y % éxito</span>
           </div>
           <div class="space-y-3">
@@ -2572,27 +2678,365 @@
             `).join('')}
           </div>
         </div>
-
-        ${insightsHtml}
-        ${donutCardHtml}
-
-        <!-- Actividad Mensual -->
-        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
-          <h3 class="font-display text-sm font-extrabold text-ink dark:text-white mb-4">Ritmo mensual (últimos 6 meses)</h3>
-          <div class="grid grid-cols-6 gap-2 items-end h-28 pt-2">
-            ${months.map((mo) => {
-              const hPct = mo.count > 0 ? Math.max(14, Math.round((mo.count / maxMonth) * 100)) : 6;
-              return `
-                <div class="flex flex-col items-center gap-1.5 h-full justify-end">
-                  <span class="text-[10px] font-extrabold tabular-nums ${mo.count > 0 ? 'text-ink dark:text-white' : 'text-inkMuted/50'}">${mo.count}</span>
-                  <div class="w-full max-w-[34px] rounded-t-xl transition-all ${mo.count > 0 ? 'bg-gradient-to-t from-pine to-emeraldBrand dark:from-emeraldBrand dark:to-emerald-400' : 'bg-black/6 dark:bg-white/10'}" style="height:${hPct}%"></div>
-                  <span class="text-[10px] font-bold uppercase text-inkMuted dark:text-white/55">${mo.label}</span>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
       `;
+
+      // Montar instancias de Chart.js
+      mountStatsCharts({
+        sortedGamesData,
+        chronologicalScored,
+        leaderboard,
+        months,
+        extraChartConfig,
+      });
+    }
+
+    function mountStatsCharts({ sortedGamesData, chronologicalScored, leaderboard, months, extraChartConfig }) {
+      if (typeof Chart === 'undefined') return;
+
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? 'rgba(242, 239, 233, 0.78)' : '#6A655C';
+      const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(20, 38, 32, 0.07)';
+      const surfaceBg = isDark ? '#161F1C' : '#FFFFFF';
+      const tooltipBg = isDark ? '#0D1311' : '#142620';
+
+      const commonTooltip = {
+        backgroundColor: tooltipBg,
+        titleColor: '#FFFFFF',
+        bodyColor: '#F6F3EC',
+        borderColor: 'rgba(255,255,255,0.12)',
+        borderWidth: 1,
+        padding: 10,
+        cornerRadius: 12,
+        titleFont: { family: 'Plus Jakarta Sans, sans-serif', weight: '700', size: 12 },
+        bodyFont: { family: 'Inter, sans-serif', size: 12 },
+      };
+
+      // 1. Donut de juegos (solo vista global)
+      const donutCanvas = document.getElementById('chart-games-donut');
+      if (donutCanvas && sortedGamesData.length > 0) {
+        const isHours = uiState.statsDonutMode === 'hours';
+        const ch = new Chart(donutCanvas, {
+          type: 'doughnut',
+          data: {
+            labels: sortedGamesData.map((d) => d.game.name),
+            datasets: [{
+              data: sortedGamesData.map((d) => (isHours ? d.hours : d.count)),
+              backgroundColor: sortedGamesData.map((d) => d.game.color),
+              borderColor: surfaceBg,
+              borderWidth: 3,
+              hoverOffset: 6,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                ...commonTooltip,
+                callbacks: {
+                  label: (ctx) => {
+                    const item = sortedGamesData[ctx.dataIndex];
+                    return isHours
+                      ? ` ${item.hours} h (${item.count} ${item.count === 1 ? 'partida' : 'partidas'})`
+                      : ` ${item.count} ${item.count === 1 ? 'partida' : 'partidas'} (${item.pct}%)`;
+                  },
+                },
+              },
+            },
+          },
+        });
+        activeChartInstances.push(ch);
+      }
+
+      // 2. Línea de evolución de puntuaciones (por juego específico)
+      const evoCanvas = document.getElementById('chart-score-evolution');
+      if (evoCanvas && chronologicalScored.length >= 2) {
+        const labels = chronologicalScored.map((m, idx) => {
+          const shortDate = m.date && m.date.length >= 10 ? `${m.date.slice(8, 10)}/${m.date.slice(5, 7)}` : `#${idx + 1}`;
+          return shortDate;
+        });
+
+        const playerNames = [...new Set(
+          chronologicalScored.flatMap((m) => (m.players || []).map((p) => (p.name || '').trim()).filter(Boolean))
+        )].slice(0, 6);
+
+        const datasets = playerNames.map((pName, idx) => {
+          const col = PLAYER_CHART_PALETTE[idx % PLAYER_CHART_PALETTE.length];
+          return {
+            label: pName,
+            data: chronologicalScored.map((m) => {
+              const found = (m.players || []).find((p) => (p.name || '').trim() === pName);
+              return found && found.score !== null && found.score !== undefined && !isNaN(found.score)
+                ? Number(found.score)
+                : null;
+            }),
+            borderColor: col,
+            backgroundColor: col + '22',
+            borderWidth: 2.6,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: surfaceBg,
+            pointBorderColor: col,
+            pointBorderWidth: 2.2,
+            tension: 0.32,
+            spanGaps: true,
+          };
+        });
+
+        const ch = new Chart(evoCanvas, {
+          type: 'line',
+          data: { labels, datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: textColor,
+                  usePointStyle: true,
+                  boxWidth: 8,
+                  padding: 14,
+                  font: { family: 'Inter, sans-serif', size: 11, weight: '600' },
+                },
+              },
+              tooltip: {
+                ...commonTooltip,
+                callbacks: {
+                  label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y} pts`,
+                },
+              },
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: textColor, font: { size: 11, weight: '600' } },
+              },
+              y: {
+                beginAtZero: false,
+                grid: { color: gridColor },
+                ticks: { color: textColor, font: { size: 11 } },
+              },
+            },
+          },
+        });
+        activeChartInstances.push(ch);
+      }
+
+      // 3. Barras horizontales apiladas: Victorias vs Otras partidas por jugador
+      const plCanvas = document.getElementById('chart-players-bar');
+      if (plCanvas && leaderboard.length > 0) {
+        const topPl = leaderboard.slice(0, 8);
+        const ch = new Chart(plCanvas, {
+          type: 'bar',
+          data: {
+            labels: topPl.map((p) => p.name),
+            datasets: [
+              {
+                label: 'Victorias',
+                data: topPl.map((p) => p.wins),
+                backgroundColor: '#2B7A58',
+                borderRadius: 6,
+                barThickness: 18,
+              },
+              {
+                label: 'Otras partidas',
+                data: topPl.map((p) => Math.max(0, p.plays - p.wins)),
+                backgroundColor: isDark ? 'rgba(255,255,255,0.16)' : '#E5DEC9',
+                borderRadius: 6,
+                barThickness: 18,
+              },
+            ],
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: textColor,
+                  usePointStyle: true,
+                  boxWidth: 8,
+                  padding: 12,
+                  font: { family: 'Inter, sans-serif', size: 11, weight: '600' },
+                },
+              },
+              tooltip: {
+                ...commonTooltip,
+                callbacks: {
+                  afterBody: (items) => {
+                    const idx = items[0]?.dataIndex;
+                    if (idx === undefined) return '';
+                    const st = topPl[idx];
+                    return `Tasa de victoria: ${st.winRate}% (${st.wins}/${st.plays})`;
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                stacked: true,
+                beginAtZero: true,
+                grid: { color: gridColor },
+                ticks: { color: textColor, precision: 0, font: { size: 11 } },
+              },
+              y: {
+                stacked: true,
+                grid: { display: false },
+                ticks: { color: textColor, font: { size: 12, weight: '700' } },
+              },
+            },
+          },
+        });
+        activeChartInstances.push(ch);
+      }
+
+      // 4. Gráfica extra por juego (Splendor Duel / Terraforming Mars)
+      const extraCanvas = document.getElementById('chart-game-extra');
+      if (extraCanvas && extraChartConfig) {
+        if (extraChartConfig.type === 'splendor') {
+          const ch = new Chart(extraCanvas, {
+            type: 'doughnut',
+            data: {
+              labels: extraChartConfig.labels,
+              datasets: [{
+                data: extraChartConfig.values,
+                backgroundColor: extraChartConfig.colors,
+                borderColor: surfaceBg,
+                borderWidth: 3,
+                hoverOffset: 5,
+              }],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '58%',
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: { color: textColor, usePointStyle: true, padding: 14, font: { size: 11, weight: '600' } },
+                },
+                tooltip: commonTooltip,
+              },
+            },
+          });
+          activeChartInstances.push(ch);
+        } else if (extraChartConfig.type === 'tfm') {
+          const ch = new Chart(extraCanvas, {
+            type: 'bar',
+            data: {
+              labels: extraChartConfig.labels,
+              datasets: [
+                { label: 'Victorias', data: extraChartConfig.wins, backgroundColor: '#C84B31', borderRadius: 6, barThickness: 16 },
+                { label: 'Otras', data: extraChartConfig.losses, backgroundColor: isDark ? 'rgba(255,255,255,0.16)' : '#E5DEC9', borderRadius: 6, barThickness: 16 },
+              ],
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'bottom', labels: { color: textColor, usePointStyle: true, font: { size: 11, weight: '600' } } },
+                tooltip: commonTooltip,
+              },
+              scales: {
+                x: { stacked: true, beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor, precision: 0 } },
+                y: { stacked: true, grid: { display: false }, ticks: { color: textColor, font: { size: 11, weight: '700' } } },
+              },
+            },
+          });
+          activeChartInstances.push(ch);
+        }
+      }
+
+      // 5. Combo mensual: Partidas (barras) + Horas jugadas (línea)
+      const monthCanvas = document.getElementById('chart-monthly-activity');
+      if (monthCanvas) {
+        const ch = new Chart(monthCanvas, {
+          data: {
+            labels: months.map((m) => m.label),
+            datasets: [
+              {
+                type: 'bar',
+                label: 'Partidas',
+                data: months.map((m) => m.count),
+                backgroundColor: isDark ? 'rgba(43, 122, 88, 0.85)' : 'rgba(20, 38, 32, 0.82)',
+                hoverBackgroundColor: '#2B7A58',
+                borderRadius: 8,
+                maxBarThickness: 32,
+                yAxisID: 'y',
+              },
+              {
+                type: 'line',
+                label: 'Horas',
+                data: months.map((m) => Number((m.mins / 60).toFixed(1))),
+                borderColor: '#D9911E',
+                backgroundColor: 'rgba(217, 145, 30, 0.15)',
+                borderWidth: 2.5,
+                pointRadius: 4,
+                pointBackgroundColor: surfaceBg,
+                pointBorderColor: '#D9911E',
+                pointBorderWidth: 2,
+                tension: 0.35,
+                yAxisID: 'y1',
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: textColor,
+                  usePointStyle: true,
+                  boxWidth: 8,
+                  padding: 12,
+                  font: { family: 'Inter, sans-serif', size: 11, weight: '600' },
+                },
+              },
+              tooltip: {
+                ...commonTooltip,
+                callbacks: {
+                  label: (ctx) => ctx.dataset.label === 'Horas'
+                    ? ` Tiempo: ${ctx.parsed.y} h`
+                    : ` Partidas: ${ctx.parsed.y}`,
+                },
+              },
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: textColor, font: { size: 11, weight: '700' } },
+              },
+              y: {
+                position: 'left',
+                beginAtZero: true,
+                grid: { color: gridColor },
+                ticks: { color: textColor, precision: 0, font: { size: 11 } },
+              },
+              y1: {
+                position: 'right',
+                beginAtZero: true,
+                grid: { drawOnChartArea: false },
+                ticks: {
+                  color: '#D9911E',
+                  font: { size: 11, weight: '600' },
+                  callback: (v) => `${v}h`,
+                },
+              },
+            },
+          },
+        });
+        activeChartInstances.push(ch);
+      }
     }
 
     // =========================================================================
@@ -3165,6 +3609,11 @@
           }
           case 'filter-stats-game': {
             uiState.statsFilterGame = el.dataset.val;
+            renderStatsTab();
+            break;
+          }
+          case 'set-stats-donut-mode': {
+            uiState.statsDonutMode = el.dataset.val === 'hours' ? 'hours' : 'plays';
             renderStatsTab();
             break;
           }
