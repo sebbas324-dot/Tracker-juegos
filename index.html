@@ -4355,9 +4355,11 @@
             datasets: [{
               data: donutValues,
               backgroundColor: sortedGamesData.map((d) => d.game.color),
-              borderColor: surfaceBg,
-              borderWidth: activeSlices > 1 ? 3 : 0,
-              hoverOffset: activeSlices > 1 ? 6 : 0,
+              borderColor: 'transparent',
+              borderWidth: 0,
+              hoverBorderWidth: 0,
+              spacing: 0,
+              hoverOffset: activeSlices > 1 ? 5 : 0,
             }],
           },
           options: {
@@ -4541,9 +4543,11 @@
               datasets: [{
                 data: extraChartConfig.values,
                 backgroundColor: extraChartConfig.colors,
-                borderColor: surfaceBg,
-                borderWidth: activeExtraSlices > 1 ? 3 : 0,
-                hoverOffset: activeExtraSlices > 1 ? 5 : 0,
+                borderColor: 'transparent',
+                borderWidth: 0,
+                hoverBorderWidth: 0,
+                spacing: 0,
+                hoverOffset: activeExtraSlices > 1 ? 4 : 0,
               }],
             },
             options: {
