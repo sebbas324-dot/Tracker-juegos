@@ -484,19 +484,6 @@
     // =========================================================================
     const DEFAULT_GAMES = [
       {
-        id: 'harmonies',
-        name: 'Harmonies',
-        color: '#2E7D4F',
-        color2: '#1B5E3A',
-        icon: 'hex',
-        scoringType: 'points',
-        minPlayers: 1,
-        maxPlayers: 4,
-        defaultDuration: 30,
-        extraType: 'harmonies',
-        tagline: 'Paisajes y hábitats',
-      },
-      {
         id: 'wyrmspan',
         name: 'Wyrmspan',
         color: '#9B2C4E',
@@ -508,19 +495,6 @@
         defaultDuration: 90,
         extraType: 'wyrmspan',
         tagline: 'Cuevas y dragones',
-      },
-      {
-        id: 'terraforming_mars',
-        name: 'Terraforming Mars',
-        color: '#C84B31',
-        color2: '#8B2C18',
-        icon: 'planet',
-        scoringType: 'points',
-        minPlayers: 1,
-        maxPlayers: 5,
-        defaultDuration: 120,
-        extraType: 'tfm',
-        tagline: 'Corporaciones en Marte',
       },
       {
         id: 'splendor_duel',
@@ -536,6 +510,45 @@
         tagline: 'Duelo de gemas y coronas',
       },
       {
+        id: 'terraforming_mars',
+        name: 'Terraforming Mars',
+        color: '#C84B31',
+        color2: '#8B2C18',
+        icon: 'planet',
+        scoringType: 'points',
+        minPlayers: 1,
+        maxPlayers: 5,
+        defaultDuration: 120,
+        extraType: 'tfm',
+        tagline: 'Corporaciones en Marte',
+      },
+      {
+        id: 'harmonies',
+        name: 'Harmonies',
+        color: '#2E7D4F',
+        color2: '#1B5E3A',
+        icon: 'hex',
+        scoringType: 'points',
+        minPlayers: 1,
+        maxPlayers: 4,
+        defaultDuration: 30,
+        extraType: 'harmonies',
+        tagline: 'Paisajes y hábitats',
+      },
+      {
+        id: 'lotr_duel',
+        name: 'Lord of the Rings: Duel',
+        color: '#B45309',
+        color2: '#78350F',
+        icon: 'ring',
+        scoringType: 'winner_only',
+        minPlayers: 2,
+        maxPlayers: 2,
+        defaultDuration: 30,
+        extraType: 'lotr_duel',
+        tagline: 'Duelo por la Tierra Media',
+      },
+      {
         id: 'ttr_europa',
         name: 'Ticket to Ride: Europa',
         color: '#D97706',
@@ -547,6 +560,114 @@
         defaultDuration: 45,
         extraType: 'none',
         tagline: 'Rutas ferroviarias por Europa',
+      },
+      {
+        id: 'monopoly_deal',
+        name: 'Monopoly Deal',
+        color: '#15803D',
+        color2: '#14532D',
+        icon: 'bank',
+        scoringType: 'winner_only',
+        minPlayers: 2,
+        maxPlayers: 5,
+        defaultDuration: 15,
+        extraType: 'none',
+        tagline: '3 sets de propiedades',
+      },
+      {
+        id: 'skull_king',
+        name: 'Skull King',
+        color: '#1E293B',
+        color2: '#0F172A',
+        icon: 'skull',
+        scoringType: 'points',
+        minPlayers: 2,
+        maxPlayers: 8,
+        defaultDuration: 30,
+        extraType: 'none',
+        quickCalc: 'skullking',
+        tagline: 'Bazas y apuestas · 10 rondas',
+      },
+      {
+        id: 'faraway',
+        name: 'Faraway',
+        color: '#0284C7',
+        color2: '#075985',
+        icon: 'compass',
+        scoringType: 'points',
+        minPlayers: 2,
+        maxPlayers: 6,
+        defaultDuration: 25,
+        extraType: 'none',
+        quickCalc: 'faraway',
+        tagline: 'Draft y puntuación inversa',
+      },
+      {
+        id: 'trio',
+        name: 'Trío',
+        color: '#0891B2',
+        color2: '#155E75',
+        icon: 'trio',
+        scoringType: 'winner_only',
+        minPlayers: 3,
+        maxPlayers: 6,
+        defaultDuration: 15,
+        extraType: 'trio',
+        tagline: 'Deducción de tríos',
+      },
+      {
+        id: 'virus',
+        name: 'Virus!',
+        color: '#16A34A',
+        color2: '#166534',
+        icon: 'virus',
+        scoringType: 'winner_only',
+        minPlayers: 2,
+        maxPlayers: 6,
+        defaultDuration: 15,
+        extraType: 'none',
+        tagline: '4 órganos sanos',
+      },
+      {
+        id: 'odin',
+        name: 'Odín',
+        color: '#4F46E5',
+        color2: '#312E81',
+        icon: 'helmet',
+        scoringType: 'points',
+        lowestWins: true,
+        minPlayers: 2,
+        maxPlayers: 6,
+        defaultDuration: 15,
+        extraType: 'none',
+        quickCalc: 'odin',
+        tagline: 'Escalada · menos puntos gana',
+      },
+      {
+        id: 'got_five',
+        name: 'Got Five!',
+        color: '#DB2777',
+        color2: '#831843',
+        icon: 'hand',
+        scoringType: 'winner_only',
+        minPlayers: 2,
+        maxPlayers: 5,
+        defaultDuration: 20,
+        extraType: 'none',
+        tagline: 'Deducción de 5 números',
+      },
+      {
+        id: 'the_mind',
+        name: 'The Mind',
+        color: '#0D9488',
+        color2: '#115E59',
+        icon: 'mind',
+        scoringType: 'coop',
+        minPlayers: 2,
+        maxPlayers: 4,
+        defaultDuration: 15,
+        extraType: 'themind',
+        tagline: 'Cooperativo en silencio',
       },
       {
         id: 'flip_7',
@@ -563,31 +684,17 @@
         tagline: 'Tienta la suerte hasta 200',
       },
       {
-        id: 'sushi_go',
-        name: 'Sushi Go!',
-        color: '#E11D48',
-        color2: '#9F1239',
-        icon: 'sushi',
+        id: 'sleeping_queens',
+        name: 'Sleeping Queens',
+        color: '#EC4899',
+        color2: '#9D174D',
+        icon: 'crown',
         scoringType: 'points',
         minPlayers: 2,
         maxPlayers: 5,
-        defaultDuration: 15,
+        defaultDuration: 20,
         extraType: 'none',
-        quickCalc: 'sushigo',
-        tagline: 'Draft de 3 rondas',
-      },
-      {
-        id: 'the_mind',
-        name: 'The Mind',
-        color: '#0D9488',
-        color2: '#115E59',
-        icon: 'mind',
-        scoringType: 'coop',
-        minPlayers: 2,
-        maxPlayers: 4,
-        defaultDuration: 15,
-        extraType: 'themind',
-        tagline: 'Cooperativo en silencio',
+        tagline: 'Despierta reinas y suma puntos',
       },
       {
         id: 'exploding_kittens',
@@ -601,6 +708,20 @@
         defaultDuration: 15,
         extraType: 'none',
         tagline: 'Último superviviente',
+      },
+      {
+        id: 'sushi_go',
+        name: 'Sushi Go!',
+        color: '#E11D48',
+        color2: '#9F1239',
+        icon: 'sushi',
+        scoringType: 'points',
+        minPlayers: 2,
+        maxPlayers: 5,
+        defaultDuration: 15,
+        extraType: 'none',
+        quickCalc: 'sushigo',
+        tagline: 'Draft de 3 rondas',
       },
     ];
 
@@ -621,7 +742,7 @@
       { color: '#475569', color2: '#1E293B', label: 'Pizarra' },
     ];
 
-    const ICON_CHOICES = ['dice', 'hex', 'cards', 'gem', 'dragon', 'planet', 'train', 'sushi', 'mind', 'cat', 'crown', 'meeple'];
+    const ICON_CHOICES = ['dice', 'hex', 'cards', 'gem', 'dragon', 'planet', 'train', 'sushi', 'mind', 'cat', 'crown', 'meeple', 'ring', 'skull', 'compass', 'virus', 'bank', 'helmet', 'trio', 'hand'];
 
     // =========================================================================
     // 4. ESTADO GLOBAL DE LA APP
@@ -681,6 +802,8 @@
         tfmMap: 'Tharsis',
         tfmGenerations: 10,
         wyrmspanSolo: false,
+        lotrWinType: 'Anillo / Monte',
+        trioWinType: '3 Tríos',
         coopWon: true,
         coopLevel: 8,
         // Jugadores
@@ -694,9 +817,12 @@
 
     let draft = createEmptyDraft('harmonies');
 
-    // Estado temporal para los marcadores en vivo (Flip 7 & Sushi Go!)
+    // Estado temporal para los marcadores en vivo
     let flip7State = null;
     let sushiState = null;
+    let skullKingState = null;
+    let farawayState = null;
+    let odinState = null;
 
     // =========================================================================
     // 5. PWA ICONO DINÁMICO + MANIFEST + TEMA OSCURO
@@ -847,6 +973,14 @@
         cat: `<path d="M5 9V4l4 3h6l4-3v5c1.2 1.2 2 2.8 2 4.8C21 18 17 21 12 21s-9-3-9-7.2C3 11.8 3.8 10.2 5 9Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="9.2" cy="13" r="1.1" fill="currentColor"/><circle cx="14.8" cy="13" r="1.1" fill="currentColor"/>`,
         crown: `<path d="M3 17 5 7l5 4 2-6 2 6 5-4 2 10H3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`,
         meeple: `<circle cx="12" cy="5.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 10.5 12 9l6 1.5-2 4.5 2.5 5.5H14l-2-3.5-2 3.5H5.5L8 15l-2-4.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>`,
+        ring: `<circle cx="12" cy="13.5" r="7" fill="none" stroke="currentColor" stroke-width="2.3"/><path d="M9.5 6.5 12 3.5l2.5 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2 2"/>`,
+        skull: `<path d="M5 11.5a7 7 0 1 1 14 0c0 2.6-1.4 4.7-3.2 5.7V20H8.2v-2.8C6.4 16.2 5 14.1 5 11.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="9.5" cy="11.5" r="1.4" fill="currentColor"/><circle cx="14.5" cy="11.5" r="1.4" fill="currentColor"/><path d="M10.5 20v-2.2M13.5 20v-2.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>`,
+        compass: `<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><polygon points="15.8,8.2 13.7,13.7 8.2,15.8 10.3,10.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.1" fill="currentColor"/>`,
+        virus: `<circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="10.5" cy="11" r="1" fill="currentColor"/><circle cx="13.8" cy="13" r="0.9" fill="currentColor"/>`,
+        bank: `<path d="M3 9.5 12 4l9 5.5H3Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M5 10v7M9.5 10v7M14.5 10v7M19 10v7M3 20h18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>`,
+        helmet: `<path d="M6 13a6 6 0 0 1 12 0v5H6v-5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M6 12C3.5 11.5 2.5 9.2 3.5 6.5c1 1.7 2 2.2 3.5 2.2M18 12c2.5-.5 3.5-2.8 2.5-5.5-1 1.7-2 2.2-3.5 2.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v11M6 14h12" stroke="currentColor" stroke-width="1.6"/>`,
+        trio: `<circle cx="12" cy="7.5" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="7.5" cy="15.8" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16.5" cy="15.8" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/>`,
+        hand: `<rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 8.5H9.8l-.5 3.4c.7-.5 1.6-.7 2.5-.7 2 0 3.3 1.1 3.3 2.8 0 1.8-1.4 3-3.5 3-1.4 0-2.5-.5-3.1-1.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
         dice: `<rect x="4" y="4" width="16" height="16" rx="3.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/>`,
       };
       return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${icons[iconName] || icons.dice}</svg>`;
@@ -982,15 +1116,39 @@
       }
 
       // Migración suave si aún estaba Ticket to Ride: Iberia sin partidas registradas
+      let gamesChanged = false;
       const iberiaIdx = games.findIndex((g) => g.id === 'ttr_iberia');
       const hasIberiaMatches = matchHistory.some((m) => m.gameId === 'ttr_iberia');
       if (iberiaIdx >= 0 && !hasIberiaMatches && !games.some((g) => g.id === 'ttr_europa') && !deletedGameIds.includes('ttr_europa')) {
         const europaDef = DEFAULT_GAMES.find((d) => d.id === 'ttr_europa');
         if (europaDef) {
           games[iberiaIdx] = JSON.parse(JSON.stringify(europaDef));
-          saveGamesLocal();
+          gamesChanged = true;
         }
       }
+
+      // Añade automáticamente los juegos nuevos del catálogo base si no existen y no fueron borrados por el usuario
+      DEFAULT_GAMES.forEach((def) => {
+        const existing = games.find((g) => g.id === def.id);
+        if (!existing && !deletedGameIds.includes(def.id)) {
+          games.push(JSON.parse(JSON.stringify(def)));
+          gamesChanged = true;
+        } else if (existing) {
+          if (def.quickCalc && !existing.quickCalc) {
+            existing.quickCalc = def.quickCalc;
+            gamesChanged = true;
+          }
+          if (def.lowestWins && !existing.lowestWins) {
+            existing.lowestWins = def.lowestWins;
+            gamesChanged = true;
+          }
+          if (def.extraType && def.extraType !== 'none' && (!existing.extraType || existing.extraType === 'none')) {
+            existing.extraType = def.extraType;
+            gamesChanged = true;
+          }
+        }
+      });
+      if (gamesChanged) saveGamesLocal();
 
       // Asegura que el borrador apunte a un juego existente
       if (games.length > 0 && !games.some((g) => g.id === draft.gameId)) {
@@ -1362,9 +1520,9 @@
         draft.players.forEach((p) => { p.winner = false; });
         return;
       }
-      const maxVal = Math.max(...valid);
+      const bestVal = g.lowestWins ? Math.min(...valid) : Math.max(...valid);
       draft.players.forEach((p, idx) => {
-        p.winner = numeric[idx] !== null && numeric[idx] === maxVal;
+        p.winner = numeric[idx] !== null && numeric[idx] === bestVal;
       });
     }
 
@@ -1440,6 +1598,40 @@
               class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border ${draft.wyrmspanSolo ? 'bg-[#9B2C4E] text-white border-[#9B2C4E]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
               ${draft.wyrmspanSolo ? '✓ Contra Automa' : 'Multijugador estándar'}
             </button>
+          </div>
+        `;
+      }
+
+      if (game.extraType === 'lotr_duel') {
+        const opts = ['Anillo / Monte', '6 Pueblos', '7 Regiones'];
+        return `
+          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-2">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Condición de victoria</div>
+            <div class="grid grid-cols-3 gap-1.5">
+              ${opts.map((o) => `
+                <button type="button" data-action="set-draft-field" data-field="lotrWinType" data-val="${esc(o)}"
+                  class="btn-tap py-2 px-2 rounded-xl text-xs font-bold border text-center ${draft.lotrWinType === o ? 'bg-[#B45309] text-white border-[#B45309] shadow-xs' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
+                  ${esc(o)}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (game.extraType === 'trio') {
+        const opts = ['3 Tríos', 'Trío de Sietes'];
+        return `
+          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-2">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Cómo se ganó</div>
+            <div class="grid grid-cols-2 gap-2">
+              ${opts.map((o) => `
+                <button type="button" data-action="set-draft-field" data-field="trioWinType" data-val="${esc(o)}"
+                  class="btn-tap py-2 px-2 rounded-xl text-xs font-bold border text-center ${draft.trioWinType === o ? 'bg-[#0891B2] text-white border-[#0891B2] shadow-xs' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
+                  ${esc(o)}
+                </button>
+              `).join('')}
+            </div>
           </div>
         `;
       }
@@ -1531,7 +1723,7 @@
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>Vivo
                 </span>
               </div>
-              <div class="text-[11px] text-white/80 mt-0.5 truncate">${game.quickCalc === 'flip7' ? 'Cartas, ×2, modificadores y +15 por ronda' : '3 rondas, wasabi, makis y pudines automáticos'}</div>
+              <div class="text-[11px] text-white/80 mt-0.5 truncate">${({ flip7: 'Cartas, ×2, modificadores y +15 por ronda', sushigo: '3 rondas, wasabi, makis y pudines automáticos', skullking: '10 rondas: apuestas, bazas y bonificaciones', faraway: 'Puntuación inversa (Carta 8 → 1) y Santuarios', odin: 'Rondas hasta 15 pts · gana el menor puntaje' })[game.quickCalc] || 'Calculadora rápida de puntuación'}</div>
             </div>
           </div>
           <div class="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center shrink-0 relative z-10">
@@ -1795,6 +1987,12 @@
       if (game.extraType === 'wyrmspan') {
         return { label: draft.wyrmspanSolo ? 'Modo Automa' : 'Multijugador', meta: { solo: draft.wyrmspanSolo } };
       }
+      if (game.extraType === 'lotr_duel') {
+        return { label: `Victoria: ${draft.lotrWinType}`, meta: { winType: draft.lotrWinType } };
+      }
+      if (game.extraType === 'trio') {
+        return { label: `Victoria: ${draft.trioWinType}`, meta: { winType: draft.trioWinType } };
+      }
       if (game.extraType === 'themind' || game.scoringType === 'coop') {
         return {
           label: `${draft.coopWon ? 'Superado' : 'Derrota'} · Nivel ${draft.coopLevel}`,
@@ -1828,9 +2026,14 @@
           showToast('Introduce al menos una puntuación o marca un ganador', 'neutral');
           return;
         }
-        // Ordenar por puntuación y asignar rank
+        // Ordenar por puntuación y asignar rank (ascendente si gana el menor puntaje, ej. Odín)
         cleanedPlayers.sort((a, b) => {
           if (a.winner !== b.winner && draft.manualWinnerOverride) return a.winner ? -1 : 1;
+          if (game.lowestWins) {
+            const sa = a.score ?? Infinity;
+            const sb = b.score ?? Infinity;
+            return sa - sb;
+          }
           const sa = a.score ?? -Infinity;
           const sb = b.score ?? -Infinity;
           return sb - sa;
@@ -1876,7 +2079,9 @@
       }
 
       const validScores = cleanedPlayers.map((p) => p.score).filter((s) => s !== null && !isNaN(s));
-      const topScore = validScores.length > 0 ? Math.max(...validScores) : null;
+      const topScore = validScores.length > 0
+        ? (game.lowestWins ? Math.min(...validScores) : Math.max(...validScores))
+        : null;
       const createdAtMs = Date.now();
 
       const record = {
@@ -2363,6 +2568,545 @@
       };
     }
 
+    // -------------------------------------------------------------------------
+    // MARCADOR EN VIVO: SKULL KING (10 RONDAS, APUESTAS, BAZAS Y BONOS)
+    // -------------------------------------------------------------------------
+    function openSkullKingScorer() {
+      const names = draft.players.map((p, i) => p.name.trim() || `Jugador ${i + 1}`);
+      const makeEmptyRounds = () => Array.from({ length: 10 }, () => ({ bid: 0, won: 0, bonus: 0, active: false }));
+      if (!skullKingState || skullKingState.players.length !== names.length) {
+        skullKingState = {
+          roundIdx: 0, // 0..9 => Ronda 1..10
+          players: names.map((name) => ({ name, rounds: makeEmptyRounds() })),
+        };
+      } else {
+        skullKingState.players.forEach((p, i) => { p.name = names[i]; });
+      }
+      renderSkullKingModal();
+    }
+
+    function calcSkullKingRoundPoints(roundNumber, entry) {
+      if (!entry || !entry.active) return 0;
+      const bid = Number(entry.bid) || 0;
+      const won = Number(entry.won) || 0;
+      const bonus = Number(entry.bonus) || 0;
+      if (bid === 0) {
+        return won === 0 ? (10 * roundNumber + bonus) : (-10 * roundNumber);
+      }
+      return bid === won ? (20 * bid + bonus) : (-10 * Math.abs(bid - won));
+    }
+
+    function calcSkullKingTotals() {
+      return skullKingState.players.map((p) =>
+        p.rounds.reduce((sum, entry, idx) => sum + calcSkullKingRoundPoints(idx + 1, entry), 0)
+      );
+    }
+
+    function renderSkullKingModal() {
+      const rIdx = skullKingState.roundIdx;
+      const rNum = rIdx + 1;
+      const totals = calcSkullKingTotals();
+      const tricksSum = skullKingState.players.reduce((s, p) => s + (p.rounds[rIdx].active ? p.rounds[rIdx].won : 0), 0);
+      const anyActiveInRound = skullKingState.players.some((p) => p.rounds[rIdx].active);
+
+      const roundPills = Array.from({ length: 10 }, (_, idx) => {
+        const done = skullKingState.players.some((p) => p.rounds[idx].active);
+        const current = idx === rIdx;
+        return `
+          <button type="button" data-sk="round" data-val="${idx}"
+            class="btn-tap h-8 rounded-xl text-[11px] font-extrabold tabular-nums border relative ${
+              current
+                ? 'bg-[#1E293B] text-white border-[#1E293B] shadow-xs'
+                : done
+                  ? 'bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-300 border-emeraldBrand/30'
+                  : 'bg-white dark:bg-surfaceDarkAlt text-inkMuted dark:text-white/60 border-[#E2DACE] dark:border-white/12'
+            }">R${idx + 1}</button>
+        `;
+      }).join('');
+
+      const playerCards = skullKingState.players.map((p, pIdx) => {
+        const rd = p.rounds[rIdx];
+        const rPts = calcSkullKingRoundPoints(rNum, rd);
+        const exact = rd.active && rd.bid === rd.won;
+        const missed = rd.active && rd.bid !== rd.won;
+
+        return `
+          <div class="p-3 rounded-2xl bg-white dark:bg-surfaceDarkAlt border transition-all ${
+            exact
+              ? 'border-emeraldBrand/45'
+              : missed
+                ? 'border-coralBrand/35'
+                : 'border-[#E7E0D4] dark:border-white/10'
+          }">
+            <div class="flex items-center justify-between gap-2 mb-2.5">
+              <div class="min-w-0">
+                <div class="text-xs font-extrabold text-ink dark:text-white truncate">${esc(p.name)}</div>
+                <div class="text-[10.5px] font-semibold text-inkMuted dark:text-white/55 tabular-nums">Acumulado: <strong class="text-ink dark:text-white">${totals[pIdx]} pts</strong></div>
+              </div>
+              <span class="px-2.5 py-1 rounded-xl text-xs font-extrabold tabular-nums ${
+                !rd.active
+                  ? 'bg-black/[0.05] dark:bg-white/10 text-inkMuted dark:text-white/50'
+                  : rPts >= 0
+                    ? 'bg-emeraldBrand/14 text-emeraldBrand dark:text-emerald-300'
+                    : 'bg-coralBrand/14 text-coralBrand'
+              }">
+                ${!rd.active ? 'Sin punt.' : `${rPts >= 0 ? '+' : ''}${rPts} pts`}
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div class="p-2 rounded-xl bg-canvas/80 dark:bg-surfaceDark border border-black/[0.06] dark:border-white/10 flex items-center justify-between">
+                <span class="text-[11px] font-bold text-inkMuted dark:text-white/60">Apuesta</span>
+                <div class="inline-flex items-center gap-1">
+                  <button type="button" data-sk="bid" data-idx="${pIdx}" data-delta="-1" class="btn-tap w-7 h-7 rounded-lg bg-white dark:bg-surfaceDarkAlt border border-black/[0.08] dark:border-white/12 font-bold text-sm">−</button>
+                  <span class="w-5 text-center text-xs font-extrabold tabular-nums">${rd.bid}</span>
+                  <button type="button" data-sk="bid" data-idx="${pIdx}" data-delta="1" class="btn-tap w-7 h-7 rounded-lg bg-white dark:bg-surfaceDarkAlt border border-black/[0.08] dark:border-white/12 font-bold text-sm">+</button>
+                </div>
+              </div>
+
+              <div class="p-2 rounded-xl bg-canvas/80 dark:bg-surfaceDark border border-black/[0.06] dark:border-white/10 flex items-center justify-between">
+                <span class="text-[11px] font-bold text-inkMuted dark:text-white/60">Bazas</span>
+                <div class="inline-flex items-center gap-1">
+                  <button type="button" data-sk="won" data-idx="${pIdx}" data-delta="-1" class="btn-tap w-7 h-7 rounded-lg bg-white dark:bg-surfaceDarkAlt border border-black/[0.08] dark:border-white/12 font-bold text-sm">−</button>
+                  <span class="w-5 text-center text-xs font-extrabold tabular-nums">${rd.won}</span>
+                  <button type="button" data-sk="won" data-idx="${pIdx}" data-delta="1" class="btn-tap w-7 h-7 rounded-lg bg-white dark:bg-surfaceDarkAlt border border-black/[0.08] dark:border-white/12 font-bold text-sm">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-2 flex items-center justify-between gap-1.5 flex-wrap">
+              <div class="flex items-center gap-1 flex-wrap">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/50">Bonus${rd.bonus ? ` (+${rd.bonus})` : ''}:</span>
+                ${[10, 20, 30, 40].map((b) => `
+                  <button type="button" data-sk="bonus" data-idx="${pIdx}" data-delta="${b}" ${missed ? 'disabled' : ''}
+                    class="btn-tap px-1.5 py-0.5 rounded-lg text-[10.5px] font-bold border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300 disabled:opacity-35">+${b}</button>
+                `).join('')}
+                ${rd.bonus > 0 ? `<button type="button" data-sk="bonus-clear" data-idx="${pIdx}" class="btn-tap px-1.5 py-0.5 rounded-lg text-[10px] font-bold text-coralBrand">✕</button>` : ''}
+              </div>
+              ${!rd.active ? `
+                <button type="button" data-sk="zero-ok" data-idx="${pIdx}" class="btn-tap px-2 py-0.5 rounded-lg bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-300 text-[10.5px] font-bold">
+                  0/0 ✓ (+${10 * rNum})
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const bodyHtml = `
+        <div class="space-y-3.5">
+          <div class="grid grid-cols-5 gap-1.5">
+            ${roundPills}
+          </div>
+
+          <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.06] dark:border-white/10 text-xs">
+            <span class="font-bold text-ink dark:text-white">Ronda ${rNum} · ${rNum} ${rNum === 1 ? 'carta' : 'cartas'}</span>
+            <span class="font-extrabold tabular-nums ${anyActiveInRound && tricksSum === rNum ? 'text-emeraldBrand dark:text-emerald-400' : 'text-inkMuted dark:text-white/60'}">
+              Bazas: ${tricksSum}/${rNum}
+            </span>
+          </div>
+
+          <div class="space-y-2.5">
+            ${playerCards}
+          </div>
+
+          ${rIdx < 9 ? `
+            <button type="button" data-sk="next-round" class="btn-tap w-full py-2.5 rounded-xl bg-[#1E293B] text-white text-xs font-extrabold">
+              Pasar a Ronda ${rNum + 1} →
+            </button>
+          ` : ''}
+        </div>
+      `;
+
+      openModal({
+        title: 'Skull King — 10 Rondas',
+        subtitle: 'Acertar = +20/baza (+bonus) · Cero = ±10×ronda · Fallo = −10/dif.',
+        bodyHtml,
+        actions: [
+          {
+            label: 'Reiniciar',
+            keepOpen: true,
+            onClick: () => {
+              skullKingState = null;
+              openSkullKingScorer();
+            },
+          },
+          {
+            label: 'Pasar totales al registro',
+            className: 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emeraldBrand text-white',
+            onClick: () => {
+              const fin = calcSkullKingTotals();
+              fin.forEach((tot, idx) => {
+                if (draft.players[idx]) draft.players[idx].score = String(tot);
+              });
+              draft.manualWinnerOverride = false;
+              syncAutoWinners();
+              saveDraftLocal();
+              renderLogTab();
+              showToast('Totales de Skull King pasados al registro', 'success');
+            },
+          },
+        ],
+      });
+
+      document.getElementById('modal-body').onclick = (e) => {
+        const el = e.target.closest('[data-sk]');
+        if (!el) return;
+        const act = el.dataset.sk;
+        if (act === 'round') {
+          skullKingState.roundIdx = Number(el.dataset.val);
+          renderSkullKingModal();
+        } else if (act === 'next-round') {
+          skullKingState.roundIdx = Math.min(9, skullKingState.roundIdx + 1);
+          renderSkullKingModal();
+        } else if (act === 'bid' || act === 'won') {
+          const pIdx = Number(el.dataset.idx);
+          const delta = Number(el.dataset.delta);
+          const rd = skullKingState.players[pIdx].rounds[skullKingState.roundIdx];
+          rd.active = true;
+          rd[act] = Math.max(0, Math.min(skullKingState.roundIdx + 1, rd[act] + delta));
+          renderSkullKingModal();
+        } else if (act === 'zero-ok') {
+          const pIdx = Number(el.dataset.idx);
+          const rd = skullKingState.players[pIdx].rounds[skullKingState.roundIdx];
+          rd.active = true;
+          rd.bid = 0;
+          rd.won = 0;
+          renderSkullKingModal();
+        } else if (act === 'bonus') {
+          const pIdx = Number(el.dataset.idx);
+          const delta = Number(el.dataset.delta);
+          const rd = skullKingState.players[pIdx].rounds[skullKingState.roundIdx];
+          rd.active = true;
+          rd.bonus = Math.max(0, rd.bonus + delta);
+          renderSkullKingModal();
+        } else if (act === 'bonus-clear') {
+          const pIdx = Number(el.dataset.idx);
+          skullKingState.players[pIdx].rounds[skullKingState.roundIdx].bonus = 0;
+          renderSkullKingModal();
+        }
+      };
+    }
+
+    // -------------------------------------------------------------------------
+    // MARCADOR EN VIVO: FARAWAY (8 REGIONES EN ORDEN INVERSO 8 → 1 + SANTUARIOS)
+    // -------------------------------------------------------------------------
+    function openFarawayScorer() {
+      const names = draft.players.map((p, i) => p.name.trim() || `Jugador ${i + 1}`);
+      if (!farawayState || farawayState.players.length !== names.length) {
+        farawayState = {
+          activeIdx: 0,
+          players: names.map((name) => ({
+            name,
+            // Índices 0..7 corresponden a Carta 8 down to Carta 1 en orden de puntuación
+            cards: [0, 0, 0, 0, 0, 0, 0, 0],
+            sanctuaries: 0,
+          })),
+        };
+      } else {
+        farawayState.players.forEach((p, i) => { p.name = names[i]; });
+      }
+      renderFarawayModal();
+    }
+
+    function calcFarawayPlayer(p) {
+      const regions = p.cards.reduce((a, b) => a + (Number(b) || 0), 0);
+      const sanct = Number(p.sanctuaries) || 0;
+      return { regions, sanct, total: regions + sanct };
+    }
+
+    function renderFarawayModal() {
+      const pl = farawayState.players[farawayState.activeIdx];
+      const sums = farawayState.players.map(calcFarawayPlayer);
+      const curSum = sums[farawayState.activeIdx];
+
+      const playerStrip = farawayState.players.map((p, i) => {
+        const active = i === farawayState.activeIdx;
+        return `
+          <button type="button" data-fw="player" data-idx="${i}"
+            class="btn-tap shrink-0 min-w-[98px] p-2.5 rounded-2xl border text-left transition-all ${
+              active
+                ? 'bg-[#0284C7] text-white border-[#0284C7] shadow-sm'
+                : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white border-[#E2DACE] dark:border-white/12'
+            }">
+            <div class="text-[11px] font-bold truncate">${esc(p.name)}</div>
+            <div class="font-display text-lg font-extrabold tabular-nums mt-0.5">${sums[i].total} <span class="text-[10px] font-medium opacity-75">pts</span></div>
+          </button>
+        `;
+      }).join('');
+
+      const cardSlotsHtml = pl.cards.map((val, idx) => {
+        const cardNum = 8 - idx; // 8, 7, 6, 5, 4, 3, 2, 1
+        return `
+          <div class="flex items-center justify-between gap-2 py-2 border-b border-[#EFEAE0] dark:border-white/8 last:border-0">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-7 h-7 rounded-lg bg-[#0284C7]/12 text-[#0284C7] dark:text-sky-300 font-display font-extrabold text-xs flex items-center justify-center shrink-0 tabular-nums">#${cardNum}</span>
+              <div class="min-w-0">
+                <div class="text-xs font-bold text-ink dark:text-white">Región ${cardNum}</div>
+                <div class="text-[10px] text-inkMuted dark:text-white/50">${idx === 0 ? 'Se revela 1.ª (derecha)' : idx === 7 ? 'Se revela última (izquierda)' : `Paso ${idx + 1} de 8`}</div>
+              </div>
+            </div>
+            <div class="inline-flex items-center gap-1">
+              <button type="button" data-fw="card-step" data-slot="${idx}" data-delta="-1" class="btn-tap w-7 h-8 rounded-lg bg-canvas dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 font-bold text-sm">−</button>
+              <input type="number" inputmode="numeric" data-fw-input="card" data-slot="${idx}" value="${val || ''}" placeholder="0"
+                class="w-12 h-8 text-center input-pro rounded-lg text-xs font-extrabold tabular-nums text-ink dark:text-white outline-none" />
+              <button type="button" data-fw="card-step" data-slot="${idx}" data-delta="1" class="btn-tap w-7 h-8 rounded-lg bg-canvas dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 font-bold text-sm">+</button>
+              <button type="button" data-fw="card-step" data-slot="${idx}" data-delta="5" class="btn-tap px-1.5 h-8 rounded-lg bg-[#0284C7]/12 text-[#0284C7] dark:text-sky-300 text-[10.5px] font-extrabold">+5</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const bodyHtml = `
+        <div class="space-y-3.5">
+          <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
+            ${playerStrip}
+          </div>
+
+          <div class="px-3.5 py-2.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10">
+            <div class="flex items-center justify-between pb-2 mb-1 border-b border-[#EFEAE0] dark:border-white/10">
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Orden inverso (8 → 1)</span>
+              <span id="fw-subtotal-badge" class="text-xs font-extrabold text-[#0284C7] dark:text-sky-300 tabular-nums">Regiones: ${curSum.regions} pts</span>
+            </div>
+            ${cardSlotsHtml}
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-amber-50/80 dark:bg-amber-500/10 border border-amber-300/50 dark:border-amber-400/25 flex items-center justify-between gap-2">
+            <div>
+              <div class="text-xs font-extrabold text-ink dark:text-white">Santuarios</div>
+              <div class="text-[10.5px] text-inkMuted dark:text-white/55">Suma total de cartas de Santuario</div>
+            </div>
+            <div class="inline-flex items-center gap-1">
+              <button type="button" data-fw="sanct-step" data-delta="-1" class="btn-tap w-7 h-8 rounded-lg bg-white dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 font-bold text-sm">−</button>
+              <input type="number" inputmode="numeric" data-fw-input="sanct" value="${pl.sanctuaries || ''}" placeholder="0"
+                class="w-12 h-8 text-center bg-white dark:bg-surfaceDark border border-black/[0.1] dark:border-white/15 rounded-lg text-xs font-extrabold tabular-nums text-ink dark:text-white outline-none" />
+              <button type="button" data-fw="sanct-step" data-delta="1" class="btn-tap w-7 h-8 rounded-lg bg-white dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 font-bold text-sm">+</button>
+              <button type="button" data-fw="sanct-step" data-delta="5" class="btn-tap px-1.5 h-8 rounded-lg bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[10.5px] font-extrabold">+5</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      openModal({
+        title: 'Faraway — Recuento Inverso',
+        subtitle: 'Ve revelando de derecha (8) a izquierda (1) y suma los Santuarios',
+        bodyHtml,
+        actions: [
+          {
+            label: 'Reiniciar',
+            keepOpen: true,
+            onClick: () => {
+              farawayState = null;
+              openFarawayScorer();
+            },
+          },
+          {
+            label: 'Pasar totales al registro',
+            className: 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emeraldBrand text-white',
+            onClick: () => {
+              farawayState.players.forEach((p, idx) => {
+                if (draft.players[idx]) draft.players[idx].score = String(calcFarawayPlayer(p).total);
+              });
+              draft.manualWinnerOverride = false;
+              syncAutoWinners();
+              saveDraftLocal();
+              renderLogTab();
+              showToast('Totales de Faraway pasados al registro', 'success');
+            },
+          },
+        ],
+      });
+
+      const bodyEl = document.getElementById('modal-body');
+      bodyEl.onclick = (e) => {
+        const el = e.target.closest('[data-fw]');
+        if (!el) return;
+        const act = el.dataset.fw;
+        if (act === 'player') {
+          farawayState.activeIdx = Number(el.dataset.idx);
+          renderFarawayModal();
+        } else if (act === 'card-step') {
+          const slot = Number(el.dataset.slot);
+          const delta = Number(el.dataset.delta);
+          const cur = farawayState.players[farawayState.activeIdx].cards[slot] || 0;
+          farawayState.players[farawayState.activeIdx].cards[slot] = Math.max(0, cur + delta);
+          renderFarawayModal();
+        } else if (act === 'sanct-step') {
+          const delta = Number(el.dataset.delta);
+          const cur = farawayState.players[farawayState.activeIdx].sanctuaries || 0;
+          farawayState.players[farawayState.activeIdx].sanctuaries = Math.max(0, cur + delta);
+          renderFarawayModal();
+        }
+      };
+
+      bodyEl.querySelectorAll('[data-fw-input]').forEach((inp) => {
+        inp.addEventListener('input', (e) => {
+          const kind = e.target.dataset.fwInput;
+          const val = Math.max(0, Number(e.target.value) || 0);
+          const p = farawayState.players[farawayState.activeIdx];
+          if (kind === 'card') {
+            p.cards[Number(e.target.dataset.slot)] = val;
+          } else {
+            p.sanctuaries = val;
+          }
+          const updated = calcFarawayPlayer(p);
+          const subEl = document.getElementById('fw-subtotal-badge');
+          if (subEl) subEl.textContent = `Regiones: ${updated.regions} pts`;
+          const activeBtn = bodyEl.querySelector(`[data-fw="player"][data-idx="${farawayState.activeIdx}"] .font-display`);
+          if (activeBtn) activeBtn.innerHTML = `${updated.total} <span class="text-[10px] font-medium opacity-75">pts</span>`;
+        });
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // MARCADOR EN VIVO: ODÍN (RONDAS HASTA 15 PTS · GANA EL MENOR PUNTAJE)
+    // -------------------------------------------------------------------------
+    function openOdinScorer() {
+      const names = draft.players.map((p, i) => p.name.trim() || `Jugador ${i + 1}`);
+      if (!odinState || odinState.players.length !== names.length) {
+        odinState = {
+          players: names.map((name) => ({ name, rounds: [], pending: 0 })),
+        };
+      } else {
+        odinState.players.forEach((p, i) => { p.name = names[i]; });
+      }
+      renderOdinModal();
+    }
+
+    function renderOdinModal() {
+      const totals = odinState.players.map((p) => p.rounds.reduce((a, b) => a + b, 0));
+      const maxTot = Math.max(0, ...totals);
+      const minTot = totals.length > 0 ? Math.min(...totals) : 0;
+      const roundsPlayed = odinState.players[0]?.rounds.length || 0;
+      const gameEnded = maxTot >= 15;
+
+      const playerStrip = odinState.players.map((p, i) => {
+        const tot = totals[i];
+        const pct = Math.min(100, Math.round((tot / 15) * 100));
+        const isLeader = roundsPlayed > 0 && tot === minTot;
+        const hitLimit = tot >= 15;
+        return `
+          <div class="shrink-0 min-w-[104px] p-2.5 rounded-2xl border ${
+            isLeader
+              ? 'bg-gradient-to-br from-[#4F46E5] to-[#312E81] text-white border-transparent shadow-sm'
+              : hitLimit
+                ? 'bg-coralBrand/10 border-coralBrand/40 text-ink dark:text-white'
+                : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white border-[#E2DACE] dark:border-white/12'
+          }">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-xs font-bold truncate">${esc(p.name)}</span>
+              ${isLeader ? `<span class="text-amber-300 text-xs">★</span>` : ''}
+            </div>
+            <div class="mt-1 flex items-baseline justify-between">
+              <span class="font-display text-lg font-extrabold tabular-nums">${tot}</span>
+              <span class="text-[10px] opacity-75">/ 15</span>
+            </div>
+            <div class="mt-1.5 h-1.5 rounded-full overflow-hidden ${isLeader ? 'bg-white/25' : 'bg-black/8 dark:bg-white/10'}">
+              <div class="h-full rounded-full ${hitLimit ? 'bg-coralBrand' : (isLeader ? 'bg-emerald-300' : 'bg-[#4F46E5]')}" style="width:${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const roundInputRows = odinState.players.map((p, i) => `
+        <div class="p-2.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-extrabold text-ink dark:text-white truncate">${esc(p.name)}</span>
+            <span class="text-xs font-extrabold tabular-nums ${p.pending === 0 ? 'text-emeraldBrand dark:text-emerald-400' : 'text-[#4F46E5] dark:text-indigo-300'}">
+              ${p.pending === 0 ? '0 (Ganó ronda)' : `+${p.pending} ${p.pending === 1 ? 'carta' : 'cartas'}`}
+            </span>
+          </div>
+          <div class="grid grid-cols-7 gap-1">
+            ${[0, 1, 2, 3, 4, 5].map((n) => `
+              <button type="button" data-od="set-pending" data-idx="${i}" data-val="${n}"
+                class="btn-tap h-8 rounded-lg text-xs font-extrabold tabular-nums border ${
+                  p.pending === n
+                    ? (n === 0 ? 'bg-emeraldBrand text-white border-emeraldBrand' : 'bg-[#4F46E5] text-white border-[#4F46E5]')
+                    : 'bg-canvas dark:bg-surfaceDark text-ink dark:text-white/80 border-black/[0.07] dark:border-white/10'
+                }">${n}</button>
+            `).join('')}
+            <button type="button" data-od="inc-pending" data-idx="${i}"
+              class="btn-tap h-8 rounded-lg text-xs font-extrabold border bg-canvas dark:bg-surfaceDark text-ink dark:text-white border-black/[0.07] dark:border-white/10">+1</button>
+          </div>
+        </div>
+      `).join('');
+
+      const bodyHtml = `
+        <div class="space-y-3.5">
+          ${gameEnded ? `<div class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/35 text-amber-800 dark:text-amber-200 text-xs font-bold text-center">¡Alguien llegó a 15+ pts! Partida terminada · gana quien tenga MENOS puntos.</div>` : ''}
+
+          <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
+            ${playerStrip}
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between px-0.5">
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Cartas restantes — Ronda ${roundsPlayed + 1}</span>
+              ${roundsPlayed > 0 ? `<button type="button" data-od="undo" class="btn-tap text-xs font-bold text-coralBrand">Deshacer R${roundsPlayed}</button>` : ''}
+            </div>
+            ${roundInputRows}
+          </div>
+
+          <button type="button" data-od="commit-round" class="btn-tap w-full py-2.5 rounded-xl bg-[#4F46E5] text-white text-xs font-extrabold shadow-xs">
+            Registrar Ronda ${roundsPlayed + 1}
+          </button>
+        </div>
+      `;
+
+      openModal({
+        title: 'Odín — Marcador de Rondas',
+        subtitle: '1 punto por cada carta en mano · termina al llegar a 15 (gana el menor)',
+        bodyHtml,
+        actions: [
+          {
+            label: 'Reiniciar',
+            keepOpen: true,
+            onClick: () => {
+              odinState = null;
+              openOdinScorer();
+            },
+          },
+          {
+            label: 'Pasar totales al registro',
+            className: 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emeraldBrand text-white',
+            onClick: () => {
+              odinState.players.forEach((p, idx) => {
+                if (draft.players[idx]) draft.players[idx].score = String(p.rounds.reduce((a, b) => a + b, 0));
+              });
+              draft.manualWinnerOverride = false;
+              syncAutoWinners();
+              saveDraftLocal();
+              renderLogTab();
+              showToast('Totales de Odín pasados al registro (gana el menor)', 'success');
+            },
+          },
+        ],
+      });
+
+      document.getElementById('modal-body').onclick = (e) => {
+        const el = e.target.closest('[data-od]');
+        if (!el) return;
+        const act = el.dataset.od;
+        if (act === 'set-pending') {
+          odinState.players[Number(el.dataset.idx)].pending = Number(el.dataset.val);
+          renderOdinModal();
+        } else if (act === 'inc-pending') {
+          const p = odinState.players[Number(el.dataset.idx)];
+          p.pending = Math.min(15, (p.pending || 0) + 1);
+          renderOdinModal();
+        } else if (act === 'commit-round') {
+          odinState.players.forEach((p) => {
+            p.rounds.push(Number(p.pending) || 0);
+            p.pending = 0;
+          });
+          renderOdinModal();
+        } else if (act === 'undo') {
+          odinState.players.forEach((p) => { p.rounds.pop(); });
+          renderOdinModal();
+        }
+      };
+    }
+
     // =========================================================================
     // 11. TAB 2: HISTORIAL CON FILTROS Y TARJETAS EXPANDIBLES
     // =========================================================================
@@ -2632,7 +3376,8 @@
             st.curStreak = 0;
           }
 
-          if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
+          const matchGameObj = getGameById(m.gameId);
+          if (p.score !== null && p.score !== undefined && !isNaN(p.score) && !matchGameObj.lowestWins) {
             const sc = Number(p.score);
             st.totalPoints += sc;
             st.scoredPlays += 1;
@@ -2831,7 +3576,7 @@
               if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
                 const sc = Number(p.score);
                 gp[name].scores.push(sc);
-                if (!gameRecord || sc > gameRecord.score) {
+                if (!gameRecord || (g.lowestWins ? sc < gameRecord.score : sc > gameRecord.score)) {
                   gameRecord = { score: sc, holders: [name], date: formatDisplayDate(m.date, m.createdAtMs) };
                 } else if (sc === gameRecord.score && !gameRecord.holders.includes(name)) {
                   gameRecord.holders.push(name);
@@ -2865,12 +3610,12 @@
             });
           }
 
-          // Insignia 2 del juego: Más puntos en una partida (si es por puntos)
+          // Insignia 2 del juego: Récord de puntos en una partida
           if (g.scoringType === 'points' && gameRecord) {
             badges.push({
               id: `${gid}_record`,
               title: `Récord de ${g.name}`,
-              subtitle: 'Más puntos en una partida',
+              subtitle: g.lowestWins ? 'Menor puntuación en una partida' : 'Más puntos en una partida',
               tier: 'gold',
               symbol: 'trophy',
               holders: gameRecord.holders,
@@ -2882,11 +3627,14 @@
           // Insignia 3 del juego: Mejor media (cuando hay al menos 2 partidas con puntos)
           const scoredPlayers = gpList.filter((x) => x.scores.length >= 2);
           if (g.scoringType === 'points' && scoredPlayers.length > 0) {
-            const bestAvg = topHolders(
-              scoredPlayers,
-              (x) => Number((x.scores.reduce((a, b) => a + b, 0) / x.scores.length).toFixed(1)),
-              1
-            );
+            const avgVal = (x) => Number((x.scores.reduce((a, b) => a + b, 0) / x.scores.length).toFixed(1));
+            let bestAvg = null;
+            if (g.lowestWins) {
+              const minAvg = Math.min(...scoredPlayers.map(avgVal));
+              bestAvg = { value: minAvg, holders: scoredPlayers.filter((x) => avgVal(x) === minAvg).map((x) => x.name) };
+            } else {
+              bestAvg = topHolders(scoredPlayers, avgVal, 1);
+            }
             if (bestAvg) {
               badges.push({
                 id: `${gid}_avg`,
@@ -3194,6 +3942,8 @@
       const totalMins = subset.reduce((a, m) => a + (Number(m.duration) || 0), 0);
       const totalHours = (totalMins / 60).toFixed(1);
 
+      const isLowestWinsFilter = uiState.statsFilterGame !== 'all' && Boolean(getGameById(uiState.statsFilterGame).lowestWins);
+
       // Agregado por jugador
       const playerMap = {};
       subset.forEach((m) => {
@@ -3201,14 +3951,15 @@
           const name = (p.name || '').trim();
           if (!name) return;
           if (!playerMap[name]) {
-            playerMap[name] = { name, plays: 0, wins: 0, scores: [], bestScore: -Infinity, byGame: {} };
+            playerMap[name] = { name, plays: 0, wins: 0, scores: [], bestScore: isLowestWinsFilter ? Infinity : -Infinity, byGame: {} };
           }
           const st = playerMap[name];
           st.plays += 1;
           if (p.winner) st.wins += 1;
           if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
-            st.scores.push(Number(p.score));
-            if (Number(p.score) > st.bestScore) st.bestScore = Number(p.score);
+            const sc = Number(p.score);
+            st.scores.push(sc);
+            if (isLowestWinsFilter ? sc < st.bestScore : sc > st.bestScore) st.bestScore = sc;
           }
           st.byGame[m.gameName] = (st.byGame[m.gameName] || 0) + 1;
         });
@@ -3221,13 +3972,16 @@
         return { ...st, winRate, avg, favGame };
       }).sort((a, b) => (b.wins - a.wins) || (b.winRate - a.winRate) || (b.plays - a.plays));
 
-      // Récord de puntuación del filtro
+      // Récord de puntuación del filtro (excluye juegos lowestWins del récord global de puntos altos)
       let recordEntry = null;
       subset.forEach((m) => {
+        const mg = getGameById(m.gameId);
+        if (uiState.statsFilterGame === 'all' && mg.lowestWins) return;
         (m.players || []).forEach((p) => {
           if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
-            if (!recordEntry || Number(p.score) > recordEntry.score) {
-              recordEntry = { score: Number(p.score), player: p.name, game: m.gameName };
+            const sc = Number(p.score);
+            if (!recordEntry || (isLowestWinsFilter ? sc < recordEntry.score : sc > recordEntry.score)) {
+              recordEntry = { score: sc, player: p.name, game: m.gameName };
             }
           }
         });
@@ -3292,6 +4046,19 @@
           labels: Object.keys(counts),
           values: Object.values(counts),
           colors: ['#2563EB', '#D9911E', '#7C3AED'],
+        };
+      } else if (selectedGameObj && selectedGameObj.extraType === 'lotr_duel') {
+        const counts = { 'Anillo / Monte': 0, '6 Pueblos': 0, '7 Regiones': 0 };
+        subset.forEach((m) => {
+          const wt = m.meta?.winType || '';
+          if (counts[wt] !== undefined) counts[wt]++;
+        });
+        extraChartConfig = {
+          type: 'lotr_duel',
+          title: 'Cómo se gana en Lord of the Rings: Duel',
+          labels: Object.keys(counts),
+          values: Object.values(counts),
+          colors: ['#B45309', '#227554', '#7C3AED'],
         };
       } else if (selectedGameObj && selectedGameObj.extraType === 'tfm') {
         const corps = {};
@@ -3533,7 +4300,7 @@
                   </div>
                   <div class="text-right shrink-0">
                     <div class="font-display text-base font-extrabold text-emeraldBrand dark:text-emerald-400 tabular-nums">${st.winRate}%</div>
-                    ${st.bestScore > -Infinity && uiState.statsFilterGame !== 'all' ? `<div class="text-[10px] text-inkMuted dark:text-white/55">Máx ${st.bestScore}</div>` : ''}
+                    ${Number.isFinite(st.bestScore) && uiState.statsFilterGame !== 'all' ? `<div class="text-[10px] text-inkMuted dark:text-white/55">${isLowestWinsFilter ? 'Mín' : 'Máx'} ${st.bestScore}</div>` : ''}
                   </div>
                 </div>
                 <div class="mt-2 h-1.5 w-full rounded-full bg-black/8 dark:bg-white/10 overflow-hidden">
@@ -3560,7 +4327,7 @@
       const isDark = document.documentElement.classList.contains('dark');
       const textColor = isDark ? 'rgba(242, 239, 233, 0.78)' : '#6A655C';
       const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(20, 38, 32, 0.07)';
-      const surfaceBg = isDark ? '#161F1C' : '#FFFFFF';
+      const surfaceBg = isDark ? '#131C19' : '#FFFFFF';
       const tooltipBg = isDark ? '#0D1311' : '#142620';
 
       const commonTooltip = {
@@ -3579,16 +4346,18 @@
       const donutCanvas = document.getElementById('chart-games-donut');
       if (donutCanvas && sortedGamesData.length > 0) {
         const isHours = uiState.statsDonutMode === 'hours';
+        const donutValues = sortedGamesData.map((d) => (isHours ? d.hours : d.count));
+        const activeSlices = donutValues.filter((v) => v > 0).length;
         const ch = new Chart(donutCanvas, {
           type: 'doughnut',
           data: {
             labels: sortedGamesData.map((d) => d.game.name),
             datasets: [{
-              data: sortedGamesData.map((d) => (isHours ? d.hours : d.count)),
+              data: donutValues,
               backgroundColor: sortedGamesData.map((d) => d.game.color),
               borderColor: surfaceBg,
-              borderWidth: 3,
-              hoverOffset: 6,
+              borderWidth: activeSlices > 1 ? 3 : 0,
+              hoverOffset: activeSlices > 1 ? 6 : 0,
             }],
           },
           options: {
@@ -3760,10 +4529,11 @@
         activeChartInstances.push(ch);
       }
 
-      // 4. Gráfica extra por juego (Splendor Duel / Terraforming Mars)
+      // 4. Gráfica extra por juego (Splendor Duel / LOTR Duel / Terraforming Mars)
       const extraCanvas = document.getElementById('chart-game-extra');
       if (extraCanvas && extraChartConfig) {
-        if (extraChartConfig.type === 'splendor') {
+        if (extraChartConfig.type === 'splendor' || extraChartConfig.type === 'lotr_duel') {
+          const activeExtraSlices = extraChartConfig.values.filter((v) => v > 0).length;
           const ch = new Chart(extraCanvas, {
             type: 'doughnut',
             data: {
@@ -3772,8 +4542,8 @@
                 data: extraChartConfig.values,
                 backgroundColor: extraChartConfig.colors,
                 borderColor: surfaceBg,
-                borderWidth: 3,
-                hoverOffset: 5,
+                borderWidth: activeExtraSlices > 1 ? 3 : 0,
+                hoverOffset: activeExtraSlices > 1 ? 5 : 0,
               }],
             },
             options: {
@@ -3831,7 +4601,9 @@
         const lastMatch = gMatches[0] || null;
         let highScore = null;
         gMatches.forEach((m) => {
-          if (m.topScore !== null && (highScore === null || m.topScore > highScore)) highScore = m.topScore;
+          if (m.topScore !== null && (highScore === null || (g.lowestWins ? m.topScore < highScore : m.topScore > highScore))) {
+            highScore = m.topScore;
+          }
         });
 
         return `
@@ -4281,8 +5053,12 @@
             break;
           }
           case 'open-quick-calc': {
-            if (el.dataset.calc === 'flip7') openFlip7Scorer();
-            else if (el.dataset.calc === 'sushigo') openSushiGoScorer();
+            const c = el.dataset.calc;
+            if (c === 'flip7') openFlip7Scorer();
+            else if (c === 'sushigo') openSushiGoScorer();
+            else if (c === 'skullking') openSkullKingScorer();
+            else if (c === 'faraway') openFarawayScorer();
+            else if (c === 'odin') openOdinScorer();
             break;
           }
           case 'open-quick-calc-for': {
@@ -4291,8 +5067,12 @@
             draft.duration = g.defaultDuration || 20;
             saveDraftLocal();
             switchTab('log');
-            if (el.dataset.calc === 'flip7') openFlip7Scorer();
-            else if (el.dataset.calc === 'sushigo') openSushiGoScorer();
+            const c = el.dataset.calc;
+            if (c === 'flip7') openFlip7Scorer();
+            else if (c === 'sushigo') openSushiGoScorer();
+            else if (c === 'skullking') openSkullKingScorer();
+            else if (c === 'faraway') openFarawayScorer();
+            else if (c === 'odin') openOdinScorer();
             break;
           }
           case 'add-draft-player': {
