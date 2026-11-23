@@ -40,22 +40,22 @@
             display: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
           },
           colors: {
-            canvas: '#F6F3EC',
-            canvasDark: '#0D1311',
+            canvas: '#F4F0E8',
+            canvasDark: '#0A100E',
             surface: '#FFFFFF',
-            surfaceDark: '#161F1C',
-            surfaceDarkAlt: '#1D2925',
-            ink: '#1C1B18',
-            inkMuted: '#6A655C',
-            pine: '#142620',
-            pineMid: '#1F3D33',
-            emeraldBrand: '#2B7A58',
-            goldBrand: '#D9911E',
+            surfaceDark: '#131C19',
+            surfaceDarkAlt: '#1A2622',
+            ink: '#181715',
+            inkMuted: '#6D685F',
+            pine: '#12241E',
+            pineMid: '#1C382F',
+            emeraldBrand: '#227554',
+            goldBrand: '#D48A17',
             coralBrand: '#D04E36',
           },
           boxShadow: {
-            soft: '0 2px 12px -2px rgba(20, 38, 32, 0.06), 0 1px 3px rgba(20, 38, 32, 0.04)',
-            elevated: '0 12px 32px -6px rgba(20, 38, 32, 0.16), 0 4px 10px -2px rgba(20, 38, 32, 0.06)',
+            soft: '0 1px 2px rgba(18, 36, 30, 0.04), 0 8px 24px -10px rgba(18, 36, 30, 0.08)',
+            elevated: '0 14px 34px -8px rgba(18, 36, 30, 0.18), 0 4px 12px -3px rgba(18, 36, 30, 0.06)',
             dock: '0 10px 30px -4px rgba(15, 25, 22, 0.22), 0 2px 8px rgba(15, 25, 22, 0.08)',
           },
         },
@@ -79,35 +79,37 @@
     }
 
     body {
-      background-color: #F6F3EC;
-      color: #1C1B18;
+      background-color: #F4F0E8;
+      color: #181715;
     }
 
     html.dark body {
-      background-color: #0D1311;
+      background-color: #0A100E;
       color: #F2EFE9;
     }
 
-    /* App Shell fijo: evita que la barra inferior flote o tape el contenido en iOS Safari */
+    /* App Shell fijo: scroll interno limpio, cero bugs de solapamiento en iOS Safari */
     #app-bg {
       position: fixed;
       inset: 0;
+      height: 100%;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      background-color: #F6F3EC;
+      background-color: #F4F0E8;
       background-image:
-        radial-gradient(at 10% 0%, rgba(43, 122, 88, 0.09) 0px, transparent 42%),
-        radial-gradient(at 92% 8%, rgba(217, 145, 30, 0.08) 0px, transparent 40%),
-        radial-gradient(at 50% 95%, rgba(37, 99, 235, 0.05) 0px, transparent 50%);
+        radial-gradient(at 8% 0%, rgba(34, 117, 84, 0.10) 0px, transparent 44%),
+        radial-gradient(at 94% 6%, rgba(212, 138, 23, 0.09) 0px, transparent 40%),
+        radial-gradient(at 50% 100%, rgba(37, 99, 235, 0.05) 0px, transparent 52%);
     }
 
     html.dark #app-bg {
-      background-color: #0D1311;
+      background-color: #0A100E;
       background-image:
-        radial-gradient(at 10% 0%, rgba(43, 122, 88, 0.18) 0px, transparent 45%),
-        radial-gradient(at 92% 10%, rgba(217, 145, 30, 0.12) 0px, transparent 42%),
-        radial-gradient(at 50% 95%, rgba(124, 58, 237, 0.09) 0px, transparent 50%);
+        radial-gradient(at 10% 0%, rgba(34, 117, 84, 0.20) 0px, transparent 46%),
+        radial-gradient(at 92% 8%, rgba(212, 138, 23, 0.12) 0px, transparent 42%),
+        radial-gradient(at 50% 100%, rgba(124, 58, 237, 0.10) 0px, transparent 52%);
     }
 
     #main-scroll {
@@ -115,12 +117,163 @@
       overscroll-behavior-y: contain;
     }
 
-    .safe-top {
-      padding-top: calc(0.7rem + var(--safe-top));
+    /* Cabecera compacta de lujo */
+    .header-pro {
+      padding-top: calc(0.55rem + var(--safe-top));
+      background: linear-gradient(135deg, #0E1D18 0%, #173229 58%, #10241D 100%);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07), 0 8px 24px -12px rgba(0, 0, 0, 0.35);
+    }
+    html.dark .header-pro {
+      background: linear-gradient(135deg, #0B1512 0%, #12241E 58%, #0C1814 100%);
     }
 
-    .safe-bottom-bar {
-      padding-bottom: calc(0.45rem + var(--safe-bottom));
+    /* Barra inferior ultra-fina estilo iOS nativo (compacta y limpia) */
+    #bottom-nav {
+      background-color: #FAF8F4;
+      border-top: 1px solid rgba(24, 23, 21, 0.07);
+      padding-bottom: max(0.22rem, calc(var(--safe-bottom) * 0.52));
+      box-shadow: 0 -6px 20px -12px rgba(18, 36, 30, 0.10);
+    }
+    html.dark #bottom-nav {
+      background-color: #0F1714;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: 0 -6px 20px -10px rgba(0, 0, 0, 0.55);
+    }
+
+    .nav-btn {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 5px 4px 3px;
+      border-radius: 12px;
+      color: rgba(109, 104, 95, 0.82);
+      transition: color 0.18s ease, transform 0.13s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    html.dark .nav-btn {
+      color: rgba(242, 239, 233, 0.45);
+    }
+    .nav-btn:hover {
+      color: #181715;
+    }
+    html.dark .nav-btn:hover {
+      color: rgba(242, 239, 233, 0.85);
+    }
+    .nav-btn .nav-ind {
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      width: 24px;
+      height: 2.5px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #227554, #D48A17);
+      transform: translateX(-50%) scaleX(0);
+      opacity: 0;
+      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+    }
+    .nav-btn .nav-icon-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 24px;
+      border-radius: 999px;
+      transition: background-color 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .nav-btn.is-active {
+      color: #12241E;
+    }
+    html.dark .nav-btn.is-active {
+      color: #34D399;
+    }
+    .nav-btn.is-active .nav-ind {
+      transform: translateX(-50%) scaleX(1);
+      opacity: 1;
+    }
+    .nav-btn.is-active .nav-icon-wrap {
+      background-color: rgba(34, 117, 84, 0.12);
+    }
+    html.dark .nav-btn.is-active .nav-icon-wrap {
+      background-color: rgba(52, 211, 153, 0.15);
+    }
+    @media (min-width: 640px) {
+      .nav-btn {
+        flex-direction: row;
+        gap: 6px;
+        padding: 7px 10px;
+      }
+      .nav-btn .nav-icon-wrap {
+        width: 26px;
+        height: 24px;
+      }
+    }
+
+    /* Superficie editorial para tarjetas */
+    .card-pro {
+      background-color: #FFFFFF;
+      border: 1px solid rgba(24, 23, 21, 0.075);
+      box-shadow: 0 1px 2px rgba(18, 36, 30, 0.04), 0 10px 26px -14px rgba(18, 36, 30, 0.11);
+    }
+    html.dark .card-pro {
+      background-color: #131C19;
+      border: 1px solid rgba(255, 255, 255, 0.075);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 28px -12px rgba(0, 0, 0, 0.55);
+    }
+
+    /* Textura sutil geométrica sobre cabeceras de juego */
+    .cover-sheen {
+      position: relative;
+      overflow: hidden;
+    }
+    .cover-sheen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.24) 0%, transparent 48%),
+        radial-gradient(circle at 10% 95%, rgba(0, 0, 0, 0.18) 0%, transparent 45%);
+      pointer-events: none;
+    }
+    .cover-sheen::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.08;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1px);
+      background-size: 14px 14px;
+      pointer-events: none;
+    }
+
+    /* Botón principal premium con brillo superior sutil */
+    .btn-primary-pro {
+      background: linear-gradient(135deg, #132821 0%, #227554 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 10px 22px -8px rgba(19, 40, 33, 0.48);
+    }
+    .btn-primary-pro:hover:not(:disabled) {
+      filter: brightness(1.06);
+    }
+
+    /* Chips e inputs refinados */
+    .input-pro {
+      background-color: #F7F4EE;
+      border: 1px solid rgba(24, 23, 21, 0.09);
+      transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+    }
+    .input-pro:focus {
+      background-color: #FFFFFF;
+      border-color: #227554;
+      box-shadow: 0 0 0 3px rgba(34, 117, 84, 0.14);
+    }
+    html.dark .input-pro {
+      background-color: #1A2622;
+      border-color: rgba(255, 255, 255, 0.10);
+    }
+    html.dark .input-pro:focus {
+      background-color: #1E2D28;
+      border-color: #34D399;
+      box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.14);
     }
 
     button, input, select, textarea, label, a {
@@ -132,26 +285,26 @@
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     .btn-tap {
-      transition: transform 0.13s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, opacity 0.15s ease;
+      transition: transform 0.13s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, opacity 0.15s ease, filter 0.16s ease;
     }
     .btn-tap:active:not(:disabled) {
-      transform: scale(0.95);
+      transform: scale(0.96);
     }
 
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(8px); }
+      from { opacity: 0; transform: translateY(7px); }
       to { opacity: 1; transform: translateY(0); }
     }
     .anim-in {
-      animation: fadeUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: fadeUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     @keyframes sheetSlideUp {
-      from { opacity: 0; transform: translateY(28px) scale(0.98); }
+      from { opacity: 0; transform: translateY(26px) scale(0.985); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
     .anim-sheet {
-      animation: sheetSlideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: sheetSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     @keyframes spin {
@@ -169,45 +322,37 @@
     input[type="number"] {
       -moz-appearance: textfield;
     }
-
-    /* Barra inferior anclada con sombra sutil hacia arriba */
-    .docked-nav-shadow {
-      box-shadow: 0 -4px 20px -6px rgba(20, 38, 32, 0.09);
-    }
-    html.dark .docked-nav-shadow {
-      box-shadow: 0 -4px 20px -6px rgba(0, 0, 0, 0.45);
-    }
   </style>
 </head>
 <body class="font-sans antialiased selection:bg-emeraldBrand/20">
 
   <div id="app-bg">
 
-    <!-- ==================== TOP BAR (ANCLADA ARRIBA, ZONA SEGURA iOS) ==================== -->
-    <header class="shrink-0 z-20 bg-pine dark:bg-[#0F1815] text-white border-b border-white/10 safe-top shadow-sm">
-      <div class="max-w-4xl mx-auto px-4 pb-3 flex items-center justify-between gap-3">
+    <!-- ==================== TOP BAR COMPACTA DE LUJO ==================== -->
+    <header class="shrink-0 z-20 header-pro text-white">
+      <div class="max-w-4xl mx-auto px-4 pb-2.5 flex items-center justify-between gap-3">
         <!-- Brand -->
         <div class="flex items-center gap-2.5 min-w-0">
-          <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-emerald-400/25 via-amber-400/20 to-white/10 border border-white/20 flex items-center justify-center shrink-0 shadow-sm">
-            <svg class="w-5 h-5" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-              <polygon points="14,2 25,8.2 25,19.8 14,26 3,19.8 3,8.2" fill="rgba(255,255,255,0.12)" stroke="#F6F3EC" stroke-width="1.6"/>
-              <circle cx="10.2" cy="11.2" r="2.1" fill="#FBBF24"/>
-              <circle cx="17.8" cy="11.2" r="2.1" fill="#34D399"/>
+          <div class="w-8 h-8 rounded-[11px] bg-gradient-to-br from-emerald-400/30 via-amber-400/20 to-white/10 border border-white/20 flex items-center justify-center shrink-0 shadow-sm">
+            <svg class="w-[18px] h-[18px]" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+              <polygon points="14,2 25,8.2 25,19.8 14,26 3,19.8 3,8.2" fill="rgba(255,255,255,0.14)" stroke="#F6F3EC" stroke-width="1.7"/>
+              <circle cx="10.2" cy="11.2" r="2.2" fill="#FBBF24"/>
+              <circle cx="17.8" cy="11.2" r="2.2" fill="#34D399"/>
               <circle cx="14" cy="17.5" r="2.3" fill="#FB7185"/>
             </svg>
           </div>
           <div class="min-w-0">
-            <h1 class="font-display text-base sm:text-lg font-extrabold tracking-tight leading-none truncate">Ludoteca</h1>
-            <p id="header-subtitle" class="text-[11px] font-medium text-white/65 mt-0.5 truncate">Diario de Partidas</p>
+            <h1 class="font-display text-[15px] sm:text-base font-extrabold tracking-tight leading-none truncate">Ludoteca</h1>
+            <p id="header-subtitle" class="text-[10.5px] font-medium text-white/60 mt-0.5 truncate">Diario de Partidas</p>
           </div>
         </div>
 
         <!-- Controles: Modo oscuro + Estado Sheets -->
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="flex items-center gap-1.5 shrink-0">
           <button
             id="btn-theme-toggle"
             type="button"
-            class="btn-tap w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white/90"
+            class="btn-tap w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white/90"
             title="Cambiar tema claro/oscuro"
             aria-label="Cambiar tema"
           >
@@ -222,10 +367,10 @@
           <button
             id="btn-sync-settings"
             type="button"
-            class="btn-tap inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold border transition-all bg-white/10 border-white/20 text-white"
+            class="btn-tap inline-flex items-center gap-1.5 pl-2.5 pr-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all bg-white/10 border-white/18 text-white"
             title="Configurar Google Sheets y copia de seguridad"
           >
-            <span id="sync-dot" class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+            <span id="sync-dot" class="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
             <span id="sync-label">Modo local</span>
           </button>
         </div>
@@ -234,7 +379,7 @@
 
     <!-- ==================== MAIN CONTENT (SCROLL INTERNO INDEPENDIENTE) ==================== -->
     <main id="main-scroll" class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-      <div class="max-w-4xl w-full mx-auto px-3.5 sm:px-6 pt-4 pb-8">
+      <div class="max-w-4xl w-full mx-auto px-3.5 sm:px-6 pt-4 pb-6">
         <section id="view-log" class="space-y-4"></section>
         <section id="view-history" class="hidden space-y-4"></section>
         <section id="view-stats" class="hidden space-y-4"></section>
@@ -242,55 +387,70 @@
       </div>
     </main>
 
-    <!-- ==================== BARRA INFERIOR ANCLADA (NO FLOTA NI TAPA CONTENIDO) ==================== -->
-    <nav id="bottom-nav" class="shrink-0 z-20 bg-white dark:bg-surfaceDark border-t border-[#E6DFD2] dark:border-white/10 docked-nav-shadow safe-bottom-bar" aria-label="Navegación principal">
-      <div class="max-w-lg mx-auto px-2.5 pt-1.5 grid grid-cols-4 gap-1">
-        <button type="button" data-nav="log" class="nav-btn btn-tap py-1.5 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>
-          </svg>
-          <span>Registrar</span>
+    <!-- ==================== BARRA INFERIOR ULTRA-FINA ESTILO iOS NATIVO ==================== -->
+    <nav id="bottom-nav" class="shrink-0 z-20" aria-label="Navegación principal">
+      <div class="max-w-md mx-auto px-2 grid grid-cols-4 gap-0.5">
+        <button type="button" data-nav="log" class="nav-btn btn-tap">
+          <span class="nav-ind"></span>
+          <span class="nav-icon-wrap">
+            <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>
+            </svg>
+          </span>
+          <span class="text-[10px] sm:text-xs font-bold tracking-[-0.01em] leading-none">Registrar</span>
         </button>
 
-        <button type="button" data-nav="history" class="nav-btn btn-tap py-1.5 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all relative">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>
-          </svg>
-          <span>Historial</span>
-          <span id="nav-history-badge" class="hidden absolute top-1 right-3 min-w-[16px] h-4 px-1 rounded-full bg-emeraldBrand text-white text-[9px] font-extrabold flex items-center justify-center tabular-nums">0</span>
+        <button type="button" data-nav="history" class="nav-btn btn-tap">
+          <span class="nav-ind"></span>
+          <span class="nav-icon-wrap relative">
+            <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>
+            </svg>
+            <span id="nav-history-badge" class="hidden absolute -top-1 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-emeraldBrand text-white text-[9px] font-extrabold flex items-center justify-center tabular-nums ring-2 ring-[#FAF8F4] dark:ring-[#0F1714]">0</span>
+          </span>
+          <span class="text-[10px] sm:text-xs font-bold tracking-[-0.01em] leading-none">Historial</span>
         </button>
 
-        <button type="button" data-nav="stats" class="nav-btn btn-tap py-1.5 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7" rx="1"/><rect x="13" y="6" width="3" height="11" rx="1"/><rect x="19" y="13" width="2" height="4" rx="1"/>
-          </svg>
-          <span>Stats</span>
+        <button type="button" data-nav="stats" class="nav-btn btn-tap">
+          <span class="nav-ind"></span>
+          <span class="nav-icon-wrap">
+            <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7" rx="1"/><rect x="13" y="6" width="3" height="11" rx="1"/><rect x="19" y="13" width="2" height="4" rx="1"/>
+            </svg>
+          </span>
+          <span class="text-[10px] sm:text-xs font-bold tracking-[-0.01em] leading-none">Stats</span>
         </button>
 
-        <button type="button" data-nav="shelf" class="nav-btn btn-tap py-1.5 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.8"/>
-          </svg>
-          <span>Ludoteca</span>
+        <button type="button" data-nav="shelf" class="nav-btn btn-tap">
+          <span class="nav-ind"></span>
+          <span class="nav-icon-wrap">
+            <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.8"/>
+            </svg>
+          </span>
+          <span class="text-[10px] sm:text-xs font-bold tracking-[-0.01em] leading-none">Ludoteca</span>
         </button>
       </div>
     </nav>
   </div>
 
-  <!-- ==================== MODAL / SHEET OVERLAY ==================== -->
-  <div id="modal-backdrop" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center sm:p-4 bg-black/55 backdrop-blur-[3px]">
-    <div id="modal-card" class="bg-canvas dark:bg-surfaceDark border-t sm:border border-[#E4DDD0] dark:border-white/12 rounded-t-[28px] sm:rounded-[28px] max-w-lg w-full max-h-[90vh] flex flex-col shadow-elevated anim-sheet overflow-hidden">
-      <div class="px-5 pt-4 pb-3 border-b border-[#EAE3D7] dark:border-white/10 flex items-center justify-between gap-3 shrink-0">
+  <!-- ==================== MODAL / BOTTOM SHEET OVERLAY ==================== -->
+  <div id="modal-backdrop" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center sm:p-4 bg-black/55 backdrop-blur-[4px]">
+    <div id="modal-card" class="bg-canvas dark:bg-surfaceDark border-t sm:border border-black/10 dark:border-white/12 rounded-t-[28px] sm:rounded-[28px] max-w-lg w-full max-h-[88vh] flex flex-col shadow-elevated anim-sheet overflow-hidden">
+      <div class="sm:hidden flex justify-center pt-2.5 pb-0.5 shrink-0">
+        <div class="w-10 h-1 rounded-full bg-black/15 dark:bg-white/20"></div>
+      </div>
+      <div class="px-5 pt-3 sm:pt-4 pb-3 border-b border-black/[0.06] dark:border-white/10 flex items-center justify-between gap-3 shrink-0">
         <div class="min-w-0">
-          <h3 id="modal-title" class="font-display text-lg font-extrabold text-ink dark:text-white truncate"></h3>
-          <p id="modal-subtitle" class="text-xs text-inkMuted dark:text-white/60 hidden mt-0.5"></p>
+          <h3 id="modal-title" class="font-display text-base sm:text-lg font-extrabold text-ink dark:text-white truncate"></h3>
+          <p id="modal-subtitle" class="text-[11px] text-inkMuted dark:text-white/60 hidden mt-0.5"></p>
         </div>
-        <button id="modal-close-x" type="button" class="btn-tap w-8 h-8 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-inkMuted dark:text-white/75 shrink-0" aria-label="Cerrar">
+        <button id="modal-close-x" type="button" class="btn-tap w-8 h-8 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 flex items-center justify-center text-inkMuted dark:text-white/75 shrink-0" aria-label="Cerrar">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
       </div>
       <div id="modal-body" class="p-5 overflow-y-auto flex-1 text-sm text-ink dark:text-white/90"></div>
-      <div id="modal-actions" class="px-5 py-3.5 border-t border-[#EAE3D7] dark:border-white/10 bg-white/60 dark:bg-black/20 flex flex-wrap items-center justify-end gap-2 shrink-0"></div>
+      <div id="modal-actions" class="px-5 py-3.5 border-t border-black/[0.06] dark:border-white/10 bg-white/75 dark:bg-black/25 flex flex-wrap items-center justify-end gap-2 shrink-0"></div>
     </div>
   </div>
 
@@ -1040,16 +1200,16 @@
       const label = document.getElementById('sync-label');
 
       if (syncState.connected) {
-        btn.className = 'btn-tap inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold border transition-all bg-emerald-500/20 border-emerald-300/40 text-emerald-100';
-        dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.85)]';
+        btn.className = 'btn-tap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all bg-emerald-500/20 border-emerald-300/35 text-emerald-100';
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.9)]';
         label.textContent = 'Sheets activo';
       } else if (syncState.mode === 'connecting') {
-        btn.className = 'btn-tap inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold border transition-all bg-white/10 border-white/20 text-white/85';
-        dot.className = 'w-2 h-2 rounded-full bg-amber-300 shrink-0 animate-pulse';
+        btn.className = 'btn-tap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all bg-white/10 border-white/18 text-white/85';
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0 animate-pulse';
         label.textContent = 'Conectando...';
       } else {
-        btn.className = 'btn-tap inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold border transition-all bg-amber-400/20 border-amber-300/40 text-amber-100';
-        dot.className = 'w-2 h-2 rounded-full bg-amber-400 shrink-0';
+        btn.className = 'btn-tap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all bg-amber-400/18 border-amber-300/35 text-amber-100';
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0';
         label.textContent = 'Modo local';
       }
     }
@@ -1318,24 +1478,38 @@
       const game = getGameById(draft.gameId);
       syncAutoWinners();
 
+      // Conteo rápido de partidas por juego para mostrar en las portadas del carrusel
+      const playCountsByGame = {};
+      matchHistory.forEach((m) => {
+        playCountsByGame[m.gameId] = (playCountsByGame[m.gameId] || 0) + 1;
+      });
+
       const gamePills = games.map((g) => {
         const active = g.id === game.id;
+        const pCount = playCountsByGame[g.id] || 0;
         return `
           <button type="button" data-action="select-game" data-game-id="${esc(g.id)}"
-            class="btn-tap shrink-0 w-[108px] p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between gap-2 relative overflow-hidden ${
+            class="btn-tap shrink-0 w-[106px] p-2.5 rounded-[20px] text-left transition-all flex flex-col justify-between gap-2 relative overflow-hidden ${
               active
-                ? 'text-white border-transparent shadow-elevated'
-                : 'bg-white dark:bg-surfaceDark text-ink dark:text-white border-[#E7E0D4] dark:border-white/10 hover:border-[#CFC5B4]'
+                ? 'text-white cover-sheen ring-2 ring-offset-2 ring-offset-canvas dark:ring-offset-canvasDark'
+                : 'card-pro text-ink dark:text-white hover:border-black/15 dark:hover:border-white/20'
             }"
-            style="${active ? `background: linear-gradient(140deg, ${g.color}, ${g.color2 || g.color});` : ''}"
+            style="${active
+              ? `background: linear-gradient(145deg, ${g.color}, ${g.color2 || g.color}); --tw-ring-color: ${g.color}; box-shadow: 0 12px 24px -10px ${g.color}99;`
+              : ''}"
           >
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center ${active ? 'bg-white/20 text-white' : ''}"
-              style="${!active ? `background:${g.color}18; color:${g.color};` : ''}">
-              ${gameIconSvg(g.icon, 'w-4 h-4')}
+            <div class="flex items-center justify-between gap-1 relative z-10">
+              <div class="w-8 h-8 rounded-xl flex items-center justify-center ${active ? 'bg-white/20 text-white' : ''}"
+                style="${!active ? `background:${g.color}16; color:${g.color};` : ''}">
+                ${gameIconSvg(g.icon, 'w-4 h-4')}
+              </div>
+              ${pCount > 0 ? `
+                <span class="text-[10px] font-extrabold tabular-nums px-1.5 py-0.5 rounded-md ${active ? 'bg-black/20 text-white' : 'bg-black/[0.04] dark:bg-white/[0.08] text-inkMuted dark:text-white/55'}">${pCount}</span>
+              ` : ''}
             </div>
-            <div>
+            <div class="relative z-10">
               <div class="font-display text-xs font-extrabold leading-tight line-clamp-2">${esc(g.name)}</div>
-              ${g.quickCalc ? `<span class="mt-1 inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${active ? 'bg-white/20 text-white' : 'bg-black/5 dark:bg-white/10 text-inkMuted dark:text-white/60'}">Marcador</span>` : ''}
+              ${g.quickCalc ? `<span class="mt-1 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${active ? 'bg-white/20 text-white' : 'bg-black/[0.045] dark:bg-white/[0.08] text-inkMuted dark:text-white/60'}">En vivo</span>` : ''}
             </div>
           </button>
         `;
@@ -1343,19 +1517,26 @@
 
       const quickCalcBanner = game.quickCalc ? `
         <button type="button" data-action="open-quick-calc" data-calc="${game.quickCalc}"
-          class="btn-tap w-full p-3.5 rounded-2xl text-white flex items-center justify-between gap-3 shadow-soft"
-          style="background: linear-gradient(135deg, ${game.color}, ${game.color2 || game.color});"
+          class="btn-tap cover-sheen w-full p-3.5 rounded-[22px] text-white flex items-center justify-between gap-3 shadow-elevated"
+          style="background: linear-gradient(130deg, ${game.color}, ${game.color2 || game.color});"
         >
-          <div class="flex items-center gap-3 min-w-0 text-left">
-            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+          <div class="flex items-center gap-3 min-w-0 text-left relative z-10">
+            <div class="w-10 h-10 rounded-2xl bg-white/20 border border-white/20 flex items-center justify-center shrink-0">
               ${gameIconSvg(game.icon, 'w-5 h-5')}
             </div>
             <div class="min-w-0">
-              <div class="font-display text-sm font-extrabold leading-tight">Abrir marcador en vivo de ${esc(game.name)}</div>
-              <div class="text-[11px] text-white/80 mt-0.5">${game.quickCalc === 'flip7' ? 'Suma cartas, ×2, modificadores y +15 por ronda hasta 200' : 'Calcula 3 rondas, wasabi, makis y pudines automáticamente'}</div>
+              <div class="flex items-center gap-1.5">
+                <span class="font-display text-sm font-extrabold leading-tight">Marcador de ${esc(game.name)}</span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/20 text-[9px] font-extrabold uppercase tracking-wider">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>Vivo
+                </span>
+              </div>
+              <div class="text-[11px] text-white/80 mt-0.5 truncate">${game.quickCalc === 'flip7' ? 'Cartas, ×2, modificadores y +15 por ronda' : '3 rondas, wasabi, makis y pudines automáticos'}</div>
             </div>
           </div>
-          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          <div class="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center shrink-0 relative z-10">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
         </button>
       ` : '';
 
@@ -1364,10 +1545,10 @@
       const availableChips = frequentPlayers.filter((n) => !currentNamesLower.includes(n.toLowerCase()));
       const quickPlayerChipsHtml = availableChips.length > 0 ? `
         <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-          <span class="text-[11px] font-semibold text-inkMuted dark:text-white/50 shrink-0">Frecuentes:</span>
+          <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted/80 dark:text-white/45 shrink-0">Rápido:</span>
           ${availableChips.map((name) => `
             <button type="button" data-action="quick-fill-player" data-name="${esc(name)}"
-              class="btn-tap shrink-0 px-2.5 py-1 rounded-full bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12 text-xs font-semibold text-ink dark:text-white/85 hover:border-emeraldBrand">
+              class="btn-tap shrink-0 px-2.5 py-1 rounded-full bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.08] dark:border-white/10 text-xs font-semibold text-ink dark:text-white/85 hover:border-emeraldBrand">
               + ${esc(name)}
             </button>
           `).join('')}
@@ -1376,42 +1557,45 @@
 
       const playerRowsHtml = draft.players.map((pl, idx) => {
         const isPoints = game.scoringType === 'points';
-        const isWinnerOnly = game.scoringType === 'winner_only';
         const isCoop = game.scoringType === 'coop';
         const showTfmCorp = game.extraType === 'tfm';
 
         return `
-          <div class="p-2.5 rounded-2xl bg-canvas/75 dark:bg-surfaceDarkAlt border transition-all ${pl.winner && !isCoop ? 'border-goldBrand/60 ring-1 ring-goldBrand/25' : 'border-[#EAE3D7] dark:border-white/10'}">
+          <div class="p-2 rounded-2xl transition-all border ${
+            pl.winner && !isCoop
+              ? 'bg-gradient-to-r from-amber-50/90 via-canvas/70 to-canvas/50 dark:from-amber-500/12 dark:via-surfaceDarkAlt dark:to-surfaceDarkAlt border-goldBrand/50 shadow-xs'
+              : 'bg-canvas/70 dark:bg-surfaceDarkAlt/80 border-black/[0.06] dark:border-white/[0.08]'
+          }">
             <div class="flex items-center gap-2">
               ${!isCoop ? `
                 <button type="button" data-action="toggle-player-winner" data-idx="${idx}"
                   title="Marcar como ganador"
                   class="btn-tap w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
                     pl.winner
-                      ? 'bg-goldBrand text-white border-goldBrand shadow-xs'
-                      : 'bg-white dark:bg-surfaceDark text-inkMuted/60 dark:text-white/35 border-[#E2DACE] dark:border-white/12'
+                      ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white border-transparent shadow-sm'
+                      : 'bg-white dark:bg-surfaceDark text-inkMuted/50 dark:text-white/30 border-black/[0.07] dark:border-white/10 hover:text-goldBrand'
                   }">
                   ${gameIconSvg('crown', 'w-4 h-4')}
                 </button>
               ` : `
-                <div class="w-9 h-9 rounded-xl bg-white dark:bg-surfaceDark border border-[#E2DACE] dark:border-white/12 flex items-center justify-center text-xs font-extrabold text-inkMuted dark:text-white/60 shrink-0">
+                <div class="w-9 h-9 rounded-xl bg-white dark:bg-surfaceDark border border-black/[0.07] dark:border-white/10 flex items-center justify-center text-xs font-extrabold text-inkMuted dark:text-white/60 shrink-0">
                   ${idx + 1}
                 </div>
               `}
 
               <input type="text" data-player-name="${idx}" value="${esc(pl.name)}" maxlength="24"
                 placeholder="Jugador ${idx + 1}"
-                class="flex-1 min-w-0 h-10 bg-white dark:bg-surfaceDark border border-[#E2DACE] dark:border-white/12 focus:border-emeraldBrand rounded-xl px-3 text-sm font-semibold text-ink dark:text-white outline-none" />
+                class="flex-1 min-w-0 h-10 input-pro rounded-xl px-3 text-sm font-semibold text-ink dark:text-white outline-none" />
 
               ${isPoints ? `
                 <input type="number" inputmode="decimal" data-player-score="${idx}" value="${esc(pl.score)}"
                   placeholder="Pts"
-                  class="w-20 h-10 text-center bg-white dark:bg-surfaceDark border border-[#E2DACE] dark:border-white/12 focus:border-emeraldBrand rounded-xl text-sm font-extrabold tabular-nums text-ink dark:text-white outline-none" />
+                  class="w-[74px] h-10 text-center input-pro rounded-xl text-sm font-extrabold tabular-nums text-ink dark:text-white outline-none" />
               ` : ''}
 
               ${draft.players.length > 1 ? `
                 <button type="button" data-action="remove-draft-player" data-idx="${idx}"
-                  class="btn-tap w-8 h-10 rounded-xl flex items-center justify-center text-inkMuted hover:text-coralBrand shrink-0" aria-label="Quitar jugador">
+                  class="btn-tap w-8 h-10 rounded-xl flex items-center justify-center text-inkMuted/70 hover:text-coralBrand shrink-0" aria-label="Quitar jugador">
                   <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
               ` : ''}
@@ -1419,8 +1603,8 @@
 
             ${showTfmCorp ? `
               <div class="mt-2 flex items-center gap-2 pl-12">
-                <span class="text-[11px] font-semibold text-inkMuted dark:text-white/50 shrink-0">Corp:</span>
-                <select data-player-tag="${idx}" class="flex-1 min-w-0 h-8 bg-white dark:bg-surfaceDark border border-[#E2DACE] dark:border-white/12 rounded-lg px-2 text-xs font-semibold text-ink dark:text-white outline-none">
+                <span class="text-[11px] font-bold text-inkMuted dark:text-white/50 shrink-0">Corp:</span>
+                <select data-player-tag="${idx}" class="flex-1 min-w-0 h-8 input-pro rounded-lg px-2 text-xs font-semibold text-ink dark:text-white outline-none">
                   <option value="">— Opcional —</option>
                   ${TFM_CORPS.map((c) => `<option value="${esc(c)}" ${pl.tag === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
                 </select>
@@ -1433,15 +1617,15 @@
       const durationOpts = [15, 30, 45, 60, 90, 120];
 
       container.innerHTML = `
-        <!-- Hero Selector de Juego -->
-        <div class="space-y-2.5 anim-in">
+        <!-- Carrusel de Juegos -->
+        <div class="space-y-2 anim-in">
           <div class="flex items-center justify-between px-0.5">
-            <h2 class="font-display text-sm font-extrabold text-ink dark:text-white">1. Elige el juego</h2>
+            <h2 class="font-display text-xs font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Elige el juego</h2>
             <button type="button" data-action="open-add-game" class="btn-tap text-xs font-bold text-emeraldBrand dark:text-emerald-400 hover:underline">
               + Nuevo juego
             </button>
           </div>
-          <div class="flex items-stretch gap-2.5 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
+          <div class="flex items-stretch gap-2.5 overflow-x-auto no-scrollbar py-1.5 -mx-1 px-1">
             ${gamePills}
           </div>
         </div>
@@ -1449,33 +1633,33 @@
         ${quickCalcBanner}
 
         <!-- Tarjeta Principal de Registro -->
-        <div class="bg-white dark:bg-surfaceDark rounded-[26px] border border-[#E7E0D4] dark:border-white/10 shadow-soft overflow-hidden anim-in">
-          <!-- Cabecera con color del juego -->
-          <div class="px-4 py-3.5 text-white flex items-center justify-between gap-3"
+        <div class="card-pro rounded-[26px] overflow-hidden anim-in">
+          <!-- Cabecera con textura y degradado del juego -->
+          <div class="cover-sheen px-4 py-3.5 text-white flex items-center justify-between gap-3"
             style="background: linear-gradient(125deg, ${game.color}, ${game.color2 || game.color});">
-            <div class="flex items-center gap-2.5 min-w-0">
-              <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+            <div class="flex items-center gap-3 min-w-0 relative z-10">
+              <div class="w-10 h-10 rounded-2xl bg-white/18 border border-white/20 flex items-center justify-center shrink-0 shadow-xs">
                 ${gameIconSvg(game.icon, 'w-5 h-5')}
               </div>
               <div class="min-w-0">
                 <div class="font-display text-base font-extrabold leading-tight truncate">${esc(game.name)}</div>
-                <div class="text-[11px] text-white/80 truncate">${esc(game.tagline || 'Registro rápido de partida')}</div>
+                <div class="text-[11px] text-white/80 truncate mt-0.5">${esc(game.tagline || 'Registro rápido de partida')}</div>
               </div>
             </div>
-            <button type="button" data-action="clear-draft" class="btn-tap px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-[11px] font-bold shrink-0">
+            <button type="button" data-action="clear-draft" class="btn-tap relative z-10 px-2.5 py-1.5 rounded-xl bg-black/18 hover:bg-black/28 border border-white/15 text-[11px] font-bold shrink-0">
               Limpiar
             </button>
           </div>
 
-          <div class="p-4 space-y-4">
+          <div class="p-4 sm:p-5 space-y-4">
             <!-- Jugadores -->
             <div class="space-y-2.5">
               <div class="flex items-center justify-between gap-2">
-                <span class="text-xs font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">
-                  Jugadores (${draft.players.length}) ${game.scoringType === 'winner_only' ? '· toca la corona del ganador' : ''}
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">
+                  Jugadores (${draft.players.length})${game.scoringType === 'winner_only' ? ' · toca la corona' : ''}
                 </span>
                 <button type="button" data-action="add-draft-player"
-                  class="btn-tap px-2.5 py-1 rounded-xl bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-300 text-xs font-bold">
+                  class="btn-tap px-2.5 py-1 rounded-xl bg-emeraldBrand/12 hover:bg-emeraldBrand/18 text-emeraldBrand dark:text-emerald-300 text-xs font-bold">
                   + Jugador
                 </button>
               </div>
@@ -1495,7 +1679,7 @@
               <div>
                 <label for="draft-date" class="block text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55 mb-1.5">Fecha</label>
                 <input id="draft-date" type="date" value="${esc(draft.date)}"
-                  class="w-full h-10 bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12 rounded-xl px-3 text-xs font-bold text-ink dark:text-white outline-none" />
+                  class="w-full h-10 input-pro rounded-xl px-3 text-xs font-bold text-ink dark:text-white outline-none" />
               </div>
 
               <div>
@@ -1503,13 +1687,13 @@
                   <span class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Duración</span>
                   <span class="text-[11px] font-extrabold text-emeraldBrand dark:text-emerald-400 tabular-nums">${draft.duration} min</span>
                 </div>
-                <div class="grid grid-cols-6 gap-1">
+                <div class="grid grid-cols-6 gap-1 p-0.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.06] dark:border-white/[0.08]">
                   ${durationOpts.map((min) => `
                     <button type="button" data-action="set-duration" data-val="${min}"
-                      class="btn-tap h-10 rounded-xl text-[11px] font-bold border tabular-nums ${
+                      class="btn-tap h-9 rounded-[10px] text-[11px] font-bold tabular-nums ${
                         draft.duration === min
-                          ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent'
-                          : 'bg-canvas/80 dark:bg-surfaceDarkAlt text-ink dark:text-white/75 border-[#E2DACE] dark:border-white/12'
+                          ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs'
+                          : 'text-inkMuted dark:text-white/65 hover:text-ink dark:hover:text-white'
                       }">
                       ${min}
                     </button>
@@ -1523,13 +1707,12 @@
               <label for="draft-notes" class="block text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55 mb-1.5">Nota rápida (opcional)</label>
               <input id="draft-notes" type="text" maxlength="140" value="${esc(draft.notes)}"
                 placeholder="Ej. Remontada en el último turno, expansión usada..."
-                class="w-full h-10 bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12 focus:border-emeraldBrand rounded-xl px-3 text-xs font-medium text-ink dark:text-white outline-none" />
+                class="w-full h-10 input-pro rounded-xl px-3 text-xs font-medium text-ink dark:text-white outline-none" />
             </div>
 
             <!-- Botón Guardar -->
             <button type="button" data-action="save-match" ${syncState.isSaving ? 'disabled' : ''}
-              class="btn-tap w-full py-3.5 px-5 rounded-2xl text-white font-display font-extrabold text-sm shadow-elevated flex items-center justify-center gap-2 disabled:opacity-70"
-              style="background: linear-gradient(135deg, #142620, #2B7A58);"
+              class="btn-tap btn-primary-pro w-full py-3.5 px-5 rounded-2xl text-white font-display font-extrabold text-sm flex items-center justify-center gap-2 disabled:opacity-70"
             >
               ${syncState.isSaving
                 ? `<svg class="w-4 h-4 spin-fast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg><span>Guardando partida...</span>`
@@ -1565,8 +1748,8 @@
             if (btn) {
               btn.className = `btn-tap w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
                 p.winner
-                  ? 'bg-goldBrand text-white border-goldBrand shadow-xs'
-                  : 'bg-white dark:bg-surfaceDark text-inkMuted/60 dark:text-white/35 border-[#E2DACE] dark:border-white/12'
+                  ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white border-transparent shadow-sm'
+                  : 'bg-white dark:bg-surfaceDark text-inkMuted/50 dark:text-white/30 border-black/[0.07] dark:border-white/10 hover:text-goldBrand'
               }`;
             }
           });
@@ -2200,10 +2383,13 @@
 
       const syncBar = syncState.connected
         ? `
-          <div class="p-3 rounded-2xl bg-emeraldBrand/10 border border-emeraldBrand/20 flex items-center justify-between gap-2 text-xs text-emeraldBrand dark:text-emerald-300 font-semibold">
-            <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emeraldBrand"></span>Sincronizado con Sheets (${matchHistory.length})</span>
+          <div class="px-3.5 py-2.5 rounded-2xl bg-emeraldBrand/10 border border-emeraldBrand/20 flex items-center justify-between gap-2 text-xs text-emeraldBrand dark:text-emerald-300 font-semibold">
+            <span class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emeraldBrand shadow-[0_0_6px_rgba(34,117,84,0.7)]"></span>
+              <span>Sincronizado con Sheets · ${matchHistory.length} ${matchHistory.length === 1 ? 'partida' : 'partidas'}</span>
+            </span>
             <button type="button" data-action="refresh-sheets" ${syncState.isLoading ? 'disabled' : ''}
-              class="btn-tap px-2.5 py-1 rounded-lg bg-white dark:bg-surfaceDark border border-emeraldBrand/25 font-bold text-[11px] flex items-center gap-1">
+              class="btn-tap px-2.5 py-1 rounded-xl bg-white dark:bg-surfaceDark border border-emeraldBrand/25 font-bold text-[11px] flex items-center gap-1 shadow-2xs">
               <svg class="w-3.5 h-3.5 ${syncState.isLoading ? 'spin-fast' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
               <span>${syncState.isLoading ? 'Cargando' : 'Recargar'}</span>
             </button>
@@ -2214,7 +2400,7 @@
       const filterChips = usedGameIds.length > 0 ? `
         <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
           <button type="button" data-action="filter-history-game" data-val="all"
-            class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${uiState.historyFilterGame === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}">
+            class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${uiState.historyFilterGame === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-xs' : 'card-pro text-ink dark:text-white/80'}">
             Todos (${matchHistory.length})
           </button>
           ${usedGameIds.map((gid) => {
@@ -2222,7 +2408,7 @@
             const active = uiState.historyFilterGame === gid;
             return `
               <button type="button" data-action="filter-history-game" data-val="${esc(gid)}"
-                class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${active ? 'text-white border-transparent' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}"
+                class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${active ? 'text-white border-transparent shadow-xs' : 'card-pro text-ink dark:text-white/80'}"
                 style="${active ? `background:${g.color};` : ''}">
                 <span class="w-2 h-2 rounded-full" style="background:${active ? '#fff' : g.color}"></span>
                 <span>${esc(g.name)}</span>
@@ -2235,28 +2421,28 @@
       const cardsHtml = filtered.length > 0 ? filtered.map((m) => {
         const g = getGameById(m.gameId);
         return `
-          <article class="bg-white dark:bg-surfaceDark rounded-[22px] border border-[#E7E0D4] dark:border-white/10 shadow-soft overflow-hidden anim-in">
+          <article class="card-pro rounded-[22px] overflow-hidden anim-in">
             <div class="flex">
-              <div class="w-1.5 shrink-0" style="background:${g.color};"></div>
+              <div class="w-1.5 shrink-0" style="background: linear-gradient(180deg, ${g.color}, ${g.color2 || g.color});"></div>
               <div class="flex-1 p-4 min-w-0">
                 <div class="flex items-start justify-between gap-2">
-                  <div class="flex items-center gap-2.5 min-w-0">
-                    <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:${g.color}18; color:${g.color};">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border" style="background:${g.color}14; border-color:${g.color}28; color:${g.color};">
                       ${gameIconSvg(g.icon, 'w-5 h-5')}
                     </div>
                     <div class="min-w-0">
                       <div class="flex flex-wrap items-center gap-1.5">
-                        <h3 class="font-display text-sm sm:text-base font-extrabold text-ink dark:text-white truncate">${esc(m.gameName)}</h3>
-                        ${m.topScore !== null ? `<span class="px-2 py-0.5 rounded-lg bg-goldBrand/15 text-amber-800 dark:text-amber-300 text-[11px] font-extrabold tabular-nums">${m.topScore} pts</span>` : ''}
+                        <h3 class="font-display text-[15px] font-extrabold text-ink dark:text-white truncate">${esc(m.gameName)}</h3>
+                        ${m.topScore !== null ? `<span class="px-2 py-0.5 rounded-lg bg-amber-500/14 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-[11px] font-extrabold tabular-nums">${m.topScore} pts</span>` : ''}
                       </div>
-                      <p class="text-[11px] text-inkMuted dark:text-white/55 mt-0.5">
+                      <p class="text-[11px] font-medium text-inkMuted dark:text-white/55 mt-0.5">
                         ${esc(formatDisplayDate(m.date, m.createdAtMs))}${m.duration ? ` · ${m.duration} min` : ''}${m.extraLabel ? ` · ${esc(m.extraLabel)}` : ''}
                       </p>
                     </div>
                   </div>
 
                   <button type="button" data-action="delete-match" data-id="${esc(m.id)}"
-                    class="btn-tap p-2 rounded-xl text-inkMuted hover:text-coralBrand hover:bg-coralBrand/10 shrink-0" aria-label="Eliminar">
+                    class="btn-tap p-2 rounded-xl text-inkMuted/70 hover:text-coralBrand hover:bg-coralBrand/10 shrink-0" aria-label="Eliminar">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                     </svg>
@@ -2264,36 +2450,38 @@
                 </div>
 
                 <!-- Jugadores -->
-                <div class="mt-3 flex flex-wrap gap-1.5">
+                <div class="mt-3 pt-2.5 border-t border-black/[0.05] dark:border-white/[0.06] flex flex-wrap gap-1.5">
                   ${(m.players || []).map((pl) => `
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs border ${
                       pl.winner
-                        ? 'bg-goldBrand/12 border-goldBrand/35 text-ink dark:text-white font-bold'
-                        : 'bg-canvas/80 dark:bg-surfaceDarkAlt border-[#EAE3D7] dark:border-white/10 text-ink dark:text-white/85 font-medium'
+                        ? 'bg-gradient-to-r from-amber-50 to-amber-50/40 dark:from-amber-500/15 dark:to-amber-500/5 border-amber-400/40 text-ink dark:text-white font-bold'
+                        : 'bg-canvas/75 dark:bg-surfaceDarkAlt border-black/[0.06] dark:border-white/[0.08] text-ink dark:text-white/85 font-medium'
                     }">
-                      ${pl.winner ? `<span class="text-goldBrand">★</span>` : `<span class="text-[10px] text-inkMuted dark:text-white/45">#${pl.rank || ''}</span>`}
+                      ${pl.winner
+                        ? `<svg class="w-3.5 h-3.5 text-goldBrand shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17 5 7l5 4 2-6 2 6 5-4 2 10H3Z"/></svg>`
+                        : `<span class="text-[10px] font-bold text-inkMuted/70 dark:text-white/40">#${pl.rank || ''}</span>`}
                       <span>${esc(pl.name)}</span>
                       ${pl.score !== null && pl.score !== undefined ? `<strong class="tabular-nums text-emeraldBrand dark:text-emerald-400">${pl.score}</strong>` : ''}
-                      ${pl.tag ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-inkMuted dark:text-white/60">${esc(pl.tag)}</span>` : ''}
+                      ${pl.tag ? `<span class="text-[10px] px-1.5 py-0.5 rounded-md bg-black/[0.05] dark:bg-white/10 text-inkMuted dark:text-white/60">${esc(pl.tag)}</span>` : ''}
                     </span>
                   `).join('')}
                 </div>
 
-                ${m.notes ? `<p class="mt-2.5 text-xs text-inkMuted dark:text-white/60 italic border-l-2 border-[#E2DACE] dark:border-white/15 pl-2.5">${esc(m.notes)}</p>` : ''}
+                ${m.notes ? `<p class="mt-2.5 text-xs text-inkMuted dark:text-white/60 italic bg-canvas/60 dark:bg-surfaceDarkAlt/60 rounded-xl px-3 py-2 border-l-2 border-emeraldBrand/45">${esc(m.notes)}</p>` : ''}
               </div>
             </div>
           </article>
         `;
       }).join('') : `
-        <div class="bg-white dark:bg-surfaceDark rounded-[26px] border border-dashed border-[#D8CFC0] dark:border-white/15 p-9 text-center anim-in">
+        <div class="card-pro rounded-[26px] border-dashed p-9 text-center anim-in">
           <div class="w-12 h-12 mx-auto rounded-2xl bg-canvas dark:bg-surfaceDarkAlt flex items-center justify-center text-inkMuted dark:text-white/50 mb-3">
             ${gameIconSvg('dice', 'w-6 h-6')}
           </div>
           <h3 class="font-display text-base font-extrabold text-ink dark:text-white">${matchHistory.length === 0 ? 'Aún no hay partidas registradas' : 'Ninguna partida coincide con el filtro'}</h3>
-          <p class="text-xs text-inkMuted dark:text-white/60 mt-1 max-w-xs mx-auto">
-            ${matchHistory.length === 0 ? 'Registra tu primera partida en menos de 10 segundos y empezarán a aparecer aquí tus estadísticas.' : 'Prueba a cambiar el juego seleccionado o limpia el buscador.'}
+          <p class="text-xs text-inkMuted dark:text-white/60 mt-1 max-w-xs mx-auto leading-relaxed">
+            ${matchHistory.length === 0 ? 'Registra tu primera partida en menos de 10 segundos y empezarán a aparecer aquí tus estadísticas e insignias.' : 'Prueba a cambiar el juego seleccionado o limpia el buscador.'}
           </p>
-          ${matchHistory.length === 0 ? `<button type="button" data-nav="log" class="btn-tap mt-4 px-4 py-2.5 rounded-xl bg-pine dark:bg-emeraldBrand text-white text-xs font-bold">Registrar primera partida</button>` : ''}
+          ${matchHistory.length === 0 ? `<button type="button" data-nav="log" class="btn-tap btn-primary-pro mt-4 px-4 py-2.5 rounded-xl text-white text-xs font-bold">Registrar primera partida</button>` : ''}
         </div>
       `;
 
@@ -2303,7 +2491,7 @@
           <div class="relative">
             <svg class="w-4 h-4 text-inkMuted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             <input id="history-search-input" type="search" value="${esc(uiState.historySearch)}" placeholder="Buscar por jugador, juego, corporación, nota..."
-              class="w-full h-11 pl-10 pr-4 bg-white dark:bg-surfaceDark border border-[#E7E0D4] dark:border-white/12 focus:border-emeraldBrand rounded-2xl text-xs sm:text-sm text-ink dark:text-white outline-none shadow-soft" />
+              class="w-full h-11 pl-10 pr-4 card-pro focus:border-emeraldBrand rounded-2xl text-xs sm:text-sm text-ink dark:text-white outline-none" />
           </div>
         ` : ''}
         ${filterChips}
@@ -2808,19 +2996,24 @@
       }[badge.tier] || 'bg-black/8 text-ink';
 
       return `
-        <article class="rounded-[22px] border p-4 shadow-soft flex items-center gap-3.5 anim-in ${tierAccent}">
-          ${badgeMedalSvg(badge.tier, badge.symbol, uid)}
+        <article class="rounded-[22px] border p-3.5 sm:p-4 shadow-soft flex items-center gap-3.5 anim-in relative overflow-hidden ${tierAccent}">
+          <div class="shrink-0 relative">
+            ${badgeMedalSvg(badge.tier, badge.symbol, uid)}
+          </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
-                <h4 class="font-display text-sm font-extrabold text-ink dark:text-white leading-tight truncate">${esc(badge.title)}</h4>
+                <h4 class="font-display text-[13.5px] font-extrabold text-ink dark:text-white leading-tight truncate">${esc(badge.title)}</h4>
                 <p class="text-[11px] font-medium text-inkMuted dark:text-white/55 truncate mt-0.5">${esc(badge.subtitle)}</p>
               </div>
               <span class="shrink-0 px-2 py-0.5 rounded-lg text-[11px] font-extrabold tabular-nums ${pillTone}">${esc(badge.metric)}</span>
             </div>
-            <div class="mt-2 pt-2 border-t border-black/6 dark:border-white/8 flex items-center justify-between gap-2">
-              <span class="text-xs font-extrabold text-ink dark:text-white truncate">${esc(formatHolderNames(badge.holders))}</span>
-              <span class="text-[10px] text-inkMuted dark:text-white/50 truncate">${esc(badge.detail)}</span>
+            <div class="mt-2 pt-2 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between gap-2">
+              <span class="inline-flex items-center gap-1 text-xs font-extrabold text-ink dark:text-white truncate">
+                <span class="w-1.5 h-1.5 rounded-full bg-goldBrand shrink-0"></span>
+                <span class="truncate">${esc(formatHolderNames(badge.holders))}</span>
+              </span>
+              <span class="text-[10px] font-medium text-inkMuted dark:text-white/45 truncate">${esc(badge.detail)}</span>
             </div>
           </div>
         </article>
@@ -2856,7 +3049,7 @@
 
       // Barra superior compartida: Sub-pestañas (Gráficas | Insignias) + Filtro por juego
       const topControlsHtml = `
-        <div class="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-white dark:bg-surfaceDark border border-[#E7E0D4] dark:border-white/10 shadow-soft">
+        <div class="grid grid-cols-2 gap-1.5 p-1 rounded-2xl card-pro">
           <button type="button" data-action="set-stats-subtab" data-val="overview"
             class="btn-tap py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-all ${
               uiState.statsSubTab === 'overview'
@@ -2907,30 +3100,36 @@
         const nextUid = () => `b${uidCounter++}`;
 
         const medalTableHtml = uiState.statsFilterGame === 'all' && badgesData.medalTable.length > 0 ? `
-          <div class="rounded-[26px] p-5 text-white shadow-elevated relative overflow-hidden anim-in"
-            style="background: linear-gradient(135deg, #142620 0%, #1E3B31 58%, #3B2B14 100%);">
-            <div class="flex items-center justify-between gap-2 mb-3.5">
+          <div class="cover-sheen rounded-[26px] p-5 text-white shadow-elevated anim-in border border-white/10"
+            style="background: linear-gradient(135deg, #0E1F19 0%, #19382E 52%, #473011 100%);">
+            <div class="flex items-center justify-between gap-2 mb-4 relative z-10">
               <div>
-                <div class="text-[10px] font-extrabold uppercase tracking-widest text-amber-300/90">Sala de Trofeos</div>
-                <h3 class="font-display text-base font-extrabold leading-tight mt-0.5">Medallero General</h3>
+                <div class="text-[10px] font-extrabold uppercase tracking-[0.14em] text-amber-300/90">Sala de Trofeos</div>
+                <h3 class="font-display text-lg font-extrabold leading-tight mt-0.5">Medallero General</h3>
               </div>
-              <span class="px-2.5 py-1 rounded-full bg-white/12 border border-white/15 text-[11px] font-bold tabular-nums">
+              <span class="px-3 py-1 rounded-full bg-white/12 border border-white/18 text-[11px] font-bold tabular-nums">
                 ${badgesData.totalBadgesCount} ${badgesData.totalBadgesCount === 1 ? 'insignia' : 'insignias'}
               </span>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 relative z-10">
               ${badgesData.medalTable.slice(0, 6).map((row, idx) => `
-                <div class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-2xl ${idx === 0 ? 'bg-amber-400/18 border border-amber-300/35' : 'bg-white/8 border border-white/10'}">
+                <div class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-2xl ${idx === 0 ? 'bg-gradient-to-r from-amber-400/22 to-amber-300/10 border border-amber-300/40' : 'bg-white/[0.07] border border-white/10'}">
                   <div class="flex items-center gap-2.5 min-w-0">
                     <span class="w-7 h-7 rounded-xl flex items-center justify-center font-display text-xs font-extrabold shrink-0 ${
-                      idx === 0 ? 'bg-amber-400 text-[#142620]' : 'bg-white/15 text-white'
+                      idx === 0
+                        ? 'bg-gradient-to-br from-amber-300 to-amber-500 text-[#142620] shadow-xs'
+                        : idx === 1
+                          ? 'bg-slate-200/90 text-slate-900'
+                          : idx === 2
+                            ? 'bg-amber-700/80 text-amber-100'
+                            : 'bg-white/15 text-white'
                     }">#${idx + 1}</span>
                     <span class="text-sm font-bold truncate">${esc(row.name)}</span>
                   </div>
-                  <div class="flex items-center gap-2 shrink-0 text-xs font-extrabold tabular-nums">
-                    ${row.gold > 0 ? `<span class="px-2 py-0.5 rounded-lg bg-amber-400/20 text-amber-200">${row.gold} Oro</span>` : ''}
-                    <span class="px-2 py-0.5 rounded-lg bg-white/15 text-white">${row.total} tot.</span>
+                  <div class="flex items-center gap-1.5 shrink-0 text-[11px] font-extrabold tabular-nums">
+                    ${row.gold > 0 ? `<span class="px-2 py-0.5 rounded-lg bg-amber-400/22 text-amber-200">${row.gold} Oro</span>` : ''}
+                    <span class="px-2 py-0.5 rounded-lg bg-white/14 text-white">${row.total} tot.</span>
                   </div>
                 </div>
               `).join('')}
@@ -3139,7 +3338,7 @@
       ` : '';
 
       const donutCardHtml = uiState.statsFilterGame === 'all' ? `
-        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+        <div class="card-pro rounded-[24px] p-5 anim-in">
           <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div>
               <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Distribución de tu ludoteca</h3>
@@ -3188,7 +3387,7 @@
       ` : '';
 
       const scoreLineCardHtml = showScoreLineChart ? `
-        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+        <div class="card-pro rounded-[24px] p-5 anim-in">
           <div class="flex items-center justify-between gap-2 mb-3">
             <div>
               <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Evolución de puntuaciones</h3>
@@ -3203,7 +3402,7 @@
       ` : '';
 
       const playersBarCardHtml = leaderboard.length > 0 ? `
-        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+        <div class="card-pro rounded-[24px] p-5 anim-in">
           <div class="flex items-center justify-between gap-2 mb-3">
             <div>
               <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Victorias vs Partidas por Jugador</h3>
@@ -3217,7 +3416,7 @@
       ` : '';
 
       const extraChartCardHtml = extraChartConfig ? `
-        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+        <div class="card-pro rounded-[24px] p-5 anim-in">
           <h3 class="font-display text-sm font-extrabold text-ink dark:text-white mb-3">${esc(extraChartConfig.title)}</h3>
           <div class="relative w-full h-[210px]">
             <canvas id="chart-game-extra"></canvas>
@@ -3226,7 +3425,7 @@
       ` : '';
 
       const monthlyCardHtml = `
-        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+        <div class="card-pro rounded-[24px] p-5 anim-in">
           <h3 class="font-display text-sm font-extrabold text-ink dark:text-white mb-4">Ritmo mensual (últimos 6 meses)</h3>
           <div class="grid grid-cols-6 gap-2 items-end h-28 pt-2">
             ${months.map((mo) => {
@@ -3248,28 +3447,48 @@
 
         <!-- 4 KPI Cards -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 anim-in">
-          <div class="p-4 rounded-[22px] bg-white dark:bg-surfaceDark border border-[#E7E0D4] dark:border-white/10 shadow-soft">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Partidas</div>
-            <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1">${totalPlays}</div>
-            <div class="text-[11px] text-emeraldBrand dark:text-emerald-400 font-semibold mt-0.5">${playedGameIds.length} ${playedGameIds.length === 1 ? 'juego' : 'juegos'}</div>
+          <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Partidas</span>
+              <span class="w-7 h-7 rounded-xl bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-400 flex items-center justify-center shrink-0">
+                ${gameIconSvg('dice', 'w-3.5 h-3.5')}
+              </span>
+            </div>
+            <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${totalPlays}</div>
+            <div class="text-[11px] text-emeraldBrand dark:text-emerald-400 font-semibold mt-1">${playedGameIds.length} ${playedGameIds.length === 1 ? 'juego' : 'juegos'}</div>
           </div>
 
-          <div class="p-4 rounded-[22px] bg-white dark:bg-surfaceDark border border-[#E7E0D4] dark:border-white/10 shadow-soft">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Tiempo en mesa</div>
-            <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1">${totalHours}<span class="text-sm font-bold ml-0.5">h</span></div>
-            <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-0.5">${totalMins} min totales</div>
+          <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">En mesa</span>
+              <span class="w-7 h-7 rounded-xl bg-blue-500/12 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+              </span>
+            </div>
+            <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${totalHours}<span class="text-sm font-bold ml-0.5 text-inkMuted">h</span></div>
+            <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1">${totalMins} min totales</div>
           </div>
 
-          <div class="p-4 rounded-[22px] bg-white dark:bg-surfaceDark border border-[#E7E0D4] dark:border-white/10 shadow-soft">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Jugadores</div>
-            <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1">${leaderboard.length}</div>
-            <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-0.5 truncate">${leaderboard[0] ? `Líder: ${esc(leaderboard[0].name)}` : '—'}</div>
+          <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Jugadores</span>
+              <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+                ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
+              </span>
+            </div>
+            <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${leaderboard.length}</div>
+            <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${leaderboard[0] ? `Líder: ${esc(leaderboard[0].name)}` : '—'}</div>
           </div>
 
-          <div class="p-4 rounded-[22px] bg-white dark:bg-surfaceDark border border-[#E7E0D4] dark:border-white/10 shadow-soft">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Récord pts</div>
-            <div class="font-display text-2xl font-extrabold text-goldBrand tabular-nums mt-1">${recordEntry ? recordEntry.score : '—'}</div>
-            <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-0.5 truncate">${recordEntry ? esc(recordEntry.player) : 'Sin puntos'}</div>
+          <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Récord</span>
+              <span class="w-7 h-7 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                ${gameIconSvg('crown', 'w-3.5 h-3.5')}
+              </span>
+            </div>
+            <div class="font-display text-2xl font-extrabold text-goldBrand tabular-nums mt-1.5 leading-none">${recordEntry ? recordEntry.score : '—'}</div>
+            <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${recordEntry ? esc(recordEntry.player) : 'Sin puntos'}</div>
           </div>
         </div>
 
@@ -3286,7 +3505,7 @@
         </div>
 
         <!-- Ranking Detallado de Jugadores -->
-        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+        <div class="card-pro rounded-[24px] p-5 anim-in">
           <div class="flex items-center justify-between mb-4">
             <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Clasificación Detallada</h3>
             <span class="text-[11px] font-semibold text-inkMuted dark:text-white/55">Victorias y % éxito</span>
@@ -3297,7 +3516,13 @@
                 <div class="flex items-center justify-between gap-2">
                   <div class="flex items-center gap-2.5 min-w-0">
                     <span class="w-7 h-7 rounded-xl flex items-center justify-center font-display font-extrabold text-xs shrink-0 ${
-                      idx === 0 ? 'bg-goldBrand text-white' : idx === 1 ? 'bg-slate-400/25 text-ink dark:text-white' : 'bg-black/6 dark:bg-white/10 text-inkMuted dark:text-white/65'
+                      idx === 0
+                        ? 'bg-gradient-to-br from-amber-300 to-amber-500 text-[#142620] shadow-xs'
+                        : idx === 1
+                          ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900'
+                          : idx === 2
+                            ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-amber-50'
+                            : 'bg-black/[0.06] dark:bg-white/10 text-inkMuted dark:text-white/65'
                     }">#${idx + 1}</span>
                     <div class="min-w-0">
                       <div class="text-sm font-extrabold text-ink dark:text-white truncate">${esc(st.name)}</div>
@@ -3610,25 +3835,25 @@
         });
 
         return `
-          <article class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft overflow-hidden flex flex-col anim-in">
-            <div class="p-4 text-white relative overflow-hidden" style="background: linear-gradient(135deg, ${g.color}, ${g.color2 || g.color});">
+          <article class="card-pro rounded-[24px] overflow-hidden flex flex-col anim-in">
+            <div class="cover-sheen p-4 text-white" style="background: linear-gradient(135deg, ${g.color}, ${g.color2 || g.color});">
               <div class="flex items-start justify-between gap-2 relative z-10">
-                <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                <div class="w-10 h-10 rounded-2xl bg-white/18 border border-white/20 flex items-center justify-center shrink-0 shadow-xs">
                   ${gameIconSvg(g.icon, 'w-5 h-5')}
                 </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="px-2.5 py-1 rounded-full bg-black/20 text-[11px] font-extrabold tabular-nums">
+                <div class="flex items-center gap-1">
+                  <span class="px-2.5 py-1 rounded-full bg-black/22 border border-white/12 text-[11px] font-extrabold tabular-nums">
                     ${playCount} ${playCount === 1 ? 'partida' : 'partidas'}
                   </span>
                   <button type="button" data-action="open-edit-game" data-game-id="${esc(g.id)}"
-                    class="btn-tap w-8 h-8 rounded-full bg-black/20 hover:bg-black/35 text-white flex items-center justify-center"
+                    class="btn-tap w-7 h-7 rounded-full bg-black/22 hover:bg-black/38 border border-white/12 text-white flex items-center justify-center"
                     title="Editar juego" aria-label="Editar ${esc(g.name)}">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
                     </svg>
                   </button>
                   <button type="button" data-action="confirm-delete-game" data-game-id="${esc(g.id)}"
-                    class="btn-tap w-8 h-8 rounded-full bg-black/20 hover:bg-coralBrand text-white flex items-center justify-center transition-colors"
+                    class="btn-tap w-7 h-7 rounded-full bg-black/22 hover:bg-coralBrand border border-white/12 text-white flex items-center justify-center transition-colors"
                     title="Eliminar juego" aria-label="Eliminar ${esc(g.name)}">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -3637,26 +3862,35 @@
                 </div>
               </div>
               <h3 class="font-display text-base font-extrabold mt-3 leading-tight relative z-10">${esc(g.name)}</h3>
-              <p class="text-[11px] text-white/80 mt-0.5 relative z-10">${esc(g.tagline || '')}</p>
+              <p class="text-[11px] text-white/80 mt-0.5 relative z-10 truncate">${esc(g.tagline || '')}</p>
             </div>
 
             <div class="p-3.5 flex-1 flex flex-col justify-between gap-3">
-              <div class="text-xs text-inkMuted dark:text-white/60 space-y-1">
-                ${lastMatch
-                  ? `<div>Última: <strong class="text-ink dark:text-white">${esc(formatDisplayDate(lastMatch.date, lastMatch.createdAtMs))}</strong></div>
-                     <div class="truncate">Ganó: <strong class="text-ink dark:text-white">${esc(lastMatch.winnerLabel)}</strong>${highScore !== null ? ` · Récord ${highScore}` : ''}</div>`
-                  : `<div class="italic">Sin partidas registradas todavía</div>`
-                }
-              </div>
+              ${lastMatch ? `
+                <div class="grid grid-cols-2 gap-2 p-2.5 rounded-2xl bg-canvas/75 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.06]">
+                  <div class="min-w-0">
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/45">Última</div>
+                    <div class="text-xs font-extrabold text-ink dark:text-white truncate mt-0.5">${esc(formatDisplayDate(lastMatch.date, lastMatch.createdAtMs))}</div>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/45">${highScore !== null ? 'Récord' : 'Últ. ganador'}</div>
+                    <div class="text-xs font-extrabold ${highScore !== null ? 'text-goldBrand tabular-nums' : 'text-ink dark:text-white'} truncate mt-0.5">${highScore !== null ? `${highScore} pts` : esc(lastMatch.winnerLabel)}</div>
+                  </div>
+                </div>
+              ` : `
+                <div class="px-3 py-2.5 rounded-2xl bg-canvas/60 dark:bg-surfaceDarkAlt/60 border border-dashed border-black/10 dark:border-white/10 text-xs text-inkMuted dark:text-white/50 italic">
+                  Sin partidas registradas todavía
+                </div>
+              `}
 
               <div class="flex items-center gap-1.5">
                 <button type="button" data-action="quick-log-game" data-game-id="${esc(g.id)}"
-                  class="btn-tap flex-1 py-2 px-3 rounded-xl bg-canvas dark:bg-surfaceDarkAlt hover:bg-pine hover:text-white dark:hover:bg-emeraldBrand text-ink dark:text-white text-xs font-bold border border-[#E2DACE] dark:border-white/12 transition-colors">
+                  class="btn-tap flex-1 py-2 px-3 rounded-xl bg-canvas dark:bg-surfaceDarkAlt hover:bg-pine hover:text-white dark:hover:bg-emeraldBrand text-ink dark:text-white text-xs font-bold border border-black/[0.07] dark:border-white/10 transition-colors">
                   + Registrar
                 </button>
                 ${g.quickCalc ? `
                   <button type="button" data-action="open-quick-calc-for" data-game-id="${esc(g.id)}" data-calc="${g.quickCalc}"
-                    class="btn-tap py-2 px-2.5 rounded-xl text-xs font-bold text-white" style="background:${g.color};" title="Abrir marcador en vivo">
+                    class="btn-tap py-2 px-3 rounded-xl text-xs font-bold text-white shadow-xs" style="background: linear-gradient(135deg, ${g.color}, ${g.color2 || g.color});" title="Abrir marcador en vivo">
                     Marcador
                   </button>
                 ` : ''}
@@ -3675,7 +3909,7 @@
             <p class="text-xs text-inkMuted dark:text-white/55">Edita, borra o añade juegos a tu estantería</p>
           </div>
           <button type="button" data-action="open-add-game"
-            class="btn-tap px-3.5 py-2 rounded-xl bg-pine dark:bg-emeraldBrand text-white text-xs font-bold shadow-soft shrink-0">
+            class="btn-tap btn-primary-pro px-3.5 py-2 rounded-xl text-white text-xs font-bold shrink-0">
             + Añadir juego
           </button>
         </div>
@@ -3687,7 +3921,7 @@
         ${deletedDefaultsCount > 0 ? `
           <div class="pt-2 text-center">
             <button type="button" data-action="restore-default-games"
-              class="btn-tap inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-surfaceDark border border-[#E2DACE] dark:border-white/12 text-xs font-semibold text-inkMuted dark:text-white/65 hover:text-ink dark:hover:text-white">
+              class="btn-tap card-pro inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-inkMuted dark:text-white/65 hover:text-ink dark:hover:text-white">
               Restaurar ${deletedDefaultsCount} ${deletedDefaultsCount === 1 ? 'juego inicial oculto' : 'juegos iniciales ocultos'}
             </button>
           </div>
@@ -3975,11 +4209,8 @@
 
       document.querySelectorAll('.nav-btn').forEach((btn) => {
         const active = btn.dataset.nav === tabName;
-        btn.className = `nav-btn btn-tap py-1.5 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all relative ${
-          active
-            ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs'
-            : 'text-inkMuted dark:text-white/60 hover:text-ink dark:hover:text-white'
-        }`;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-current', active ? 'page' : 'false');
       });
 
       const subMap = {
