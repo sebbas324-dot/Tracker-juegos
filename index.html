@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" class="scroll-smooth">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -67,8 +67,12 @@
     }
 
     html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
       -webkit-tap-highlight-color: transparent;
-      overscroll-behavior-y: none;
+      overscroll-behavior: none;
     }
 
     body {
@@ -81,27 +85,39 @@
       color: #F2EFE9;
     }
 
+    /* App Shell fijo: evita que la barra inferior flote o tape el contenido en iOS Safari */
     #app-bg {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background-color: #F6F3EC;
       background-image:
         radial-gradient(at 10% 0%, rgba(43, 122, 88, 0.09) 0px, transparent 42%),
         radial-gradient(at 92% 8%, rgba(217, 145, 30, 0.08) 0px, transparent 40%),
         radial-gradient(at 50% 95%, rgba(37, 99, 235, 0.05) 0px, transparent 50%);
-      padding-bottom: calc(6.5rem + var(--safe-bottom));
     }
 
     html.dark #app-bg {
+      background-color: #0D1311;
       background-image:
         radial-gradient(at 10% 0%, rgba(43, 122, 88, 0.18) 0px, transparent 45%),
         radial-gradient(at 92% 10%, rgba(217, 145, 30, 0.12) 0px, transparent 42%),
         radial-gradient(at 50% 95%, rgba(124, 58, 237, 0.09) 0px, transparent 50%);
     }
 
-    .safe-top {
-      padding-top: calc(0.75rem + var(--safe-top));
+    #main-scroll {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
     }
 
-    .safe-bottom-dock {
-      bottom: calc(0.85rem + var(--safe-bottom));
+    .safe-top {
+      padding-top: calc(0.7rem + var(--safe-top));
+    }
+
+    .safe-bottom-bar {
+      padding-bottom: calc(0.45rem + var(--safe-bottom));
     }
 
     button, input, select, textarea, label, a {
@@ -151,32 +167,21 @@
       -moz-appearance: textfield;
     }
 
-    /* Glassmorphism dock */
-    .glass-dock {
-      background: rgba(255, 255, 255, 0.86);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+    /* Barra inferior anclada con sombra sutil hacia arriba */
+    .docked-nav-shadow {
+      box-shadow: 0 -4px 20px -6px rgba(20, 38, 32, 0.09);
     }
-    html.dark .glass-dock {
-      background: rgba(22, 31, 28, 0.86);
-    }
-
-    .glass-header {
-      background: rgba(20, 38, 32, 0.94);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-    }
-    html.dark .glass-header {
-      background: rgba(15, 24, 21, 0.92);
+    html.dark .docked-nav-shadow {
+      box-shadow: 0 -4px 20px -6px rgba(0, 0, 0, 0.45);
     }
   </style>
 </head>
 <body class="font-sans antialiased selection:bg-emeraldBrand/20">
 
-  <div id="app-bg" class="min-h-screen flex flex-col">
+  <div id="app-bg">
 
-    <!-- ==================== TOP BAR (iOS SAFE AREA) ==================== -->
-    <header class="sticky top-0 z-30 glass-header text-white border-b border-white/10 safe-top">
+    <!-- ==================== TOP BAR (ANCLADA ARRIBA, ZONA SEGURA iOS) ==================== -->
+    <header class="shrink-0 z-20 bg-pine dark:bg-[#0F1815] text-white border-b border-white/10 safe-top shadow-sm">
       <div class="max-w-4xl mx-auto px-4 pb-3 flex items-center justify-between gap-3">
         <!-- Brand -->
         <div class="flex items-center gap-2.5 min-w-0">
@@ -224,40 +229,42 @@
       </div>
     </header>
 
-    <!-- ==================== MAIN CONTENT ==================== -->
-    <main class="flex-1 max-w-4xl w-full mx-auto px-3.5 sm:px-6 pt-4">
-      <section id="view-log" class="space-y-4"></section>
-      <section id="view-history" class="hidden space-y-4"></section>
-      <section id="view-stats" class="hidden space-y-4"></section>
-      <section id="view-shelf" class="hidden space-y-4"></section>
+    <!-- ==================== MAIN CONTENT (SCROLL INTERNO INDEPENDIENTE) ==================== -->
+    <main id="main-scroll" class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+      <div class="max-w-4xl w-full mx-auto px-3.5 sm:px-6 pt-4 pb-8">
+        <section id="view-log" class="space-y-4"></section>
+        <section id="view-history" class="hidden space-y-4"></section>
+        <section id="view-stats" class="hidden space-y-4"></section>
+        <section id="view-shelf" class="hidden space-y-4"></section>
+      </div>
     </main>
 
-    <!-- ==================== FLOATING GLASS BOTTOM DOCK (4 TABS) ==================== -->
-    <nav class="fixed inset-x-0 z-30 safe-bottom-dock px-3.5 pointer-events-none" aria-label="Navegación principal">
-      <div class="max-w-md mx-auto glass-dock border border-[#E4DDD0] dark:border-white/12 rounded-[26px] p-1.5 shadow-dock pointer-events-auto grid grid-cols-4 gap-1">
-        <button type="button" data-nav="log" class="nav-btn btn-tap py-2 px-1 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all">
+    <!-- ==================== BARRA INFERIOR ANCLADA (NO FLOTA NI TAPA CONTENIDO) ==================== -->
+    <nav id="bottom-nav" class="shrink-0 z-20 bg-white dark:bg-surfaceDark border-t border-[#E6DFD2] dark:border-white/10 docked-nav-shadow safe-bottom-bar" aria-label="Navegación principal">
+      <div class="max-w-lg mx-auto px-2.5 pt-1.5 grid grid-cols-4 gap-1">
+        <button type="button" data-nav="log" class="nav-btn btn-tap py-1.5 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>
           </svg>
           <span>Registrar</span>
         </button>
 
-        <button type="button" data-nav="history" class="nav-btn btn-tap py-2 px-1 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all relative">
+        <button type="button" data-nav="history" class="nav-btn btn-tap py-1.5 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all relative">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>
           </svg>
           <span>Historial</span>
-          <span id="nav-history-badge" class="hidden absolute top-1 right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-emeraldBrand text-white text-[9px] font-extrabold flex items-center justify-center tabular-nums">0</span>
+          <span id="nav-history-badge" class="hidden absolute top-1 right-3 min-w-[16px] h-4 px-1 rounded-full bg-emeraldBrand text-white text-[9px] font-extrabold flex items-center justify-center tabular-nums">0</span>
         </button>
 
-        <button type="button" data-nav="stats" class="nav-btn btn-tap py-2 px-1 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all">
+        <button type="button" data-nav="stats" class="nav-btn btn-tap py-1.5 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7" rx="1"/><rect x="13" y="6" width="3" height="11" rx="1"/><rect x="19" y="13" width="2" height="4" rx="1"/>
           </svg>
           <span>Stats</span>
         </button>
 
-        <button type="button" data-nav="shelf" class="nav-btn btn-tap py-2 px-1 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all">
+        <button type="button" data-nav="shelf" class="nav-btn btn-tap py-1.5 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.8"/>
           </svg>
@@ -2969,9 +2976,9 @@
 
       document.querySelectorAll('.nav-btn').forEach((btn) => {
         const active = btn.dataset.nav === tabName;
-        btn.className = `nav-btn btn-tap py-2 px-1 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all relative ${
+        btn.className = `nav-btn btn-tap py-1.5 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all relative ${
           active
-            ? 'bg-pine dark:bg-emeraldBrand text-white shadow-sm'
+            ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs'
             : 'text-inkMuted dark:text-white/60 hover:text-ink dark:hover:text-white'
         }`;
       });
@@ -2985,7 +2992,8 @@
       document.getElementById('header-subtitle').textContent = subMap[tabName] || 'Diario de Partidas';
 
       renderActiveTab();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const scroller = document.getElementById('main-scroll');
+      if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
 
       if (tabName === 'history' && syncState.connected && !syncState.isLoading && (!syncState.lastSyncedAt || Date.now() - syncState.lastSyncedAt > 30000)) {
         syncFromSheets({ silent: true });
