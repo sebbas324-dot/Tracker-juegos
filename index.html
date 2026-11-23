@@ -306,6 +306,7 @@
       HISTORY: 'ludoteca_history_v1',
       DRAFT: 'ludoteca_draft_v1',
       PLAYERS: 'ludoteca_frequent_players_v1',
+      DELETED_GAMES: 'ludoteca_deleted_games_v1',
     };
 
     // =========================================================================
@@ -365,8 +366,8 @@
         tagline: 'Duelo de gemas y coronas',
       },
       {
-        id: 'ttr_iberia',
-        name: 'Ticket to Ride: Iberia',
+        id: 'ttr_europa',
+        name: 'Ticket to Ride: Europa',
         color: '#D97706',
         color2: '#9A4A06',
         icon: 'train',
@@ -375,7 +376,7 @@
         maxPlayers: 5,
         defaultDuration: 45,
         extraType: 'none',
-        tagline: 'Rutas por la Península',
+        tagline: 'Rutas ferroviarias por Europa',
       },
       {
         id: 'flip_7',
@@ -456,6 +457,7 @@
     // 4. ESTADO GLOBAL DE LA APP
     // =========================================================================
     let games = [];
+    let deletedGameIds = [];
     let matchHistory = [];
     let frequentPlayers = [];
 
@@ -787,11 +789,40 @@
         }
       } catch (e) {}
 
+      try {
+        const rawDel = localStorage.getItem(KEYS.DELETED_GAMES);
+        deletedGameIds = rawDel ? JSON.parse(rawDel) : [];
+        if (!Array.isArray(deletedGameIds)) deletedGameIds = [];
+      } catch (e) {
+        deletedGameIds = [];
+      }
+
+      // Migración suave si aún estaba Ticket to Ride: Iberia sin partidas registradas
+      const iberiaIdx = games.findIndex((g) => g.id === 'ttr_iberia');
+      const hasIberiaMatches = matchHistory.some((m) => m.gameId === 'ttr_iberia');
+      if (iberiaIdx >= 0 && !hasIberiaMatches && !games.some((g) => g.id === 'ttr_europa') && !deletedGameIds.includes('ttr_europa')) {
+        const europaDef = DEFAULT_GAMES.find((d) => d.id === 'ttr_europa');
+        if (europaDef) {
+          games[iberiaIdx] = JSON.parse(JSON.stringify(europaDef));
+          saveGamesLocal();
+        }
+      }
+
+      // Asegura que el borrador apunte a un juego existente
+      if (games.length > 0 && !games.some((g) => g.id === draft.gameId)) {
+        draft.gameId = games[0].id;
+        draft.duration = games[0].defaultDuration || 30;
+      }
+
       rebuildFrequentPlayersFromHistory();
     }
 
     function saveGamesLocal() {
       try { localStorage.setItem(KEYS.GAMES, JSON.stringify(games)); } catch (e) {}
+    }
+
+    function saveDeletedGamesLocal() {
+      try { localStorage.setItem(KEYS.DELETED_GAMES, JSON.stringify(deletedGameIds)); } catch (e) {}
     }
 
     function saveHistoryLocal() {
@@ -900,8 +931,8 @@
       const list = Array.from(map.values());
       list.forEach((m) => {
         m.players.sort((a, b) => a.rank - b.rank);
-        // Asegura que juegos personalizados existentes en Sheets aparezcan en la ludoteca
-        if (m.gameId && !games.some((g) => g.id === m.gameId)) {
+        // Asegura que juegos personalizados existentes en Sheets aparezcan en la ludoteca (salvo si el usuario los borró)
+        if (m.gameId && !games.some((g) => g.id === m.gameId) && !deletedGameIds.includes(m.gameId)) {
           games.push({
             id: m.gameId,
             name: m.gameName,
@@ -1090,7 +1121,7 @@
         const expBtn = document.getElementById('btn-export-json');
         if (expBtn) {
           expBtn.addEventListener('click', () => {
-            const payload = { exportedAt: new Date().toISOString(), games, matchHistory };
+            const payload = { exportedAt: new Date().toISOString(), games, deletedGameIds, matchHistory };
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -1111,6 +1142,10 @@
                 if (Array.isArray(parsed.games) && parsed.games.length) {
                   games = parsed.games;
                   saveGamesLocal();
+                }
+                if (Array.isArray(parsed.deletedGameIds)) {
+                  deletedGameIds = parsed.deletedGameIds;
+                  saveDeletedGamesLocal();
                 }
                 if (Array.isArray(parsed.matchHistory)) {
                   matchHistory = parsed.matchHistory;
@@ -2572,12 +2607,28 @@
           <article class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft overflow-hidden flex flex-col anim-in">
             <div class="p-4 text-white relative overflow-hidden" style="background: linear-gradient(135deg, ${g.color}, ${g.color2 || g.color});">
               <div class="flex items-start justify-between gap-2 relative z-10">
-                <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center">
+                <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
                   ${gameIconSvg(g.icon, 'w-5 h-5')}
                 </div>
-                <span class="px-2.5 py-1 rounded-full bg-black/20 text-[11px] font-extrabold tabular-nums">
-                  ${playCount} ${playCount === 1 ? 'partida' : 'partidas'}
-                </span>
+                <div class="flex items-center gap-1.5">
+                  <span class="px-2.5 py-1 rounded-full bg-black/20 text-[11px] font-extrabold tabular-nums">
+                    ${playCount} ${playCount === 1 ? 'partida' : 'partidas'}
+                  </span>
+                  <button type="button" data-action="open-edit-game" data-game-id="${esc(g.id)}"
+                    class="btn-tap w-8 h-8 rounded-full bg-black/20 hover:bg-black/35 text-white flex items-center justify-center"
+                    title="Editar juego" aria-label="Editar ${esc(g.name)}">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                    </svg>
+                  </button>
+                  <button type="button" data-action="confirm-delete-game" data-game-id="${esc(g.id)}"
+                    class="btn-tap w-8 h-8 rounded-full bg-black/20 hover:bg-coralBrand text-white flex items-center justify-center transition-colors"
+                    title="Eliminar juego" aria-label="Eliminar ${esc(g.name)}">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
               <h3 class="font-display text-base font-extrabold mt-3 leading-tight relative z-10">${esc(g.name)}</h3>
               <p class="text-[11px] text-white/80 mt-0.5 relative z-10">${esc(g.tagline || '')}</p>
@@ -2609,11 +2660,13 @@
         `;
       }).join('');
 
+      const deletedDefaultsCount = DEFAULT_GAMES.filter((d) => deletedGameIds.includes(d.id) && !games.some((g) => g.id === d.id)).length;
+
       container.innerHTML = `
         <div class="flex items-center justify-between gap-2 px-0.5">
           <div>
             <h2 class="font-display text-base font-extrabold text-ink dark:text-white">Tu Ludoteca (${games.length})</h2>
-            <p class="text-xs text-inkMuted dark:text-white/55">Toca cualquier juego para registrar una partida al instante</p>
+            <p class="text-xs text-inkMuted dark:text-white/55">Edita, borra o añade juegos a tu estantería</p>
           </div>
           <button type="button" data-action="open-add-game"
             class="btn-tap px-3.5 py-2 rounded-xl bg-pine dark:bg-emeraldBrand text-white text-xs font-bold shadow-soft shrink-0">
@@ -2624,25 +2677,53 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           ${cards}
         </div>
+
+        ${deletedDefaultsCount > 0 ? `
+          <div class="pt-2 text-center">
+            <button type="button" data-action="restore-default-games"
+              class="btn-tap inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-surfaceDark border border-[#E2DACE] dark:border-white/12 text-xs font-semibold text-inkMuted dark:text-white/65 hover:text-ink dark:hover:text-white">
+              Restaurar ${deletedDefaultsCount} ${deletedDefaultsCount === 1 ? 'juego inicial oculto' : 'juegos iniciales ocultos'}
+            </button>
+          </div>
+        ` : ''}
       `;
     }
 
-    function openAddGameModal() {
-      let chosenColor = PALETTE_CHOICES[0];
-      let chosenIcon = 'dice';
+    function openGameModal(existingGame = null) {
+      const isEdit = Boolean(existingGame);
+      let chosenColor = isEdit
+        ? (PALETTE_CHOICES.find((p) => p.color === existingGame.color) || { color: existingGame.color, color2: existingGame.color2 || existingGame.color, label: 'Actual' })
+        : PALETTE_CHOICES[0];
+      let chosenIcon = isEdit ? (existingGame.icon || 'dice') : 'dice';
+
+      let currentName = isEdit ? existingGame.name : '';
+      let currentTagline = isEdit ? (existingGame.tagline || '') : '';
+      let currentMode = isEdit ? (existingGame.scoringType || 'points') : 'points';
+      let currentDur = isEdit ? String(existingGame.defaultDuration || 30) : '30';
+
+      const syncFieldsFromDom = () => {
+        const n = document.getElementById('new-game-name');
+        const t = document.getElementById('new-game-tagline');
+        const m = document.getElementById('new-game-mode');
+        const d = document.getElementById('new-game-dur');
+        if (n) currentName = n.value;
+        if (t) currentTagline = t.value;
+        if (m) currentMode = m.value;
+        if (d) currentDur = d.value;
+      };
 
       const renderForm = () => {
         const bodyHtml = `
           <div class="space-y-4">
             <div>
               <label for="new-game-name" class="block text-xs font-bold mb-1.5">Nombre del juego</label>
-              <input id="new-game-name" type="text" maxlength="40" placeholder="Ej. Cascadia, Azul, Catan..."
+              <input id="new-game-name" type="text" maxlength="40" value="${esc(currentName)}" placeholder="Ej. Cascadia, Azul, Catan..."
                 class="w-full bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 focus:border-emeraldBrand rounded-xl px-3 py-2.5 text-sm font-semibold outline-none" />
             </div>
 
             <div>
               <label for="new-game-tagline" class="block text-xs font-bold mb-1.5">Subtítulo corto (opcional)</label>
-              <input id="new-game-tagline" type="text" maxlength="40" placeholder="Ej. Losetas y fauna"
+              <input id="new-game-tagline" type="text" maxlength="40" value="${esc(currentTagline)}" placeholder="Ej. Losetas y fauna"
                 class="w-full bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 focus:border-emeraldBrand rounded-xl px-3 py-2 text-xs outline-none" />
             </div>
 
@@ -2650,14 +2731,14 @@
               <div>
                 <label for="new-game-mode" class="block text-xs font-bold mb-1.5">Tipo de puntuación</label>
                 <select id="new-game-mode" class="w-full h-10 bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 rounded-xl px-2.5 text-xs font-bold outline-none">
-                  <option value="points">Por puntos</option>
-                  <option value="winner_only">Solo ganador</option>
-                  <option value="coop">Cooperativo (Victoria/Derrota)</option>
+                  <option value="points" ${currentMode === 'points' ? 'selected' : ''}>Por puntos</option>
+                  <option value="winner_only" ${currentMode === 'winner_only' ? 'selected' : ''}>Solo ganador</option>
+                  <option value="coop" ${currentMode === 'coop' ? 'selected' : ''}>Cooperativo (Victoria/Derrota)</option>
                 </select>
               </div>
               <div>
                 <label for="new-game-dur" class="block text-xs font-bold mb-1.5">Duración media (min)</label>
-                <input id="new-game-dur" type="number" min="5" max="360" value="30"
+                <input id="new-game-dur" type="number" min="5" max="360" value="${esc(currentDur)}"
                   class="w-full h-10 bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 rounded-xl px-3 text-xs font-bold outline-none" />
               </div>
             </div>
@@ -2690,42 +2771,71 @@
         `;
 
         openModal({
-          title: 'Añadir juego a tu ludoteca',
+          title: isEdit ? 'Editar juego' : 'Añadir juego a tu ludoteca',
           bodyHtml,
           actions: [
             { label: 'Cancelar' },
             {
-              label: 'Añadir juego',
+              label: isEdit ? 'Guardar cambios' : 'Añadir juego',
               className: 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emeraldBrand text-white',
               keepOpen: true,
               onClick: () => {
-                const name = (document.getElementById('new-game-name')?.value || '').trim();
+                syncFieldsFromDom();
+                const name = currentName.trim();
                 if (!name) {
                   showToast('Escribe el nombre del juego', 'danger');
                   return;
                 }
-                const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_') + '_' + Date.now().toString(36).slice(-3);
-                const newGame = {
-                  id: slug,
-                  name,
-                  tagline: (document.getElementById('new-game-tagline')?.value || '').trim() || 'Juego de mesa',
-                  color: chosenColor.color,
-                  color2: chosenColor.color2,
-                  icon: chosenIcon,
-                  scoringType: document.getElementById('new-game-mode')?.value || 'points',
-                  minPlayers: 1,
-                  maxPlayers: 6,
-                  defaultDuration: Number(document.getElementById('new-game-dur')?.value) || 30,
-                  extraType: 'none',
-                };
-                games.push(newGame);
-                saveGamesLocal();
-                draft.gameId = newGame.id;
-                draft.duration = newGame.defaultDuration;
-                saveDraftLocal();
-                closeModal();
-                renderActiveTab();
-                showToast(`${name} añadido a tu ludoteca`, 'success');
+                const tagline = currentTagline.trim() || 'Juego de mesa';
+                const scoringType = currentMode || 'points';
+                const defaultDuration = Math.max(5, Math.min(360, Number(currentDur) || 30));
+
+                if (isEdit) {
+                  const target = games.find((g) => g.id === existingGame.id);
+                  if (target) {
+                    target.name = name;
+                    target.tagline = tagline;
+                    target.color = chosenColor.color;
+                    target.color2 = chosenColor.color2;
+                    target.icon = chosenIcon;
+                    target.scoringType = scoringType;
+                    target.defaultDuration = defaultDuration;
+                  }
+                  if (draft.gameId === existingGame.id) {
+                    draft.duration = defaultDuration;
+                    saveDraftLocal();
+                  }
+                  saveGamesLocal();
+                  closeModal();
+                  renderActiveTab();
+                  showToast(`${name} actualizado`, 'success');
+                } else {
+                  const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_') + '_' + Date.now().toString(36).slice(-3);
+                  const newGame = {
+                    id: slug,
+                    name,
+                    tagline,
+                    color: chosenColor.color,
+                    color2: chosenColor.color2,
+                    icon: chosenIcon,
+                    scoringType,
+                    minPlayers: 1,
+                    maxPlayers: 6,
+                    defaultDuration,
+                    extraType: 'none',
+                  };
+                  games.push(newGame);
+                  deletedGameIds = deletedGameIds.filter((id) => id !== newGame.id);
+                  saveGamesLocal();
+                  saveDeletedGamesLocal();
+                  draft.gameId = newGame.id;
+                  draft.duration = newGame.defaultDuration;
+                  saveDraftLocal();
+                  closeModal();
+                  document.getElementById('header-subtitle').textContent = `${games.length} juegos en colección`;
+                  renderActiveTab();
+                  showToast(`${name} añadido a tu ludoteca`, 'success');
+                }
               },
             },
           ],
@@ -2734,35 +2844,79 @@
         document.getElementById('modal-body').onclick = (e) => {
           const cBtn = e.target.closest('[data-pick-color]');
           if (cBtn) {
-            const nameVal = document.getElementById('new-game-name')?.value || '';
-            const tagVal = document.getElementById('new-game-tagline')?.value || '';
-            const modeVal = document.getElementById('new-game-mode')?.value || 'points';
-            const durVal = document.getElementById('new-game-dur')?.value || '30';
+            syncFieldsFromDom();
             chosenColor = PALETTE_CHOICES[Number(cBtn.dataset.pickColor)];
             renderForm();
-            document.getElementById('new-game-name').value = nameVal;
-            document.getElementById('new-game-tagline').value = tagVal;
-            document.getElementById('new-game-mode').value = modeVal;
-            document.getElementById('new-game-dur').value = durVal;
             return;
           }
           const iBtn = e.target.closest('[data-pick-icon]');
           if (iBtn) {
-            const nameVal = document.getElementById('new-game-name')?.value || '';
-            const tagVal = document.getElementById('new-game-tagline')?.value || '';
-            const modeVal = document.getElementById('new-game-mode')?.value || 'points';
-            const durVal = document.getElementById('new-game-dur')?.value || '30';
+            syncFieldsFromDom();
             chosenIcon = iBtn.dataset.pickIcon;
             renderForm();
-            document.getElementById('new-game-name').value = nameVal;
-            document.getElementById('new-game-tagline').value = tagVal;
-            document.getElementById('new-game-mode').value = modeVal;
-            document.getElementById('new-game-dur').value = durVal;
           }
         };
       };
 
       renderForm();
+    }
+
+    function confirmDeleteGame(gameId) {
+      if (games.length <= 1) {
+        showToast('Debes mantener al menos un juego en tu ludoteca', 'neutral');
+        return;
+      }
+      const game = getGameById(gameId);
+      const count = matchHistory.filter((m) => m.gameId === gameId).length;
+      const extraNote = count > 0
+        ? `Tus <strong>${count} ${count === 1 ? 'partida ya registrada' : 'partidas ya registradas'}</strong> en el historial se conservarán intactas.`
+        : 'No tienes partidas registradas con este juego.';
+
+      openModal({
+        title: `¿Eliminar "${game.name}"?`,
+        bodyHtml: `<p class="text-xs sm:text-sm text-inkMuted dark:text-white/75 leading-relaxed">Se quitará de tu ludoteca y del selector de nuevas partidas. ${extraNote}</p>`,
+        actions: [
+          { label: 'Cancelar' },
+          {
+            label: 'Sí, eliminar juego',
+            className: 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-coralBrand text-white',
+            onClick: () => {
+              games = games.filter((g) => g.id !== gameId);
+              if (!deletedGameIds.includes(gameId)) {
+                deletedGameIds.push(gameId);
+              }
+              saveGamesLocal();
+              saveDeletedGamesLocal();
+
+              if (draft.gameId === gameId && games.length > 0) {
+                draft.gameId = games[0].id;
+                draft.duration = games[0].defaultDuration || 30;
+                saveDraftLocal();
+              }
+
+              document.getElementById('header-subtitle').textContent = `${games.length} juegos en colección`;
+              renderActiveTab();
+              showToast(`${game.name} eliminado de la ludoteca`, 'neutral');
+            },
+          },
+        ],
+      });
+    }
+
+    function restoreDefaultGames() {
+      let restored = 0;
+      DEFAULT_GAMES.forEach((def) => {
+        if (!games.some((g) => g.id === def.id)) {
+          games.push(JSON.parse(JSON.stringify(def)));
+          restored++;
+        }
+      });
+      deletedGameIds = [];
+      saveGamesLocal();
+      saveDeletedGamesLocal();
+      document.getElementById('header-subtitle').textContent = `${games.length} juegos en colección`;
+      renderActiveTab();
+      showToast(restored > 0 ? `${restored} ${restored === 1 ? 'juego restaurado' : 'juegos restaurados'}` : 'Ludoteca al día', 'success');
     }
 
     // =========================================================================
@@ -3007,7 +3161,20 @@
             break;
           }
           case 'open-add-game': {
-            openAddGameModal();
+            openGameModal(null);
+            break;
+          }
+          case 'open-edit-game': {
+            const g = games.find((x) => x.id === el.dataset.gameId);
+            if (g) openGameModal(g);
+            break;
+          }
+          case 'confirm-delete-game': {
+            confirmDeleteGame(el.dataset.gameId);
+            break;
+          }
+          case 'restore-default-games': {
+            restoreDefaultGames();
             break;
           }
         }
