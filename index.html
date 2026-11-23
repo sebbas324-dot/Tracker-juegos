@@ -1,0 +1,3036 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+  <!-- PWA / iOS App Nativa -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ludoteca" />
+  <meta name="application-name" content="Ludoteca" />
+  <meta id="meta-theme-color" name="theme-color" content="#142620" />
+  <meta name="description" content="Registro unificado de partidas, estadísticas y marcadores rápidos para tu ludoteca con sincronización en Google Sheets." />
+
+  <title>Ludoteca — Diario de Partidas</title>
+
+  <!-- Iconos y Manifest generados dinámicamente -->
+  <link id="dynamic-apple-icon" rel="apple-touch-icon" sizes="512x512" href="" />
+  <link id="dynamic-favicon" rel="icon" type="image/png" href="" />
+  <link id="dynamic-manifest" rel="manifest" href="" />
+
+  <!-- Tipografías: Plus Jakarta Sans (Display) + Inter (UI/Tabulares) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            canvas: '#F6F3EC',
+            canvasDark: '#0D1311',
+            surface: '#FFFFFF',
+            surfaceDark: '#161F1C',
+            surfaceDarkAlt: '#1D2925',
+            ink: '#1C1B18',
+            inkMuted: '#6A655C',
+            pine: '#142620',
+            pineMid: '#1F3D33',
+            emeraldBrand: '#2B7A58',
+            goldBrand: '#D9911E',
+            coralBrand: '#D04E36',
+          },
+          boxShadow: {
+            soft: '0 2px 12px -2px rgba(20, 38, 32, 0.06), 0 1px 3px rgba(20, 38, 32, 0.04)',
+            elevated: '0 12px 32px -6px rgba(20, 38, 32, 0.16), 0 4px 10px -2px rgba(20, 38, 32, 0.06)',
+            dock: '0 10px 30px -4px rgba(15, 25, 22, 0.22), 0 2px 8px rgba(15, 25, 22, 0.08)',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body {
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: none;
+    }
+
+    body {
+      background-color: #F6F3EC;
+      color: #1C1B18;
+    }
+
+    html.dark body {
+      background-color: #0D1311;
+      color: #F2EFE9;
+    }
+
+    #app-bg {
+      background-image:
+        radial-gradient(at 10% 0%, rgba(43, 122, 88, 0.09) 0px, transparent 42%),
+        radial-gradient(at 92% 8%, rgba(217, 145, 30, 0.08) 0px, transparent 40%),
+        radial-gradient(at 50% 95%, rgba(37, 99, 235, 0.05) 0px, transparent 50%);
+      padding-bottom: calc(6.5rem + var(--safe-bottom));
+    }
+
+    html.dark #app-bg {
+      background-image:
+        radial-gradient(at 10% 0%, rgba(43, 122, 88, 0.18) 0px, transparent 45%),
+        radial-gradient(at 92% 10%, rgba(217, 145, 30, 0.12) 0px, transparent 42%),
+        radial-gradient(at 50% 95%, rgba(124, 58, 237, 0.09) 0px, transparent 50%);
+    }
+
+    .safe-top {
+      padding-top: calc(0.75rem + var(--safe-top));
+    }
+
+    .safe-bottom-dock {
+      bottom: calc(0.85rem + var(--safe-bottom));
+    }
+
+    button, input, select, textarea, label, a {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .btn-tap {
+      transition: transform 0.13s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, opacity 0.15s ease;
+    }
+    .btn-tap:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .anim-in {
+      animation: fadeUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes sheetSlideUp {
+      from { opacity: 0; transform: translateY(28px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .anim-sheet {
+      animation: sheetSlideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .spin-fast {
+      animation: spin 0.75s linear infinite;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    /* Glassmorphism dock */
+    .glass-dock {
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    html.dark .glass-dock {
+      background: rgba(22, 31, 28, 0.86);
+    }
+
+    .glass-header {
+      background: rgba(20, 38, 32, 0.94);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    html.dark .glass-header {
+      background: rgba(15, 24, 21, 0.92);
+    }
+  </style>
+</head>
+<body class="font-sans antialiased selection:bg-emeraldBrand/20">
+
+  <div id="app-bg" class="min-h-screen flex flex-col">
+
+    <!-- ==================== TOP BAR (iOS SAFE AREA) ==================== -->
+    <header class="sticky top-0 z-30 glass-header text-white border-b border-white/10 safe-top">
+      <div class="max-w-4xl mx-auto px-4 pb-3 flex items-center justify-between gap-3">
+        <!-- Brand -->
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-emerald-400/25 via-amber-400/20 to-white/10 border border-white/20 flex items-center justify-center shrink-0 shadow-sm">
+            <svg class="w-5 h-5" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+              <polygon points="14,2 25,8.2 25,19.8 14,26 3,19.8 3,8.2" fill="rgba(255,255,255,0.12)" stroke="#F6F3EC" stroke-width="1.6"/>
+              <circle cx="10.2" cy="11.2" r="2.1" fill="#FBBF24"/>
+              <circle cx="17.8" cy="11.2" r="2.1" fill="#34D399"/>
+              <circle cx="14" cy="17.5" r="2.3" fill="#FB7185"/>
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <h1 class="font-display text-base sm:text-lg font-extrabold tracking-tight leading-none truncate">Ludoteca</h1>
+            <p id="header-subtitle" class="text-[11px] font-medium text-white/65 mt-0.5 truncate">Diario de Partidas</p>
+          </div>
+        </div>
+
+        <!-- Controles: Modo oscuro + Estado Sheets -->
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            id="btn-theme-toggle"
+            type="button"
+            class="btn-tap w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white/90"
+            title="Cambiar tema claro/oscuro"
+            aria-label="Cambiar tema"
+          >
+            <svg id="icon-sun" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+            </svg>
+            <svg id="icon-moon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+            </svg>
+          </button>
+
+          <button
+            id="btn-sync-settings"
+            type="button"
+            class="btn-tap inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold border transition-all bg-white/10 border-white/20 text-white"
+            title="Configurar Google Sheets y copia de seguridad"
+          >
+            <span id="sync-dot" class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+            <span id="sync-label">Modo local</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="flex-1 max-w-4xl w-full mx-auto px-3.5 sm:px-6 pt-4">
+      <section id="view-log" class="space-y-4"></section>
+      <section id="view-history" class="hidden space-y-4"></section>
+      <section id="view-stats" class="hidden space-y-4"></section>
+      <section id="view-shelf" class="hidden space-y-4"></section>
+    </main>
+
+    <!-- ==================== FLOATING GLASS BOTTOM DOCK (4 TABS) ==================== -->
+    <nav class="fixed inset-x-0 z-30 safe-bottom-dock px-3.5 pointer-events-none" aria-label="Navegación principal">
+      <div class="max-w-md mx-auto glass-dock border border-[#E4DDD0] dark:border-white/12 rounded-[26px] p-1.5 shadow-dock pointer-events-auto grid grid-cols-4 gap-1">
+        <button type="button" data-nav="log" class="nav-btn btn-tap py-2 px-1 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>
+          </svg>
+          <span>Registrar</span>
+        </button>
+
+        <button type="button" data-nav="history" class="nav-btn btn-tap py-2 px-1 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all relative">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>
+          </svg>
+          <span>Historial</span>
+          <span id="nav-history-badge" class="hidden absolute top-1 right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-emeraldBrand text-white text-[9px] font-extrabold flex items-center justify-center tabular-nums">0</span>
+        </button>
+
+        <button type="button" data-nav="stats" class="nav-btn btn-tap py-2 px-1 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7" rx="1"/><rect x="13" y="6" width="3" height="11" rx="1"/><rect x="19" y="13" width="2" height="4" rx="1"/>
+          </svg>
+          <span>Stats</span>
+        </button>
+
+        <button type="button" data-nav="shelf" class="nav-btn btn-tap py-2 px-1 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.8"/>
+          </svg>
+          <span>Ludoteca</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ==================== MODAL / SHEET OVERLAY ==================== -->
+  <div id="modal-backdrop" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center sm:p-4 bg-black/55 backdrop-blur-[3px]">
+    <div id="modal-card" class="bg-canvas dark:bg-surfaceDark border-t sm:border border-[#E4DDD0] dark:border-white/12 rounded-t-[28px] sm:rounded-[28px] max-w-lg w-full max-h-[90vh] flex flex-col shadow-elevated anim-sheet overflow-hidden">
+      <div class="px-5 pt-4 pb-3 border-b border-[#EAE3D7] dark:border-white/10 flex items-center justify-between gap-3 shrink-0">
+        <div class="min-w-0">
+          <h3 id="modal-title" class="font-display text-lg font-extrabold text-ink dark:text-white truncate"></h3>
+          <p id="modal-subtitle" class="text-xs text-inkMuted dark:text-white/60 hidden mt-0.5"></p>
+        </div>
+        <button id="modal-close-x" type="button" class="btn-tap w-8 h-8 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-inkMuted dark:text-white/75 shrink-0" aria-label="Cerrar">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="modal-body" class="p-5 overflow-y-auto flex-1 text-sm text-ink dark:text-white/90"></div>
+      <div id="modal-actions" class="px-5 py-3.5 border-t border-[#EAE3D7] dark:border-white/10 bg-white/60 dark:bg-black/20 flex flex-wrap items-center justify-end gap-2 shrink-0"></div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST NOTIFICATIONS ==================== -->
+  <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-[60] pointer-events-none flex flex-col items-center gap-2 w-full max-w-xs px-4"></div>
+
+  <script>
+    // =========================================================================
+    // 1. CONFIGURACIÓN OPCIONAL EN CÓDIGO (RECOMENDADO DEJAR VACÍO EN GITHUB PÚBLICO)
+    // =========================================================================
+    // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
+    // + PIN secreto desde el botón superior de la app en tu móvil.
+    const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
+
+    // =========================================================================
+    // 2. CLAVES DE ALMACENAMIENTO LOCAL
+    // =========================================================================
+    const KEYS = {
+      THEME: 'ludoteca_theme_v1',
+      SHEETS_URL: 'ludoteca_sheets_url_v1',
+      SHEETS_PIN: 'ludoteca_sheets_pin_v1',
+      GAMES: 'ludoteca_games_v1',
+      HISTORY: 'ludoteca_history_v1',
+      DRAFT: 'ludoteca_draft_v1',
+      PLAYERS: 'ludoteca_frequent_players_v1',
+    };
+
+    // =========================================================================
+    // 3. LUDOTECA INICIAL (CON METADATOS Y MARCADORES INTEGRADOS)
+    // =========================================================================
+    const DEFAULT_GAMES = [
+      {
+        id: 'harmonies',
+        name: 'Harmonies',
+        color: '#2E7D4F',
+        color2: '#1B5E3A',
+        icon: 'hex',
+        scoringType: 'points',
+        minPlayers: 1,
+        maxPlayers: 4,
+        defaultDuration: 30,
+        extraType: 'harmonies',
+        tagline: 'Paisajes y hábitats',
+      },
+      {
+        id: 'wyrmspan',
+        name: 'Wyrmspan',
+        color: '#9B2C4E',
+        color2: '#6B1A33',
+        icon: 'dragon',
+        scoringType: 'points',
+        minPlayers: 1,
+        maxPlayers: 5,
+        defaultDuration: 90,
+        extraType: 'wyrmspan',
+        tagline: 'Cuevas y dragones',
+      },
+      {
+        id: 'terraforming_mars',
+        name: 'Terraforming Mars',
+        color: '#C84B31',
+        color2: '#8B2C18',
+        icon: 'planet',
+        scoringType: 'points',
+        minPlayers: 1,
+        maxPlayers: 5,
+        defaultDuration: 120,
+        extraType: 'tfm',
+        tagline: 'Corporaciones en Marte',
+      },
+      {
+        id: 'splendor_duel',
+        name: 'Splendor Duel',
+        color: '#2563EB',
+        color2: '#1E3A8A',
+        icon: 'gem',
+        scoringType: 'points',
+        minPlayers: 2,
+        maxPlayers: 2,
+        defaultDuration: 30,
+        extraType: 'splendor',
+        tagline: 'Duelo de gemas y coronas',
+      },
+      {
+        id: 'ttr_iberia',
+        name: 'Ticket to Ride: Iberia',
+        color: '#D97706',
+        color2: '#9A4A06',
+        icon: 'train',
+        scoringType: 'points',
+        minPlayers: 2,
+        maxPlayers: 5,
+        defaultDuration: 45,
+        extraType: 'none',
+        tagline: 'Rutas por la Península',
+      },
+      {
+        id: 'flip_7',
+        name: 'Flip 7',
+        color: '#7C3AED',
+        color2: '#4C1D95',
+        icon: 'cards',
+        scoringType: 'points',
+        minPlayers: 2,
+        maxPlayers: 8,
+        defaultDuration: 20,
+        extraType: 'none',
+        quickCalc: 'flip7',
+        tagline: 'Tienta la suerte hasta 200',
+      },
+      {
+        id: 'sushi_go',
+        name: 'Sushi Go!',
+        color: '#E11D48',
+        color2: '#9F1239',
+        icon: 'sushi',
+        scoringType: 'points',
+        minPlayers: 2,
+        maxPlayers: 5,
+        defaultDuration: 15,
+        extraType: 'none',
+        quickCalc: 'sushigo',
+        tagline: 'Draft de 3 rondas',
+      },
+      {
+        id: 'the_mind',
+        name: 'The Mind',
+        color: '#0D9488',
+        color2: '#115E59',
+        icon: 'mind',
+        scoringType: 'coop',
+        minPlayers: 2,
+        maxPlayers: 4,
+        defaultDuration: 15,
+        extraType: 'themind',
+        tagline: 'Cooperativo en silencio',
+      },
+      {
+        id: 'exploding_kittens',
+        name: 'Exploding Kittens',
+        color: '#EA580C',
+        color2: '#9A3412',
+        icon: 'cat',
+        scoringType: 'winner_only',
+        minPlayers: 2,
+        maxPlayers: 10,
+        defaultDuration: 15,
+        extraType: 'none',
+        tagline: 'Último superviviente',
+      },
+    ];
+
+    const TFM_CORPS = [
+      'Credicor', 'Ecoline', 'Helion', 'Interplanetary Cin.', 'Inventrix',
+      'Mining Guild', 'Phobolog', 'Tharsis Republic', 'Thorgate',
+      'UNMI', 'Saturn Systems', 'Teractor', 'Principiante', 'Otra'
+    ];
+
+    const PALETTE_CHOICES = [
+      { color: '#2E7D4F', color2: '#1B5E3A', label: 'Bosque' },
+      { color: '#2563EB', color2: '#1E3A8A', label: 'Zafiro' },
+      { color: '#C84B31', color2: '#8B2C18', label: 'Marte' },
+      { color: '#7C3AED', color2: '#4C1D95', label: 'Amatista' },
+      { color: '#D97706', color2: '#9A4A06', label: 'Ámbar' },
+      { color: '#E11D48', color2: '#9F1239', label: 'Carmesí' },
+      { color: '#0D9488', color2: '#115E59', label: 'Turquesa' },
+      { color: '#475569', color2: '#1E293B', label: 'Pizarra' },
+    ];
+
+    const ICON_CHOICES = ['dice', 'hex', 'cards', 'gem', 'dragon', 'planet', 'train', 'sushi', 'mind', 'cat', 'crown', 'meeple'];
+
+    // =========================================================================
+    // 4. ESTADO GLOBAL DE LA APP
+    // =========================================================================
+    let games = [];
+    let matchHistory = [];
+    let frequentPlayers = [];
+
+    let uiState = {
+      activeTab: 'log', // 'log' | 'history' | 'stats' | 'shelf'
+      historyFilterGame: 'all',
+      historySearch: '',
+      statsFilterGame: 'all',
+      expandedMatchId: null,
+    };
+
+    let syncState = {
+      mode: 'local', // 'connecting' | 'sheets' | 'local'
+      connected: false,
+      apiUrl: '',
+      pin: '',
+      errorMessage: '',
+      isSaving: false,
+      isLoading: false,
+      lastSyncedAt: null,
+    };
+
+    function todayISO() {
+      const d = new Date();
+      const tzOff = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - tzOff).toISOString().slice(0, 10);
+    }
+
+    function createEmptyDraft(gameId = 'harmonies') {
+      const g = games.find((x) => x.id === gameId) || DEFAULT_GAMES[0];
+      return {
+        gameId: g.id,
+        date: todayISO(),
+        duration: g.defaultDuration || 30,
+        notes: '',
+        // Extras por juego
+        harmoniesSide: 'A',
+        harmoniesSpirit: false,
+        splendorWinType: '20 puntos',
+        tfmMap: 'Tharsis',
+        tfmGenerations: 10,
+        wyrmspanSolo: false,
+        coopWon: true,
+        coopLevel: 8,
+        // Jugadores
+        players: [
+          { name: '', score: '', winner: false, tag: '' },
+          { name: '', score: '', winner: false, tag: '' },
+        ],
+        manualWinnerOverride: false,
+      };
+    }
+
+    let draft = createEmptyDraft('harmonies');
+
+    // Estado temporal para los marcadores en vivo (Flip 7 & Sushi Go!)
+    let flip7State = null;
+    let sushiState = null;
+
+    // =========================================================================
+    // 5. PWA ICONO DINÁMICO + MANIFEST + TEMA OSCURO
+    // =========================================================================
+    function setupPwaAssets() {
+      try {
+        const size = 512;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // Fondo degradado esmeralda profundo elegante
+        const bg = ctx.createLinearGradient(0, 0, size, size);
+        bg.addColorStop(0, '#142620');
+        bg.addColorStop(0.55, '#1F4236');
+        bg.addColorStop(1, '#0D1B17');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, size, size);
+
+        // Brillo cálido
+        const glow = ctx.createRadialGradient(size * 0.5, size * 0.45, 24, size * 0.5, size * 0.5, 230);
+        glow.addColorStop(0, 'rgba(217, 145, 30, 0.28)');
+        glow.addColorStop(1, 'rgba(217, 145, 30, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, size, size);
+
+        // Hexágono principal estilo loseta de mesa
+        ctx.beginPath();
+        const cx = 256, cy = 256, r = 165;
+        for (let i = 0; i < 6; i++) {
+          const a = (Math.PI / 3) * i - Math.PI / 2;
+          const x = cx + r * Math.cos(a);
+          const y = cy + r * Math.sin(a);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(246, 243, 236, 0.10)';
+        ctx.fill();
+        ctx.lineWidth = 14;
+        ctx.strokeStyle = '#F6F3EC';
+        ctx.stroke();
+
+        // Tres fichas de colores (esmeralda, oro, coral)
+        const dots = [
+          { x: 204, y: 215, c: '#FBBF24' },
+          { x: 308, y: 215, c: '#34D399' },
+          { x: 256, y: 308, c: '#FB7185' },
+        ];
+        dots.forEach((d) => {
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, 38, 0, Math.PI * 2);
+          ctx.fillStyle = d.c;
+          ctx.fill();
+          ctx.lineWidth = 7;
+          ctx.strokeStyle = '#F6F3EC';
+          ctx.stroke();
+        });
+
+        const pngUrl = canvas.toDataURL('image/png');
+        const apple = document.getElementById('dynamic-apple-icon');
+        const fav = document.getElementById('dynamic-favicon');
+        if (apple) apple.href = pngUrl;
+        if (fav) fav.href = pngUrl;
+
+        const manifest = {
+          name: 'Ludoteca — Diario de Partidas',
+          short_name: 'Ludoteca',
+          description: 'Registro de partidas, estadísticas y marcadores rápidos',
+          start_url: window.location.pathname || './',
+          display: 'standalone',
+          orientation: 'portrait',
+          background_color: '#F6F3EC',
+          theme_color: '#142620',
+          icons: [{ src: pngUrl, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }],
+        };
+        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+        const link = document.getElementById('dynamic-manifest');
+        if (link) link.href = URL.createObjectURL(blob);
+      } catch (e) {
+        console.warn('PWA assets skip:', e);
+      }
+    }
+
+    function applyTheme(theme) {
+      const isDark = theme === 'dark';
+      document.documentElement.classList.toggle('dark', isDark);
+      const sun = document.getElementById('icon-sun');
+      const moon = document.getElementById('icon-moon');
+      if (sun && moon) {
+        sun.classList.toggle('hidden', !isDark);
+        moon.classList.toggle('hidden', isDark);
+      }
+      const meta = document.getElementById('meta-theme-color');
+      if (meta) meta.content = isDark ? '#0F1815' : '#142620';
+      try { localStorage.setItem(KEYS.THEME, isDark ? 'dark' : 'light'); } catch (e) {}
+    }
+
+    function initTheme() {
+      let saved = null;
+      try { saved = localStorage.getItem(KEYS.THEME); } catch (e) {}
+      if (saved === 'dark' || saved === 'light') {
+        applyTheme(saved);
+      } else {
+        applyTheme('light');
+      }
+    }
+
+    // =========================================================================
+    // 6. UTILIDADES E ICONOS SVG DE JUEGOS
+    // =========================================================================
+    function esc(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function getGameById(id) {
+      return games.find((g) => g.id === id) || {
+        id: id || 'custom',
+        name: id || 'Juego',
+        color: '#475569',
+        color2: '#1E293B',
+        icon: 'dice',
+        scoringType: 'points',
+        extraType: 'none',
+        defaultDuration: 30,
+      };
+    }
+
+    function gameIconSvg(iconName, cls = 'w-5 h-5') {
+      const icons = {
+        hex: `<polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M8.5 11.5 12 8l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>`,
+        dragon: `<path d="M4 18c2-6 6-11 13-13-1 4-2 6 2 7-3 2-5 4-5 8-3-1-6-1-10-2Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="14.5" cy="9.5" r="1" fill="currentColor"/>`,
+        planet: `<circle cx="12" cy="12" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="12" cy="12" rx="10.5" ry="3.8" transform="rotate(-24 12 12)" fill="none" stroke="currentColor" stroke-width="1.8"/>`,
+        gem: `<polygon points="6,4 18,4 22,10 12,21 2,10" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M2 10h20M12 21 8.5 10 12 4l3.5 6L12 21Z" fill="none" stroke="currentColor" stroke-width="1.5"/>`,
+        train: `<rect x="5" y="4" width="14" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 11h14M8 20l2-3M16 20l-2-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="14" r="1" fill="currentColor"/><circle cx="15" cy="14" r="1" fill="currentColor"/>`,
+        cards: `<rect x="4" y="5" width="11" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 7h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 10h3.5l-2 5.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>`,
+        sushi: `<ellipse cx="12" cy="9" rx="7.5" ry="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 9v6c0 2.2 3.4 4 7.5 4s7.5-1.8 7.5-4V9" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="12" cy="9" rx="3" ry="1.5" fill="currentColor"/>`,
+        mind: `<path d="M12 3a6 6 0 0 0-6 6c0 2.3 1.3 4.2 3 5.2V17a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2.8c1.7-1 3-2.9 3-5.2a6 6 0 0 0-6-6Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 21h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`,
+        cat: `<path d="M5 9V4l4 3h6l4-3v5c1.2 1.2 2 2.8 2 4.8C21 18 17 21 12 21s-9-3-9-7.2C3 11.8 3.8 10.2 5 9Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="9.2" cy="13" r="1.1" fill="currentColor"/><circle cx="14.8" cy="13" r="1.1" fill="currentColor"/>`,
+        crown: `<path d="M3 17 5 7l5 4 2-6 2 6 5-4 2 10H3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`,
+        meeple: `<circle cx="12" cy="5.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 10.5 12 9l6 1.5-2 4.5 2.5 5.5H14l-2-3.5-2 3.5H5.5L8 15l-2-4.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>`,
+        dice: `<rect x="4" y="4" width="16" height="16" rx="3.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/>`,
+      };
+      return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${icons[iconName] || icons.dice}</svg>`;
+    }
+
+    function formatDisplayDate(isoStr, createdAtMs) {
+      if (isoStr && /^\d{4}-\d{2}-\d{2}$/.test(isoStr)) {
+        const [y, m, d] = isoStr.split('-').map(Number);
+        const dt = new Date(y, m - 1, d);
+        return dt.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+      if (createdAtMs) {
+        return new Date(createdAtMs).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+      return isoStr || 'Hoy';
+    }
+
+    function showToast(msg, tone = 'neutral') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const cls = {
+        success: 'bg-emeraldBrand text-white',
+        danger: 'bg-coralBrand text-white',
+        neutral: 'bg-pine text-white dark:bg-white dark:text-pine',
+      }[tone] || 'bg-pine text-white';
+      el.className = `${cls} px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold shadow-elevated anim-in text-center`;
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-6px)';
+        setTimeout(() => el.remove(), 260);
+      }, 2400);
+    }
+
+    function openModal({ title, subtitle = '', bodyHtml, actions = [] }) {
+      const backdrop = document.getElementById('modal-backdrop');
+      document.getElementById('modal-title').textContent = title;
+      const subEl = document.getElementById('modal-subtitle');
+      if (subtitle) {
+        subEl.textContent = subtitle;
+        subEl.classList.remove('hidden');
+      } else {
+        subEl.classList.add('hidden');
+      }
+      const modalBodyEl = document.getElementById('modal-body');
+      modalBodyEl.onclick = null;
+      modalBodyEl.innerHTML = bodyHtml;
+
+      const actionsEl = document.getElementById('modal-actions');
+      actionsEl.innerHTML = '';
+      if (actions.length === 0) {
+        actionsEl.classList.add('hidden');
+      } else {
+        actionsEl.classList.remove('hidden');
+        actions.forEach((act) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = act.label;
+          btn.className = act.className || 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-white dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/15 text-ink dark:text-white';
+          btn.addEventListener('click', () => {
+            if (!act.keepOpen) closeModal();
+            if (typeof act.onClick === 'function') act.onClick();
+          });
+          actionsEl.appendChild(btn);
+        });
+      }
+
+      backdrop.classList.remove('hidden');
+      backdrop.classList.add('flex');
+    }
+
+    function closeModal() {
+      const backdrop = document.getElementById('modal-backdrop');
+      backdrop.classList.add('hidden');
+      backdrop.classList.remove('flex');
+    }
+
+    // =========================================================================
+    // 7. PERSISTENCIA LOCAL
+    // =========================================================================
+    function loadLocalData() {
+      try {
+        const rawGames = localStorage.getItem(KEYS.GAMES);
+        if (rawGames) {
+          const parsed = JSON.parse(rawGames);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Merge defaults if new fields were added
+            games = parsed;
+          } else {
+            games = JSON.parse(JSON.stringify(DEFAULT_GAMES));
+          }
+        } else {
+          games = JSON.parse(JSON.stringify(DEFAULT_GAMES));
+        }
+      } catch (e) {
+        games = JSON.parse(JSON.stringify(DEFAULT_GAMES));
+      }
+
+      try {
+        const rawHist = localStorage.getItem(KEYS.HISTORY);
+        matchHistory = rawHist ? JSON.parse(rawHist) : [];
+        if (!Array.isArray(matchHistory)) matchHistory = [];
+      } catch (e) {
+        matchHistory = [];
+      }
+
+      try {
+        const rawPl = localStorage.getItem(KEYS.PLAYERS);
+        frequentPlayers = rawPl ? JSON.parse(rawPl) : [];
+        if (!Array.isArray(frequentPlayers)) frequentPlayers = [];
+      } catch (e) {
+        frequentPlayers = [];
+      }
+
+      try {
+        const rawDraft = localStorage.getItem(KEYS.DRAFT);
+        if (rawDraft) {
+          const d = JSON.parse(rawDraft);
+          if (d && d.gameId && Array.isArray(d.players)) {
+            draft = { ...createEmptyDraft(d.gameId), ...d };
+          }
+        }
+      } catch (e) {}
+
+      rebuildFrequentPlayersFromHistory();
+    }
+
+    function saveGamesLocal() {
+      try { localStorage.setItem(KEYS.GAMES, JSON.stringify(games)); } catch (e) {}
+    }
+
+    function saveHistoryLocal() {
+      try { localStorage.setItem(KEYS.HISTORY, JSON.stringify(matchHistory)); } catch (e) {}
+    }
+
+    function saveDraftLocal() {
+      try { localStorage.setItem(KEYS.DRAFT, JSON.stringify(draft)); } catch (e) {}
+    }
+
+    function rebuildFrequentPlayersFromHistory() {
+      const counts = {};
+      frequentPlayers.forEach((n) => {
+        const clean = String(n || '').trim();
+        if (clean) counts[clean] = (counts[clean] || 0);
+      });
+      matchHistory.forEach((m) => {
+        (m.players || []).forEach((p) => {
+          const clean = String(p.name || '').trim();
+          if (clean) counts[clean] = (counts[clean] || 0) + 1;
+        });
+      });
+      frequentPlayers = Object.keys(counts)
+        .sort((a, b) => counts[b] - counts[a])
+        .slice(0, 14);
+      try { localStorage.setItem(KEYS.PLAYERS, JSON.stringify(frequentPlayers)); } catch (e) {}
+    }
+
+    // =========================================================================
+    // 8. CONEXIÓN A GOOGLE SHEETS (APPS SCRIPT CON PIN OPCIONAL)
+    // =========================================================================
+    function isValidExecUrl(url) {
+      if (typeof url !== 'string') return false;
+      const t = url.trim();
+      return t.startsWith('https://script.google.com/') && !t.includes('PEGA_AQUI') && t.includes('/exec');
+    }
+
+    function getSavedSheetsUrl() {
+      try {
+        const s = localStorage.getItem(KEYS.SHEETS_URL);
+        if (isValidExecUrl(s)) return s.trim();
+      } catch (e) {}
+      if (isValidExecUrl(GOOGLE_SHEETS_API_URL)) return GOOGLE_SHEETS_API_URL.trim();
+      return '';
+    }
+
+    function getSavedPin() {
+      try { return (localStorage.getItem(KEYS.SHEETS_PIN) || '').trim(); } catch (e) { return ''; }
+    }
+
+    async function fetchSheetsJson(url, options = {}) {
+      const res = await fetch(url, { redirect: 'follow', ...options });
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error('Google no devolvió JSON. Verifica que Apps Script esté en "Cualquier usuario".');
+      }
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || `Error HTTP ${res.status}`);
+      }
+      return data;
+    }
+
+    function groupSheetRows(rows) {
+      const map = new Map();
+      rows.forEach((row) => {
+        const id = String(row.partidaId || '').trim();
+        if (!id) return;
+
+        let meta = {};
+        if (row.metaJson) {
+          try { meta = JSON.parse(row.metaJson); } catch (e) {}
+        }
+
+        if (!map.has(id)) {
+          map.set(id, {
+            id,
+            source: 'sheets',
+            date: String(row.fecha || '').slice(0, 10) || todayISO(),
+            createdAtMs: Number(row.createdAtMs) || Date.now(),
+            gameId: String(row.juegoId || 'custom'),
+            gameName: String(row.juego || 'Juego'),
+            scoringType: String(row.modo || 'points'),
+            duration: Number(row.duracionMin) || 0,
+            extraLabel: String(row.detalleExtra || ''),
+            winnerLabel: String(row.ganador || ''),
+            topScore: row.mejorPuntuacion !== '' && row.mejorPuntuacion !== undefined ? Number(row.mejorPuntuacion) : null,
+            notes: String(row.notas || ''),
+            meta,
+            players: [],
+          });
+        }
+
+        const m = map.get(id);
+        m.players.push({
+          name: String(row.jugador || 'Jugador'),
+          rank: Number(row.posicion) || (m.players.length + 1),
+          score: row.puntos !== '' && row.puntos !== undefined && row.puntos !== null ? Number(row.puntos) : null,
+          winner: Number(row.posicion) === 1,
+          tag: String(row.datoJugador || ''),
+        });
+      });
+
+      const list = Array.from(map.values());
+      list.forEach((m) => {
+        m.players.sort((a, b) => a.rank - b.rank);
+        // Asegura que juegos personalizados existentes en Sheets aparezcan en la ludoteca
+        if (m.gameId && !games.some((g) => g.id === m.gameId)) {
+          games.push({
+            id: m.gameId,
+            name: m.gameName,
+            color: '#475569',
+            color2: '#1E293B',
+            icon: 'dice',
+            scoringType: m.scoringType || 'points',
+            minPlayers: 1,
+            maxPlayers: 6,
+            defaultDuration: m.duration || 30,
+            extraType: 'none',
+            tagline: 'Añadido desde Sheets',
+          });
+          saveGamesLocal();
+        }
+      });
+
+      list.sort((a, b) => b.createdAtMs - a.createdAtMs);
+      return list;
+    }
+
+    function activateLocalMode(reason = '') {
+      syncState.mode = 'local';
+      syncState.connected = false;
+      syncState.isLoading = false;
+      syncState.errorMessage = reason;
+      renderSyncBadge();
+      updateNavBadge();
+      renderActiveTab();
+    }
+
+    async function syncFromSheets({ silent = false } = {}) {
+      const url = syncState.apiUrl || getSavedSheetsUrl();
+      const pin = syncState.pin || getSavedPin();
+      if (!url) {
+        activateLocalMode('Pega la URL /exec de tu Google Apps Script para sincronizar.');
+        return false;
+      }
+
+      syncState.apiUrl = url;
+      syncState.pin = pin;
+      syncState.isLoading = true;
+      if (!syncState.connected) {
+        syncState.mode = 'connecting';
+        renderSyncBadge();
+      }
+      if (uiState.activeTab === 'history') renderHistoryTab();
+
+      try {
+        const sep = url.includes('?') ? '&' : '?';
+        const pinParam = pin ? `&pin=${encodeURIComponent(pin)}` : '';
+        const data = await fetchSheetsJson(`${url}${sep}t=${Date.now()}${pinParam}`);
+        const rows = Array.isArray(data.rows) ? data.rows : (Array.isArray(data) ? data : []);
+
+        matchHistory = groupSheetRows(rows);
+        saveHistoryLocal();
+        rebuildFrequentPlayersFromHistory();
+
+        syncState.mode = 'sheets';
+        syncState.connected = true;
+        syncState.errorMessage = '';
+        syncState.isLoading = false;
+        syncState.lastSyncedAt = Date.now();
+
+        renderSyncBadge();
+        updateNavBadge();
+        renderActiveTab();
+        if (!silent) showToast('Sincronizado con Google Sheets', 'success');
+        return true;
+      } catch (err) {
+        console.warn('Error al leer Sheets:', err);
+        activateLocalMode(err.message || 'No se pudo conectar con Sheets.');
+        if (!silent) showToast('Error de conexión · modo local', 'danger');
+        return false;
+      }
+    }
+
+    function renderSyncBadge() {
+      const btn = document.getElementById('btn-sync-settings');
+      const dot = document.getElementById('sync-dot');
+      const label = document.getElementById('sync-label');
+
+      if (syncState.connected) {
+        btn.className = 'btn-tap inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold border transition-all bg-emerald-500/20 border-emerald-300/40 text-emerald-100';
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.85)]';
+        label.textContent = 'Sheets activo';
+      } else if (syncState.mode === 'connecting') {
+        btn.className = 'btn-tap inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold border transition-all bg-white/10 border-white/20 text-white/85';
+        dot.className = 'w-2 h-2 rounded-full bg-amber-300 shrink-0 animate-pulse';
+        label.textContent = 'Conectando...';
+      } else {
+        btn.className = 'btn-tap inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold border transition-all bg-amber-400/20 border-amber-300/40 text-amber-100';
+        dot.className = 'w-2 h-2 rounded-full bg-amber-400 shrink-0';
+        label.textContent = 'Modo local';
+      }
+    }
+
+    function updateNavBadge() {
+      const badge = document.getElementById('nav-history-badge');
+      if (!badge) return;
+      if (matchHistory.length > 0) {
+        badge.textContent = matchHistory.length > 99 ? '99+' : matchHistory.length;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function openSyncSettingsModal() {
+      const currentUrl = syncState.apiUrl || getSavedSheetsUrl();
+      const currentPin = syncState.pin || getSavedPin();
+
+      const banner = syncState.connected
+        ? `<div class="p-3 rounded-2xl bg-emeraldBrand/12 border border-emeraldBrand/25 text-emeraldBrand dark:text-emerald-300 text-xs font-semibold mb-4">Conectado a Google Sheets${currentPin ? ' con PIN de seguridad' : ''}. Tus partidas se sincronizan automáticamente.</div>`
+        : `<div class="p-3 rounded-2xl bg-amber-500/12 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-semibold mb-4">Modo local activo. Tus partidas se guardan en este dispositivo.${syncState.errorMessage ? `<div class="mt-1 font-normal opacity-85">${esc(syncState.errorMessage)}</div>` : ''}</div>`;
+
+      const bodyHtml = `
+        ${banner}
+        <div class="space-y-3.5">
+          <div>
+            <label for="cfg-sheets-url" class="block text-xs font-bold text-ink dark:text-white mb-1.5">URL de Google Apps Script (/exec)</label>
+            <input id="cfg-sheets-url" type="url" value="${esc(currentUrl)}" placeholder="https://script.google.com/macros/s/.../exec"
+              class="w-full bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 focus:border-emeraldBrand rounded-xl px-3 py-2.5 text-xs font-mono text-ink dark:text-white outline-none" />
+          </div>
+          <div>
+            <label for="cfg-sheets-pin" class="block text-xs font-bold text-ink dark:text-white mb-1.5">PIN secreto (opcional, recomendado)</label>
+            <input id="cfg-sheets-pin" type="password" value="${esc(currentPin)}" placeholder="Ej. 4829 o tu palabra clave"
+              class="w-full bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 focus:border-emeraldBrand rounded-xl px-3 py-2.5 text-xs text-ink dark:text-white outline-none" />
+            <p class="mt-1.5 text-[11px] text-inkMuted dark:text-white/55 leading-relaxed">
+              Tanto la URL como el PIN se guardan solo en tu móvil (nunca en GitHub). Si pones un PIN aquí, escribe el mismo en <code class="font-mono px-1 py-0.5 rounded bg-black/5 dark:bg-white/10">SECRET_PIN</code> dentro de tu Apps Script.
+            </p>
+          </div>
+
+          <div class="pt-3 border-t border-[#EAE3D7] dark:border-white/10">
+            <div class="text-xs font-bold text-ink dark:text-white mb-2">Copia de seguridad local</div>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" id="btn-export-json" class="btn-tap py-2 px-3 rounded-xl bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 text-xs font-bold text-ink dark:text-white">Exportar JSON</button>
+              <label class="btn-tap py-2 px-3 rounded-xl bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 text-xs font-bold text-ink dark:text-white text-center cursor-pointer">
+                Importar JSON
+                <input id="input-import-json" type="file" accept=".json,application/json" class="hidden" />
+              </label>
+            </div>
+          </div>
+        </div>
+      `;
+
+      openModal({
+        title: 'Sincronización y Datos',
+        subtitle: 'Google Sheets privado + respaldo local',
+        bodyHtml,
+        actions: [
+          { label: 'Cerrar' },
+          {
+            label: 'Guardar y conectar',
+            className: 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-pine dark:bg-emeraldBrand text-white',
+            keepOpen: true,
+            onClick: async () => {
+              const urlVal = (document.getElementById('cfg-sheets-url')?.value || '').trim();
+              const pinVal = (document.getElementById('cfg-sheets-pin')?.value || '').trim();
+              try { localStorage.setItem(KEYS.SHEETS_PIN, pinVal); } catch (e) {}
+              syncState.pin = pinVal;
+
+              if (!urlVal) {
+                try { localStorage.removeItem(KEYS.SHEETS_URL); } catch (e) {}
+                syncState.apiUrl = '';
+                closeModal();
+                activateLocalMode('URL borrada. Trabajando en modo local.');
+                showToast('Cambiado a modo local', 'neutral');
+                return;
+              }
+              if (!isValidExecUrl(urlVal)) {
+                showToast('La URL debe empezar por script.google.com y terminar en /exec', 'danger');
+                return;
+              }
+              try { localStorage.setItem(KEYS.SHEETS_URL, urlVal); } catch (e) {}
+              syncState.apiUrl = urlVal;
+              closeModal();
+              showToast('Conectando con Google Sheets...', 'neutral');
+              await syncFromSheets({ silent: false });
+            },
+          },
+        ],
+      });
+
+      setTimeout(() => {
+        const expBtn = document.getElementById('btn-export-json');
+        if (expBtn) {
+          expBtn.addEventListener('click', () => {
+            const payload = { exportedAt: new Date().toISOString(), games, matchHistory };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `ludoteca_backup_${todayISO()}.json`;
+            a.click();
+            showToast('Copia JSON descargada', 'success');
+          });
+        }
+        const impInput = document.getElementById('input-import-json');
+        if (impInput) {
+          impInput.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+              try {
+                const parsed = JSON.parse(reader.result);
+                if (Array.isArray(parsed.games) && parsed.games.length) {
+                  games = parsed.games;
+                  saveGamesLocal();
+                }
+                if (Array.isArray(parsed.matchHistory)) {
+                  matchHistory = parsed.matchHistory;
+                  saveHistoryLocal();
+                  rebuildFrequentPlayersFromHistory();
+                }
+                closeModal();
+                updateNavBadge();
+                renderActiveTab();
+                showToast('Copia importada correctamente', 'success');
+              } catch (err) {
+                showToast('Archivo JSON no válido', 'danger');
+              }
+            };
+            reader.readAsText(file);
+          });
+        }
+      }, 20);
+    }
+
+    // =========================================================================
+    // 9. TAB 1: REGISTRAR PARTIDA (FLUJO ULTRARRÁPIDO + DETALLES POR JUEGO)
+    // =========================================================================
+    function syncAutoWinners() {
+      const g = getGameById(draft.gameId);
+      if (g.scoringType !== 'points' || draft.manualWinnerOverride) return;
+      const numeric = draft.players.map((p) => (p.score === '' || p.score === null ? null : Number(p.score)));
+      const valid = numeric.filter((n) => n !== null && !isNaN(n));
+      if (valid.length === 0) {
+        draft.players.forEach((p) => { p.winner = false; });
+        return;
+      }
+      const maxVal = Math.max(...valid);
+      draft.players.forEach((p, idx) => {
+        p.winner = numeric[idx] !== null && numeric[idx] === maxVal;
+      });
+    }
+
+    function renderGameExtrasHtml(game) {
+      if (game.extraType === 'harmonies') {
+        return `
+          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-2.5">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Detalles de Harmonies</div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" data-action="set-draft-field" data-field="harmoniesSide" data-val="A"
+                class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border ${draft.harmoniesSide === 'A' ? 'bg-[#2B7A9B] text-white border-[#2B7A9B]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
+                Cara A · Río
+              </button>
+              <button type="button" data-action="set-draft-field" data-field="harmoniesSide" data-val="B"
+                class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border ${draft.harmoniesSide === 'B' ? 'bg-[#D9911E] text-white border-[#D9911E]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
+                Cara B · Islas
+              </button>
+              <button type="button" data-action="toggle-draft-bool" data-field="harmoniesSpirit"
+                class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border ${draft.harmoniesSpirit ? 'bg-[#6D5A99] text-white border-[#6D5A99]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
+                ${draft.harmoniesSpirit ? '✓ Con Espíritu' : '+ Espíritu'}
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      if (game.extraType === 'splendor') {
+        const opts = ['20 puntos', '10 coronas', '10 de un color'];
+        return `
+          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-2">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Condición de victoria</div>
+            <div class="grid grid-cols-3 gap-1.5">
+              ${opts.map((o) => `
+                <button type="button" data-action="set-draft-field" data-field="splendorWinType" data-val="${esc(o)}"
+                  class="btn-tap py-2 px-2 rounded-xl text-xs font-bold border text-center ${draft.splendorWinType === o ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-xs' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
+                  ${esc(o)}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (game.extraType === 'tfm') {
+        const maps = ['Tharsis', 'Hellas', 'Elysium'];
+        return `
+          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Mapa y Generaciones</span>
+              <div class="inline-flex items-center gap-1.5 bg-white dark:bg-surfaceDark border border-[#DFD8CB] dark:border-white/15 rounded-xl p-0.5">
+                <button type="button" data-action="step-tfm-gen" data-delta="-1" class="btn-tap w-7 h-7 rounded-lg font-bold text-sm">−</button>
+                <span class="px-2 text-xs font-extrabold tabular-nums">Gen ${draft.tfmGenerations}</span>
+                <button type="button" data-action="step-tfm-gen" data-delta="1" class="btn-tap w-7 h-7 rounded-lg font-bold text-sm">+</button>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5">
+              ${maps.map((m) => `
+                <button type="button" data-action="set-draft-field" data-field="tfmMap" data-val="${m}"
+                  class="btn-tap py-1.5 px-2 rounded-xl text-xs font-bold border ${draft.tfmMap === m ? 'bg-[#C84B31] text-white border-[#C84B31]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
+                  ${m}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (game.extraType === 'wyrmspan') {
+        return `
+          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 flex items-center justify-between gap-2">
+            <span class="text-xs font-bold text-inkMuted dark:text-white/70">Modo de partida</span>
+            <button type="button" data-action="toggle-draft-bool" data-field="wyrmspanSolo"
+              class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border ${draft.wyrmspanSolo ? 'bg-[#9B2C4E] text-white border-[#9B2C4E]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
+              ${draft.wyrmspanSolo ? '✓ Contra Automa' : 'Multijugador estándar'}
+            </button>
+          </div>
+        `;
+      }
+
+      if (game.extraType === 'themind' || game.scoringType === 'coop') {
+        return `
+          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-3">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Resultado cooperativo</div>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" data-action="set-draft-bool" data-field="coopWon" data-val="true"
+                class="btn-tap py-2.5 rounded-xl text-xs font-extrabold border ${draft.coopWon ? 'bg-emeraldBrand text-white border-emeraldBrand shadow-xs' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/75 border-[#DFD8CB] dark:border-white/15'}">
+                ✓ ¡Superado!
+              </button>
+              <button type="button" data-action="set-draft-bool" data-field="coopWon" data-val="false"
+                class="btn-tap py-2.5 rounded-xl text-xs font-extrabold border ${!draft.coopWon ? 'bg-coralBrand text-white border-coralBrand shadow-xs' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/75 border-[#DFD8CB] dark:border-white/15'}">
+                ✕ Derrota
+              </button>
+            </div>
+            <div class="flex items-center justify-between gap-2 pt-1">
+              <span class="text-xs font-bold text-ink dark:text-white/85">Nivel alcanzado</span>
+              <div class="inline-flex items-center gap-1.5 bg-white dark:bg-surfaceDark border border-[#DFD8CB] dark:border-white/15 rounded-xl p-0.5">
+                <button type="button" data-action="step-coop-level" data-delta="-1" class="btn-tap w-9 h-9 rounded-lg font-bold text-base">−</button>
+                <span class="w-10 text-center text-sm font-extrabold tabular-nums">Nv. ${draft.coopLevel}</span>
+                <button type="button" data-action="step-coop-level" data-delta="1" class="btn-tap w-9 h-9 rounded-lg font-bold text-base">+</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      return '';
+    }
+
+    function renderLogTab() {
+      const container = document.getElementById('view-log');
+      const game = getGameById(draft.gameId);
+      syncAutoWinners();
+
+      const gamePills = games.map((g) => {
+        const active = g.id === game.id;
+        return `
+          <button type="button" data-action="select-game" data-game-id="${esc(g.id)}"
+            class="btn-tap shrink-0 w-[108px] p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between gap-2 relative overflow-hidden ${
+              active
+                ? 'text-white border-transparent shadow-elevated'
+                : 'bg-white dark:bg-surfaceDark text-ink dark:text-white border-[#E7E0D4] dark:border-white/10 hover:border-[#CFC5B4]'
+            }"
+            style="${active ? `background: linear-gradient(140deg, ${g.color}, ${g.color2 || g.color});` : ''}"
+          >
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center ${active ? 'bg-white/20 text-white' : ''}"
+              style="${!active ? `background:${g.color}18; color:${g.color};` : ''}">
+              ${gameIconSvg(g.icon, 'w-4 h-4')}
+            </div>
+            <div>
+              <div class="font-display text-xs font-extrabold leading-tight line-clamp-2">${esc(g.name)}</div>
+              ${g.quickCalc ? `<span class="mt-1 inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${active ? 'bg-white/20 text-white' : 'bg-black/5 dark:bg-white/10 text-inkMuted dark:text-white/60'}">Marcador</span>` : ''}
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      const quickCalcBanner = game.quickCalc ? `
+        <button type="button" data-action="open-quick-calc" data-calc="${game.quickCalc}"
+          class="btn-tap w-full p-3.5 rounded-2xl text-white flex items-center justify-between gap-3 shadow-soft"
+          style="background: linear-gradient(135deg, ${game.color}, ${game.color2 || game.color});"
+        >
+          <div class="flex items-center gap-3 min-w-0 text-left">
+            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              ${gameIconSvg(game.icon, 'w-5 h-5')}
+            </div>
+            <div class="min-w-0">
+              <div class="font-display text-sm font-extrabold leading-tight">Abrir marcador en vivo de ${esc(game.name)}</div>
+              <div class="text-[11px] text-white/80 mt-0.5">${game.quickCalc === 'flip7' ? 'Suma cartas, ×2, modificadores y +15 por ronda hasta 200' : 'Calcula 3 rondas, wasabi, makis y pudines automáticamente'}</div>
+            </div>
+          </div>
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      ` : '';
+
+      // Chips de jugadores frecuentes no añadidos todavía
+      const currentNamesLower = draft.players.map((p) => p.name.trim().toLowerCase());
+      const availableChips = frequentPlayers.filter((n) => !currentNamesLower.includes(n.toLowerCase()));
+      const quickPlayerChipsHtml = availableChips.length > 0 ? `
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          <span class="text-[11px] font-semibold text-inkMuted dark:text-white/50 shrink-0">Frecuentes:</span>
+          ${availableChips.map((name) => `
+            <button type="button" data-action="quick-fill-player" data-name="${esc(name)}"
+              class="btn-tap shrink-0 px-2.5 py-1 rounded-full bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12 text-xs font-semibold text-ink dark:text-white/85 hover:border-emeraldBrand">
+              + ${esc(name)}
+            </button>
+          `).join('')}
+        </div>
+      ` : '';
+
+      const playerRowsHtml = draft.players.map((pl, idx) => {
+        const isPoints = game.scoringType === 'points';
+        const isWinnerOnly = game.scoringType === 'winner_only';
+        const isCoop = game.scoringType === 'coop';
+        const showTfmCorp = game.extraType === 'tfm';
+
+        return `
+          <div class="p-2.5 rounded-2xl bg-canvas/75 dark:bg-surfaceDarkAlt border transition-all ${pl.winner && !isCoop ? 'border-goldBrand/60 ring-1 ring-goldBrand/25' : 'border-[#EAE3D7] dark:border-white/10'}">
+            <div class="flex items-center gap-2">
+              ${!isCoop ? `
+                <button type="button" data-action="toggle-player-winner" data-idx="${idx}"
+                  title="Marcar como ganador"
+                  class="btn-tap w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
+                    pl.winner
+                      ? 'bg-goldBrand text-white border-goldBrand shadow-xs'
+                      : 'bg-white dark:bg-surfaceDark text-inkMuted/60 dark:text-white/35 border-[#E2DACE] dark:border-white/12'
+                  }">
+                  ${gameIconSvg('crown', 'w-4 h-4')}
+                </button>
+              ` : `
+                <div class="w-9 h-9 rounded-xl bg-white dark:bg-surfaceDark border border-[#E2DACE] dark:border-white/12 flex items-center justify-center text-xs font-extrabold text-inkMuted dark:text-white/60 shrink-0">
+                  ${idx + 1}
+                </div>
+              `}
+
+              <input type="text" data-player-name="${idx}" value="${esc(pl.name)}" maxlength="24"
+                placeholder="Jugador ${idx + 1}"
+                class="flex-1 min-w-0 h-10 bg-white dark:bg-surfaceDark border border-[#E2DACE] dark:border-white/12 focus:border-emeraldBrand rounded-xl px-3 text-sm font-semibold text-ink dark:text-white outline-none" />
+
+              ${isPoints ? `
+                <input type="number" inputmode="decimal" data-player-score="${idx}" value="${esc(pl.score)}"
+                  placeholder="Pts"
+                  class="w-20 h-10 text-center bg-white dark:bg-surfaceDark border border-[#E2DACE] dark:border-white/12 focus:border-emeraldBrand rounded-xl text-sm font-extrabold tabular-nums text-ink dark:text-white outline-none" />
+              ` : ''}
+
+              ${draft.players.length > 1 ? `
+                <button type="button" data-action="remove-draft-player" data-idx="${idx}"
+                  class="btn-tap w-8 h-10 rounded-xl flex items-center justify-center text-inkMuted hover:text-coralBrand shrink-0" aria-label="Quitar jugador">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              ` : ''}
+            </div>
+
+            ${showTfmCorp ? `
+              <div class="mt-2 flex items-center gap-2 pl-12">
+                <span class="text-[11px] font-semibold text-inkMuted dark:text-white/50 shrink-0">Corp:</span>
+                <select data-player-tag="${idx}" class="flex-1 min-w-0 h-8 bg-white dark:bg-surfaceDark border border-[#E2DACE] dark:border-white/12 rounded-lg px-2 text-xs font-semibold text-ink dark:text-white outline-none">
+                  <option value="">— Opcional —</option>
+                  ${TFM_CORPS.map((c) => `<option value="${esc(c)}" ${pl.tag === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+                </select>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      const durationOpts = [15, 30, 45, 60, 90, 120];
+
+      container.innerHTML = `
+        <!-- Hero Selector de Juego -->
+        <div class="space-y-2.5 anim-in">
+          <div class="flex items-center justify-between px-0.5">
+            <h2 class="font-display text-sm font-extrabold text-ink dark:text-white">1. Elige el juego</h2>
+            <button type="button" data-action="open-add-game" class="btn-tap text-xs font-bold text-emeraldBrand dark:text-emerald-400 hover:underline">
+              + Nuevo juego
+            </button>
+          </div>
+          <div class="flex items-stretch gap-2.5 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
+            ${gamePills}
+          </div>
+        </div>
+
+        ${quickCalcBanner}
+
+        <!-- Tarjeta Principal de Registro -->
+        <div class="bg-white dark:bg-surfaceDark rounded-[26px] border border-[#E7E0D4] dark:border-white/10 shadow-soft overflow-hidden anim-in">
+          <!-- Cabecera con color del juego -->
+          <div class="px-4 py-3.5 text-white flex items-center justify-between gap-3"
+            style="background: linear-gradient(125deg, ${game.color}, ${game.color2 || game.color});">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                ${gameIconSvg(game.icon, 'w-5 h-5')}
+              </div>
+              <div class="min-w-0">
+                <div class="font-display text-base font-extrabold leading-tight truncate">${esc(game.name)}</div>
+                <div class="text-[11px] text-white/80 truncate">${esc(game.tagline || 'Registro rápido de partida')}</div>
+              </div>
+            </div>
+            <button type="button" data-action="clear-draft" class="btn-tap px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-[11px] font-bold shrink-0">
+              Limpiar
+            </button>
+          </div>
+
+          <div class="p-4 space-y-4">
+            <!-- Jugadores -->
+            <div class="space-y-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">
+                  Jugadores (${draft.players.length}) ${game.scoringType === 'winner_only' ? '· toca la corona del ganador' : ''}
+                </span>
+                <button type="button" data-action="add-draft-player"
+                  class="btn-tap px-2.5 py-1 rounded-xl bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-300 text-xs font-bold">
+                  + Jugador
+                </button>
+              </div>
+
+              ${quickPlayerChipsHtml}
+
+              <div class="space-y-2">
+                ${playerRowsHtml}
+              </div>
+            </div>
+
+            <!-- Extras específicos del juego -->
+            ${renderGameExtrasHtml(game)}
+
+            <!-- Fecha y Duración -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div>
+                <label for="draft-date" class="block text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55 mb-1.5">Fecha</label>
+                <input id="draft-date" type="date" value="${esc(draft.date)}"
+                  class="w-full h-10 bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12 rounded-xl px-3 text-xs font-bold text-ink dark:text-white outline-none" />
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Duración</span>
+                  <span class="text-[11px] font-extrabold text-emeraldBrand dark:text-emerald-400 tabular-nums">${draft.duration} min</span>
+                </div>
+                <div class="grid grid-cols-6 gap-1">
+                  ${durationOpts.map((min) => `
+                    <button type="button" data-action="set-duration" data-val="${min}"
+                      class="btn-tap h-10 rounded-xl text-[11px] font-bold border tabular-nums ${
+                        draft.duration === min
+                          ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent'
+                          : 'bg-canvas/80 dark:bg-surfaceDarkAlt text-ink dark:text-white/75 border-[#E2DACE] dark:border-white/12'
+                      }">
+                      ${min}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+
+            <!-- Notas opcionales -->
+            <div>
+              <label for="draft-notes" class="block text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55 mb-1.5">Nota rápida (opcional)</label>
+              <input id="draft-notes" type="text" maxlength="140" value="${esc(draft.notes)}"
+                placeholder="Ej. Remontada en el último turno, expansión usada..."
+                class="w-full h-10 bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12 focus:border-emeraldBrand rounded-xl px-3 text-xs font-medium text-ink dark:text-white outline-none" />
+            </div>
+
+            <!-- Botón Guardar -->
+            <button type="button" data-action="save-match" ${syncState.isSaving ? 'disabled' : ''}
+              class="btn-tap w-full py-3.5 px-5 rounded-2xl text-white font-display font-extrabold text-sm shadow-elevated flex items-center justify-center gap-2 disabled:opacity-70"
+              style="background: linear-gradient(135deg, #142620, #2B7A58);"
+            >
+              ${syncState.isSaving
+                ? `<svg class="w-4 h-4 spin-fast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg><span>Guardando partida...</span>`
+                : `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>${syncState.connected ? 'Guardar partida en Sheets' : 'Guardar partida (local)'}</span>`
+              }
+            </button>
+          </div>
+        </div>
+      `;
+
+      bindLogInputs();
+    }
+
+    function bindLogInputs() {
+      document.querySelectorAll('[data-player-name]').forEach((inp) => {
+        inp.addEventListener('input', (e) => {
+          const idx = Number(e.target.dataset.playerName);
+          draft.players[idx].name = e.target.value;
+          saveDraftLocal();
+        });
+      });
+
+      document.querySelectorAll('[data-player-score]').forEach((inp) => {
+        inp.addEventListener('input', (e) => {
+          const idx = Number(e.target.dataset.playerScore);
+          draft.players[idx].score = e.target.value;
+          draft.manualWinnerOverride = false;
+          syncAutoWinners();
+          saveDraftLocal();
+          // Actualiza visualmente coronas sin perder foco del input
+          draft.players.forEach((p, i) => {
+            const btn = document.querySelector(`[data-action="toggle-player-winner"][data-idx="${i}"]`);
+            if (btn) {
+              btn.className = `btn-tap w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
+                p.winner
+                  ? 'bg-goldBrand text-white border-goldBrand shadow-xs'
+                  : 'bg-white dark:bg-surfaceDark text-inkMuted/60 dark:text-white/35 border-[#E2DACE] dark:border-white/12'
+              }`;
+            }
+          });
+        });
+      });
+
+      document.querySelectorAll('[data-player-tag]').forEach((sel) => {
+        sel.addEventListener('change', (e) => {
+          const idx = Number(e.target.dataset.playerTag);
+          draft.players[idx].tag = e.target.value;
+          saveDraftLocal();
+        });
+      });
+
+      const dateEl = document.getElementById('draft-date');
+      if (dateEl) {
+        dateEl.addEventListener('change', (e) => {
+          draft.date = e.target.value || todayISO();
+          saveDraftLocal();
+        });
+      }
+
+      const notesEl = document.getElementById('draft-notes');
+      if (notesEl) {
+        notesEl.addEventListener('input', (e) => {
+          draft.notes = e.target.value;
+          saveDraftLocal();
+        });
+      }
+    }
+
+    function buildMatchExtra(game) {
+      if (game.extraType === 'harmonies') {
+        const label = `Cara ${draft.harmoniesSide} (${draft.harmoniesSide === 'A' ? 'Río' : 'Islas'})${draft.harmoniesSpirit ? ' · Espíritu' : ''}`;
+        return { label, meta: { boardSide: draft.harmoniesSide, spirit: draft.harmoniesSpirit } };
+      }
+      if (game.extraType === 'splendor') {
+        return { label: `Victoria: ${draft.splendorWinType}`, meta: { winType: draft.splendorWinType } };
+      }
+      if (game.extraType === 'tfm') {
+        return { label: `${draft.tfmMap} · Gen ${draft.tfmGenerations}`, meta: { map: draft.tfmMap, generations: draft.tfmGenerations } };
+      }
+      if (game.extraType === 'wyrmspan') {
+        return { label: draft.wyrmspanSolo ? 'Modo Automa' : 'Multijugador', meta: { solo: draft.wyrmspanSolo } };
+      }
+      if (game.extraType === 'themind' || game.scoringType === 'coop') {
+        return {
+          label: `${draft.coopWon ? 'Superado' : 'Derrota'} · Nivel ${draft.coopLevel}`,
+          meta: { coopWon: draft.coopWon, level: draft.coopLevel },
+        };
+      }
+      return { label: '', meta: {} };
+    }
+
+    async function saveDraftMatch() {
+      if (syncState.isSaving) return;
+      const game = getGameById(draft.gameId);
+
+      // Limpia jugadores
+      const cleanedPlayers = draft.players
+        .map((p, i) => ({
+          name: p.name.trim() || `Jugador ${i + 1}`,
+          score: game.scoringType === 'points' && p.score !== '' && p.score !== null ? Number(p.score) : null,
+          winner: Boolean(p.winner),
+          tag: (p.tag || '').trim(),
+        }));
+
+      if (cleanedPlayers.length === 0) {
+        showToast('Añade al menos un jugador', 'danger');
+        return;
+      }
+
+      if (game.scoringType === 'points') {
+        const hasAnyScore = cleanedPlayers.some((p) => p.score !== null && !isNaN(p.score));
+        if (!hasAnyScore && !cleanedPlayers.some((p) => p.winner)) {
+          showToast('Introduce al menos una puntuación o marca un ganador', 'neutral');
+          return;
+        }
+        // Ordenar por puntuación y asignar rank
+        cleanedPlayers.sort((a, b) => {
+          if (a.winner !== b.winner && draft.manualWinnerOverride) return a.winner ? -1 : 1;
+          const sa = a.score ?? -Infinity;
+          const sb = b.score ?? -Infinity;
+          return sb - sa;
+        });
+        cleanedPlayers.forEach((p, idx) => {
+          if (idx === 0) {
+            p.rank = 1;
+            if (!draft.manualWinnerOverride) p.winner = true;
+          } else {
+            const prev = cleanedPlayers[idx - 1];
+            const tied = p.score !== null && p.score === prev.score && p.winner === prev.winner;
+            p.rank = tied ? prev.rank : idx + 1;
+          }
+        });
+      } else if (game.scoringType === 'winner_only') {
+        if (!cleanedPlayers.some((p) => p.winner)) {
+          showToast('Toca la corona del jugador ganador', 'neutral');
+          return;
+        }
+        cleanedPlayers.sort((a, b) => (b.winner ? 1 : 0) - (a.winner ? 1 : 0));
+        cleanedPlayers.forEach((p) => { p.rank = p.winner ? 1 : 2; });
+      } else {
+        // Cooperativo
+        cleanedPlayers.forEach((p) => {
+          p.winner = draft.coopWon;
+          p.rank = draft.coopWon ? 1 : 2;
+        });
+      }
+
+      const { label: extraLabel, meta } = buildMatchExtra(game);
+      const winners = cleanedPlayers.filter((p) => p.winner);
+      let winnerLabel = '';
+      if (game.scoringType === 'coop') {
+        winnerLabel = draft.coopWon ? `¡Victoria! (Nv. ${draft.coopLevel})` : `Derrota en Nv. ${draft.coopLevel}`;
+      } else if (cleanedPlayers.length === 1) {
+        winnerLabel = `${cleanedPlayers[0].name} (Solitario)`;
+      } else if (winners.length > 1) {
+        winnerLabel = `Empate: ${winners.map((w) => w.name).join(' y ')}`;
+      } else if (winners.length === 1) {
+        winnerLabel = winners[0].name;
+      } else {
+        winnerLabel = cleanedPlayers[0].name;
+      }
+
+      const validScores = cleanedPlayers.map((p) => p.score).filter((s) => s !== null && !isNaN(s));
+      const topScore = validScores.length > 0 ? Math.max(...validScores) : null;
+      const createdAtMs = Date.now();
+
+      const record = {
+        id: 'lud_' + createdAtMs,
+        source: syncState.connected ? 'sheets' : 'local',
+        date: draft.date || todayISO(),
+        createdAtMs,
+        gameId: game.id,
+        gameName: game.name,
+        scoringType: game.scoringType,
+        duration: Number(draft.duration) || 0,
+        extraLabel,
+        winnerLabel,
+        topScore,
+        notes: (draft.notes || '').trim(),
+        meta,
+        players: cleanedPlayers,
+      };
+
+      syncState.isSaving = true;
+      renderLogTab();
+
+      try {
+        if (syncState.connected && syncState.apiUrl) {
+          const data = await fetchSheetsJson(syncState.apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'save', pin: syncState.pin || '', match: record }),
+          });
+          record.id = String(data.partidaId || record.id);
+          matchHistory.unshift(record);
+          saveHistoryLocal();
+          rebuildFrequentPlayersFromHistory();
+          showToast('Partida guardada en Google Sheets', 'success');
+        } else {
+          matchHistory.unshift(record);
+          saveHistoryLocal();
+          rebuildFrequentPlayersFromHistory();
+          showToast('Partida guardada en este dispositivo', 'success');
+        }
+
+        // Reinicia puntuaciones manteniendo jugadores y juego actual para registrar rápido otra si quieren
+        draft.players = draft.players.map((p) => ({ name: p.name, score: '', winner: false, tag: '' }));
+        draft.notes = '';
+        draft.manualWinnerOverride = false;
+        saveDraftLocal();
+        updateNavBadge();
+      } catch (err) {
+        console.error('Error guardando partida:', err);
+        record.source = 'local';
+        matchHistory.unshift(record);
+        saveHistoryLocal();
+        rebuildFrequentPlayersFromHistory();
+        activateLocalMode('No se pudo escribir en Sheets. Guardado localmente.');
+        showToast('Error en Sheets · guardada en modo local', 'danger');
+      } finally {
+        syncState.isSaving = false;
+        renderLogTab();
+      }
+    }
+
+    // =========================================================================
+    // 10. MARCADORES EN VIVO INTEGRADOS (FLIP 7 & SUSHI GO!)
+    // =========================================================================
+    function openFlip7Scorer() {
+      const names = draft.players.map((p, i) => p.name.trim() || `Jugador ${i + 1}`);
+      if (!flip7State || flip7State.players.length !== names.length) {
+        flip7State = {
+          activeIdx: 0,
+          players: names.map((name) => ({ name, rounds: [] })),
+          // Mano en curso del jugador activo
+          selectedNums: [],
+          hasX2: false,
+          selectedMods: [],
+        };
+      } else {
+        flip7State.players.forEach((p, i) => { p.name = names[i]; });
+      }
+      renderFlip7Modal();
+    }
+
+    function calcFlip7Hand() {
+      const numSum = flip7State.selectedNums.reduce((a, b) => a + b, 0);
+      const afterX2 = flip7State.hasX2 ? numSum * 2 : numSum;
+      const modSum = flip7State.selectedMods.reduce((a, b) => a + b, 0);
+      const flip7Bonus = flip7State.selectedNums.length >= 7 ? 15 : 0;
+      return { numSum, afterX2, modSum, flip7Bonus, total: afterX2 + modSum + flip7Bonus };
+    }
+
+    function renderFlip7Modal() {
+      const pl = flip7State.players[flip7State.activeIdx];
+      const hand = calcFlip7Hand();
+      const totals = flip7State.players.map((p) => p.rounds.reduce((a, b) => a + b, 0));
+      const maxTotal = Math.max(0, ...totals);
+
+      const playerStrip = flip7State.players.map((p, i) => {
+        const tot = totals[i];
+        const pct = Math.min(100, Math.round((tot / 200) * 100));
+        const active = i === flip7State.activeIdx;
+        return `
+          <button type="button" data-f7="select-player" data-idx="${i}"
+            class="btn-tap shrink-0 min-w-[104px] p-2.5 rounded-2xl border text-left transition-all ${
+              active
+                ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-sm'
+                : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white border-[#E2DACE] dark:border-white/12'
+            }">
+            <div class="text-xs font-bold truncate">${esc(p.name)}</div>
+            <div class="mt-1 flex items-baseline justify-between">
+              <span class="font-display text-lg font-extrabold tabular-nums">${tot}</span>
+              <span class="text-[10px] opacity-75">R${p.rounds.length}</span>
+            </div>
+            <div class="mt-1.5 h-1.5 rounded-full overflow-hidden ${active ? 'bg-white/25' : 'bg-black/8 dark:bg-white/10'}">
+              <div class="h-full rounded-full ${tot >= 200 ? 'bg-amber-300' : (active ? 'bg-white' : 'bg-[#7C3AED]')}" style="width:${pct}%"></div>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      const numBtns = Array.from({ length: 13 }, (_, n) => {
+        const sel = flip7State.selectedNums.includes(n);
+        return `
+          <button type="button" data-f7="toggle-num" data-val="${n}"
+            class="btn-tap h-10 rounded-xl font-display font-extrabold text-sm tabular-nums border ${
+              sel
+                ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-xs'
+                : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white border-[#E2DACE] dark:border-white/12'
+            }">${n}</button>
+        `;
+      }).join('');
+
+      const modValues = [2, 4, 6, 8, 10];
+      const modBtns = modValues.map((m) => {
+        const sel = flip7State.selectedMods.includes(m);
+        return `
+          <button type="button" data-f7="toggle-mod" data-val="${m}"
+            class="btn-tap h-9 rounded-xl font-extrabold text-xs tabular-nums border ${
+              sel
+                ? 'bg-amber-500 text-white border-amber-500'
+                : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white border-[#E2DACE] dark:border-white/12'
+            }">+${m}</button>
+        `;
+      }).join('');
+
+      const bodyHtml = `
+        <div class="space-y-4">
+          ${maxTotal >= 200 ? `<div class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/35 text-amber-800 dark:text-amber-200 text-xs font-bold text-center">¡Alguien llegó a 200+ pts! Termina la ronda y pasa los totales al registro.</div>` : ''}
+
+          <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            ${playerStrip}
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-ink dark:text-white">Ronda para ${esc(pl.name)}</div>
+                <div class="text-[11px] text-inkMuted dark:text-white/55">
+                  ${flip7State.selectedNums.length}/7 números distintos ${hand.flip7Bonus ? '· <strong class="text-emeraldBrand">¡FLIP 7 (+15)!</strong>' : ''}
+                </div>
+              </div>
+              <div class="px-3 py-1 rounded-xl bg-[#7C3AED]/12 text-[#7C3AED] dark:text-violet-300 font-display font-extrabold text-lg tabular-nums">
+                +${hand.total}
+              </div>
+            </div>
+
+            <div class="grid grid-cols-5 sm:grid-cols-7 gap-1.5">
+              ${numBtns}
+            </div>
+
+            <div class="grid grid-cols-6 gap-1.5 pt-1">
+              <button type="button" data-f7="toggle-x2"
+                class="btn-tap h-9 rounded-xl font-extrabold text-xs border ${
+                  flip7State.hasX2
+                    ? 'bg-emeraldBrand text-white border-emeraldBrand'
+                    : 'bg-white dark:bg-surfaceDark text-emeraldBrand dark:text-emerald-300 border-emeraldBrand/35'
+                }">×2</button>
+              ${modBtns}
+            </div>
+
+            <div class="text-[11px] text-inkMuted dark:text-white/55 text-center tabular-nums">
+              Números: ${hand.numSum}${flip7State.hasX2 ? ` ×2 = ${hand.afterX2}` : ''}${hand.modSum ? ` + Mod: ${hand.modSum}` : ''}${hand.flip7Bonus ? ` + Flip 7: 15` : ''}
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button type="button" data-f7="commit-bust" class="btn-tap py-2.5 rounded-xl bg-coralBrand/12 text-coralBrand font-bold text-xs border border-coralBrand/25">
+                Repetida / Bust (0 pts)
+              </button>
+              <button type="button" data-f7="commit-hand" class="btn-tap py-2.5 rounded-xl bg-[#7C3AED] text-white font-bold text-xs shadow-xs">
+                Sumar +${hand.total} pts
+              </button>
+            </div>
+          </div>
+
+          ${pl.rounds.length > 0 ? `
+            <div class="flex items-center justify-between gap-2 px-1 text-xs text-inkMuted dark:text-white/60">
+              <span class="truncate">Rondas de ${esc(pl.name)}: <strong class="text-ink dark:text-white">${pl.rounds.join(' · ')}</strong></span>
+              <button type="button" data-f7="undo-round" class="btn-tap text-coralBrand font-bold shrink-0">Deshacer</button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      openModal({
+        title: 'Flip 7 — Marcador en vivo',
+        subtitle: 'Aplica ×2 solo a números, luego modificadores y +15',
+        bodyHtml,
+        actions: [
+          {
+            label: 'Reiniciar',
+            keepOpen: true,
+            onClick: () => {
+              flip7State = null;
+              openFlip7Scorer();
+            },
+          },
+          {
+            label: 'Pasar totales al registro',
+            className: 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emeraldBrand text-white',
+            onClick: () => {
+              flip7State.players.forEach((p, idx) => {
+                if (draft.players[idx]) {
+                  draft.players[idx].score = String(p.rounds.reduce((a, b) => a + b, 0));
+                }
+              });
+              draft.manualWinnerOverride = false;
+              syncAutoWinners();
+              saveDraftLocal();
+              renderLogTab();
+              showToast('Totales de Flip 7 pasados al registro', 'success');
+            },
+          },
+        ],
+      });
+
+      document.getElementById('modal-body').onclick = (e) => {
+        const el = e.target.closest('[data-f7]');
+        if (!el) return;
+        const act = el.dataset.f7;
+        if (act === 'select-player') {
+          flip7State.activeIdx = Number(el.dataset.idx);
+          flip7State.selectedNums = [];
+          flip7State.hasX2 = false;
+          flip7State.selectedMods = [];
+          renderFlip7Modal();
+        } else if (act === 'toggle-num') {
+          const v = Number(el.dataset.val);
+          const i = flip7State.selectedNums.indexOf(v);
+          if (i >= 0) flip7State.selectedNums.splice(i, 1);
+          else flip7State.selectedNums.push(v);
+          renderFlip7Modal();
+        } else if (act === 'toggle-mod') {
+          const v = Number(el.dataset.val);
+          const i = flip7State.selectedMods.indexOf(v);
+          if (i >= 0) flip7State.selectedMods.splice(i, 1);
+          else flip7State.selectedMods.push(v);
+          renderFlip7Modal();
+        } else if (act === 'toggle-x2') {
+          flip7State.hasX2 = !flip7State.hasX2;
+          renderFlip7Modal();
+        } else if (act === 'commit-hand' || act === 'commit-bust') {
+          const pts = act === 'commit-bust' ? 0 : calcFlip7Hand().total;
+          flip7State.players[flip7State.activeIdx].rounds.push(pts);
+          flip7State.selectedNums = [];
+          flip7State.hasX2 = false;
+          flip7State.selectedMods = [];
+          flip7State.activeIdx = (flip7State.activeIdx + 1) % flip7State.players.length;
+          renderFlip7Modal();
+        } else if (act === 'undo-round') {
+          flip7State.players[flip7State.activeIdx].rounds.pop();
+          renderFlip7Modal();
+        }
+      };
+    }
+
+    function openSushiGoScorer() {
+      const names = draft.players.map((p, i) => p.name.trim() || `Jugador ${i + 1}`);
+      const emptyRound = () => ({ tempura: 0, sashimi: 0, gyoza: 0, maki: 0, n1: 0, n2: 0, n3: 0, w1: 0, w2: 0, w3: 0 });
+      if (!sushiState || sushiState.players.length !== names.length) {
+        sushiState = {
+          roundIdx: 0, // 0, 1, 2
+          activeIdx: 0,
+          players: names.map((name) => ({
+            name,
+            puddings: 0,
+            rounds: [emptyRound(), emptyRound(), emptyRound()],
+          })),
+        };
+      } else {
+        sushiState.players.forEach((p, i) => { p.name = names[i]; });
+      }
+      renderSushiModal();
+    }
+
+    function calcSushiTotals() {
+      const gyozaTable = [0, 1, 3, 6, 10, 15];
+      const nPlayers = sushiState.players.length;
+      const perPlayer = sushiState.players.map(() => ({ rounds: [0, 0, 0], puddingPts: 0, total: 0 }));
+
+      for (let r = 0; r < 3; r++) {
+        // Puntos individuales de la ronda r
+        const makis = sushiState.players.map((p) => p.rounds[r].maki);
+        sushiState.players.forEach((p, idx) => {
+          const d = p.rounds[r];
+          const pts =
+            Math.floor(d.tempura / 2) * 5 +
+            Math.floor(d.sashimi / 3) * 10 +
+            gyozaTable[Math.min(5, d.gyoza)] +
+            d.n1 * 1 + d.n2 * 2 + d.n3 * 3 +
+            d.w1 * 3 + d.w2 * 6 + d.w3 * 9;
+          perPlayer[idx].rounds[r] = pts;
+        });
+
+        // Mayorías de Maki (6 al 1.º, 3 al 2.º; empates dividen redondeando hacia abajo)
+        const maxMaki = Math.max(...makis);
+        if (maxMaki > 0) {
+          const firsts = makis.map((v, i) => (v === maxMaki ? i : -1)).filter((i) => i >= 0);
+          const firstPts = Math.floor(6 / firsts.length);
+          firsts.forEach((i) => { perPlayer[i].rounds[r] += firstPts; });
+
+          if (firsts.length === 1) {
+            const rem = makis.filter((v) => v < maxMaki);
+            const secondMaki = rem.length ? Math.max(...rem) : 0;
+            if (secondMaki > 0) {
+              const seconds = makis.map((v, i) => (v === secondMaki ? i : -1)).filter((i) => i >= 0);
+              const secondPts = Math.floor(3 / seconds.length);
+              seconds.forEach((i) => { perPlayer[i].rounds[r] += secondPts; });
+            }
+          }
+        }
+      }
+
+      // Pudines al final (con 2 jugadores no hay penalización de -6)
+      const puds = sushiState.players.map((p) => p.puddings);
+      const maxP = Math.max(...puds);
+      const minP = Math.min(...puds);
+      if (maxP > 0 && !(maxP === minP)) {
+        const winners = puds.map((v, i) => (v === maxP ? i : -1)).filter((i) => i >= 0);
+        const wPts = Math.floor(6 / winners.length);
+        winners.forEach((i) => { perPlayer[i].puddingPts += wPts; });
+
+        if (nPlayers >= 3) {
+          const losers = puds.map((v, i) => (v === minP ? i : -1)).filter((i) => i >= 0);
+          const lPts = -Math.floor(6 / losers.length);
+          losers.forEach((i) => { perPlayer[i].puddingPts += lPts; });
+        }
+      }
+
+      perPlayer.forEach((pp) => {
+        pp.total = pp.rounds[0] + pp.rounds[1] + pp.rounds[2] + pp.puddingPts;
+      });
+      return perPlayer;
+    }
+
+    function renderSushiModal() {
+      const calc = calcSushiTotals();
+      const pl = sushiState.players[sushiState.activeIdx];
+      const rd = pl.rounds[sushiState.roundIdx];
+
+      const rowStepper = (label, sub, key, val, isPudding = false) => `
+        <div class="flex items-center justify-between gap-2 py-2 border-b border-[#EFEAE0] dark:border-white/8 last:border-0">
+          <div class="min-w-0">
+            <div class="text-xs font-bold text-ink dark:text-white">${label}</div>
+            <div class="text-[10px] text-inkMuted dark:text-white/55">${sub}</div>
+          </div>
+          <div class="inline-flex items-center gap-1.5 bg-canvas dark:bg-surfaceDark rounded-xl p-0.5 border border-[#E2DACE] dark:border-white/12">
+            <button type="button" data-sg="${isPudding ? 'pud' : 'step'}" data-key="${key}" data-delta="-1" class="btn-tap w-8 h-8 rounded-lg font-bold text-base">−</button>
+            <span class="w-6 text-center text-xs font-extrabold tabular-nums">${val}</span>
+            <button type="button" data-sg="${isPudding ? 'pud' : 'step'}" data-key="${key}" data-delta="1" class="btn-tap w-8 h-8 rounded-lg font-bold text-base">+</button>
+          </div>
+        </div>
+      `;
+
+      const bodyHtml = `
+        <div class="space-y-3.5">
+          <!-- Selector de ronda -->
+          <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-black/5 dark:bg-white/8">
+            ${[0, 1, 2].map((r) => `
+              <button type="button" data-sg="round" data-val="${r}"
+                class="btn-tap py-2 rounded-xl text-xs font-extrabold ${
+                  sushiState.roundIdx === r
+                    ? 'bg-[#E11D48] text-white shadow-xs'
+                    : 'text-inkMuted dark:text-white/70'
+                }">Ronda ${r + 1}</button>
+            `).join('')}
+          </div>
+
+          <!-- Jugadores -->
+          <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
+            ${sushiState.players.map((p, i) => `
+              <button type="button" data-sg="player" data-idx="${i}"
+                class="btn-tap shrink-0 min-w-[96px] p-2 rounded-xl border text-left ${
+                  i === sushiState.activeIdx
+                    ? 'bg-pine dark:bg-[#E11D48] text-white border-transparent'
+                    : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white border-[#E2DACE] dark:border-white/12'
+                }">
+                <div class="text-[11px] font-bold truncate">${esc(p.name)}</div>
+                <div class="font-display text-base font-extrabold tabular-nums">${calc[i].total} <span class="text-[10px] font-medium opacity-75">pts</span></div>
+              </button>
+            `).join('')}
+          </div>
+
+          <!-- Cartas de la ronda -->
+          <div class="px-3.5 py-2 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10">
+            ${rowStepper('Tempura (cartas)', 'Cada pareja = 5 pts', 'tempura', rd.tempura)}
+            ${rowStepper('Sashimi (cartas)', 'Cada trío = 10 pts', 'sashimi', rd.sashimi)}
+            ${rowStepper('Gyozas', '1 / 3 / 6 / 10 / 15 pts', 'gyoza', rd.gyoza)}
+            ${rowStepper('Iconos de Maki', '1.º +6 pts · 2.º +3 pts (auto)', 'maki', rd.maki)}
+            <div class="pt-2 pb-1 text-[11px] font-bold text-inkMuted dark:text-white/55">Nigiris (normal y sobre Wasabi ×3)</div>
+            <div class="grid grid-cols-3 gap-1.5 pb-2.5 border-b border-[#EFEAE0] dark:border-white/8">
+              ${[
+                { k: 'n1', l: 'Tortilla (1)', v: rd.n1 },
+                { k: 'n2', l: 'Salmón (2)', v: rd.n2 },
+                { k: 'n3', l: 'Calamar (3)', v: rd.n3 },
+                { k: 'w1', l: 'Tortilla+W (3)', v: rd.w1 },
+                { k: 'w2', l: 'Salmón+W (6)', v: rd.w2 },
+                { k: 'w3', l: 'Calamar+W (9)', v: rd.w3 },
+              ].map((x) => `
+                <div class="p-1.5 rounded-xl bg-canvas/80 dark:bg-surfaceDark border border-[#E7E0D4] dark:border-white/10 text-center">
+                  <div class="text-[10px] font-bold text-inkMuted dark:text-white/60 truncate">${x.l}</div>
+                  <div class="mt-1 flex items-center justify-center gap-1.5">
+                    <button type="button" data-sg="step" data-key="${x.k}" data-delta="-1" class="btn-tap w-6 h-6 rounded-md bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/12 text-xs font-bold">−</button>
+                    <span class="text-xs font-extrabold tabular-nums w-4">${x.v}</span>
+                    <button type="button" data-sg="step" data-key="${x.k}" data-delta="1" class="btn-tap w-6 h-6 rounded-md bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/12 text-xs font-bold">+</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            ${rowStepper('Pudines totales (toda la partida)', `Bonus actual: ${calc[sushiState.activeIdx].puddingPts >= 0 ? '+' : ''}${calc[sushiState.activeIdx].puddingPts} pts`, 'puddings', pl.puddings, true)}
+          </div>
+        </div>
+      `;
+
+      openModal({
+        title: 'Sushi Go! — 3 Rondas',
+        subtitle: 'Makis y pudines se calculan automáticamente entre jugadores',
+        bodyHtml,
+        actions: [
+          {
+            label: 'Reiniciar',
+            keepOpen: true,
+            onClick: () => {
+              sushiState = null;
+              openSushiGoScorer();
+            },
+          },
+          {
+            label: 'Pasar totales al registro',
+            className: 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emeraldBrand text-white',
+            onClick: () => {
+              const totals = calcSushiTotals();
+              totals.forEach((t, idx) => {
+                if (draft.players[idx]) draft.players[idx].score = String(t.total);
+              });
+              draft.manualWinnerOverride = false;
+              syncAutoWinners();
+              saveDraftLocal();
+              renderLogTab();
+              showToast('Totales de Sushi Go! pasados al registro', 'success');
+            },
+          },
+        ],
+      });
+
+      document.getElementById('modal-body').onclick = (e) => {
+        const el = e.target.closest('[data-sg]');
+        if (!el) return;
+        const act = el.dataset.sg;
+        if (act === 'round') {
+          sushiState.roundIdx = Number(el.dataset.val);
+          renderSushiModal();
+        } else if (act === 'player') {
+          sushiState.activeIdx = Number(el.dataset.idx);
+          renderSushiModal();
+        } else if (act === 'step') {
+          const k = el.dataset.key;
+          const d = Number(el.dataset.delta);
+          const rdObj = sushiState.players[sushiState.activeIdx].rounds[sushiState.roundIdx];
+          rdObj[k] = Math.max(0, (rdObj[k] || 0) + d);
+          renderSushiModal();
+        } else if (act === 'pud') {
+          const d = Number(el.dataset.delta);
+          sushiState.players[sushiState.activeIdx].puddings = Math.max(0, sushiState.players[sushiState.activeIdx].puddings + d);
+          renderSushiModal();
+        }
+      };
+    }
+
+    // =========================================================================
+    // 11. TAB 2: HISTORIAL CON FILTROS Y TARJETAS EXPANDIBLES
+    // =========================================================================
+    function renderHistoryTab() {
+      const container = document.getElementById('view-history');
+
+      const filtered = matchHistory.filter((m) => {
+        if (uiState.historyFilterGame !== 'all' && m.gameId !== uiState.historyFilterGame) return false;
+        if (uiState.historySearch.trim()) {
+          const q = uiState.historySearch.trim().toLowerCase();
+          const blob = `${m.gameName} ${m.winnerLabel} ${m.extraLabel} ${m.notes} ${(m.players || []).map((p) => `${p.name} ${p.tag}`).join(' ')}`.toLowerCase();
+          if (!blob.includes(q)) return false;
+        }
+        return true;
+      });
+
+      const usedGameIds = [...new Set(matchHistory.map((m) => m.gameId))];
+
+      const syncBar = syncState.connected
+        ? `
+          <div class="p-3 rounded-2xl bg-emeraldBrand/10 border border-emeraldBrand/20 flex items-center justify-between gap-2 text-xs text-emeraldBrand dark:text-emerald-300 font-semibold">
+            <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emeraldBrand"></span>Sincronizado con Sheets (${matchHistory.length})</span>
+            <button type="button" data-action="refresh-sheets" ${syncState.isLoading ? 'disabled' : ''}
+              class="btn-tap px-2.5 py-1 rounded-lg bg-white dark:bg-surfaceDark border border-emeraldBrand/25 font-bold text-[11px] flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 ${syncState.isLoading ? 'spin-fast' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+              <span>${syncState.isLoading ? 'Cargando' : 'Recargar'}</span>
+            </button>
+          </div>
+        `
+        : '';
+
+      const filterChips = usedGameIds.length > 0 ? `
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          <button type="button" data-action="filter-history-game" data-val="all"
+            class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${uiState.historyFilterGame === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}">
+            Todos (${matchHistory.length})
+          </button>
+          ${usedGameIds.map((gid) => {
+            const g = getGameById(gid);
+            const active = uiState.historyFilterGame === gid;
+            return `
+              <button type="button" data-action="filter-history-game" data-val="${esc(gid)}"
+                class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${active ? 'text-white border-transparent' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}"
+                style="${active ? `background:${g.color};` : ''}">
+                <span class="w-2 h-2 rounded-full" style="background:${active ? '#fff' : g.color}"></span>
+                <span>${esc(g.name)}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      ` : '';
+
+      const cardsHtml = filtered.length > 0 ? filtered.map((m) => {
+        const g = getGameById(m.gameId);
+        return `
+          <article class="bg-white dark:bg-surfaceDark rounded-[22px] border border-[#E7E0D4] dark:border-white/10 shadow-soft overflow-hidden anim-in">
+            <div class="flex">
+              <div class="w-1.5 shrink-0" style="background:${g.color};"></div>
+              <div class="flex-1 p-4 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:${g.color}18; color:${g.color};">
+                      ${gameIconSvg(g.icon, 'w-5 h-5')}
+                    </div>
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-1.5">
+                        <h3 class="font-display text-sm sm:text-base font-extrabold text-ink dark:text-white truncate">${esc(m.gameName)}</h3>
+                        ${m.topScore !== null ? `<span class="px-2 py-0.5 rounded-lg bg-goldBrand/15 text-amber-800 dark:text-amber-300 text-[11px] font-extrabold tabular-nums">${m.topScore} pts</span>` : ''}
+                      </div>
+                      <p class="text-[11px] text-inkMuted dark:text-white/55 mt-0.5">
+                        ${esc(formatDisplayDate(m.date, m.createdAtMs))}${m.duration ? ` · ${m.duration} min` : ''}${m.extraLabel ? ` · ${esc(m.extraLabel)}` : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button type="button" data-action="delete-match" data-id="${esc(m.id)}"
+                    class="btn-tap p-2 rounded-xl text-inkMuted hover:text-coralBrand hover:bg-coralBrand/10 shrink-0" aria-label="Eliminar">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Jugadores -->
+                <div class="mt-3 flex flex-wrap gap-1.5">
+                  ${(m.players || []).map((pl) => `
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs border ${
+                      pl.winner
+                        ? 'bg-goldBrand/12 border-goldBrand/35 text-ink dark:text-white font-bold'
+                        : 'bg-canvas/80 dark:bg-surfaceDarkAlt border-[#EAE3D7] dark:border-white/10 text-ink dark:text-white/85 font-medium'
+                    }">
+                      ${pl.winner ? `<span class="text-goldBrand">★</span>` : `<span class="text-[10px] text-inkMuted dark:text-white/45">#${pl.rank || ''}</span>`}
+                      <span>${esc(pl.name)}</span>
+                      ${pl.score !== null && pl.score !== undefined ? `<strong class="tabular-nums text-emeraldBrand dark:text-emerald-400">${pl.score}</strong>` : ''}
+                      ${pl.tag ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-inkMuted dark:text-white/60">${esc(pl.tag)}</span>` : ''}
+                    </span>
+                  `).join('')}
+                </div>
+
+                ${m.notes ? `<p class="mt-2.5 text-xs text-inkMuted dark:text-white/60 italic border-l-2 border-[#E2DACE] dark:border-white/15 pl-2.5">${esc(m.notes)}</p>` : ''}
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('') : `
+        <div class="bg-white dark:bg-surfaceDark rounded-[26px] border border-dashed border-[#D8CFC0] dark:border-white/15 p-9 text-center anim-in">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-canvas dark:bg-surfaceDarkAlt flex items-center justify-center text-inkMuted dark:text-white/50 mb-3">
+            ${gameIconSvg('dice', 'w-6 h-6')}
+          </div>
+          <h3 class="font-display text-base font-extrabold text-ink dark:text-white">${matchHistory.length === 0 ? 'Aún no hay partidas registradas' : 'Ninguna partida coincide con el filtro'}</h3>
+          <p class="text-xs text-inkMuted dark:text-white/60 mt-1 max-w-xs mx-auto">
+            ${matchHistory.length === 0 ? 'Registra tu primera partida en menos de 10 segundos y empezarán a aparecer aquí tus estadísticas.' : 'Prueba a cambiar el juego seleccionado o limpia el buscador.'}
+          </p>
+          ${matchHistory.length === 0 ? `<button type="button" data-nav="log" class="btn-tap mt-4 px-4 py-2.5 rounded-xl bg-pine dark:bg-emeraldBrand text-white text-xs font-bold">Registrar primera partida</button>` : ''}
+        </div>
+      `;
+
+      container.innerHTML = `
+        ${syncBar}
+        ${matchHistory.length > 0 ? `
+          <div class="relative">
+            <svg class="w-4 h-4 text-inkMuted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="history-search-input" type="search" value="${esc(uiState.historySearch)}" placeholder="Buscar por jugador, juego, corporación, nota..."
+              class="w-full h-11 pl-10 pr-4 bg-white dark:bg-surfaceDark border border-[#E7E0D4] dark:border-white/12 focus:border-emeraldBrand rounded-2xl text-xs sm:text-sm text-ink dark:text-white outline-none shadow-soft" />
+          </div>
+        ` : ''}
+        ${filterChips}
+        <div class="space-y-3">${cardsHtml}</div>
+      `;
+
+      const searchEl = document.getElementById('history-search-input');
+      if (searchEl) {
+        searchEl.addEventListener('input', (e) => {
+          uiState.historySearch = e.target.value;
+          renderHistoryTab();
+          const el = document.getElementById('history-search-input');
+          if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+        });
+      }
+    }
+
+    // =========================================================================
+    // 12. TAB 3: ESTADÍSTICAS VISUALES (DONUT SVG, RANKING, INSIGHTS)
+    // =========================================================================
+    function renderStatsTab() {
+      const container = document.getElementById('view-stats');
+
+      if (matchHistory.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white dark:bg-surfaceDark rounded-[26px] border border-dashed border-[#D8CFC0] dark:border-white/15 p-10 text-center anim-in">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-emeraldBrand/12 text-emeraldBrand flex items-center justify-center mb-3">
+              <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7" rx="1"/><rect x="13" y="6" width="3" height="11" rx="1"/><rect x="19" y="13" width="2" height="4" rx="1"/></svg>
+            </div>
+            <h3 class="font-display text-lg font-extrabold text-ink dark:text-white">Tus estadísticas aparecerán aquí</h3>
+            <p class="text-xs text-inkMuted dark:text-white/60 mt-1.5 max-w-xs mx-auto leading-relaxed">
+              En cuanto registres tus primeras partidas verás el ranking de jugadores, porcentajes de victoria, gráficas de juegos más jugados y récords por juego.
+            </p>
+            <button type="button" data-nav="log" class="btn-tap mt-5 px-5 py-2.5 rounded-xl bg-pine dark:bg-emeraldBrand text-white text-xs font-bold">Registrar partida</button>
+          </div>
+        `;
+        return;
+      }
+
+      const playedGameIds = [...new Set(matchHistory.map((m) => m.gameId))];
+      const subset = uiState.statsFilterGame === 'all'
+        ? matchHistory
+        : matchHistory.filter((m) => m.gameId === uiState.statsFilterGame);
+
+      const totalPlays = subset.length;
+      const totalMins = subset.reduce((a, m) => a + (Number(m.duration) || 0), 0);
+      const totalHours = (totalMins / 60).toFixed(1);
+
+      // Agregado por jugador
+      const playerMap = {};
+      subset.forEach((m) => {
+        (m.players || []).forEach((p) => {
+          const name = (p.name || '').trim();
+          if (!name) return;
+          if (!playerMap[name]) {
+            playerMap[name] = { name, plays: 0, wins: 0, scores: [], bestScore: -Infinity, byGame: {} };
+          }
+          const st = playerMap[name];
+          st.plays += 1;
+          if (p.winner) st.wins += 1;
+          if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
+            st.scores.push(Number(p.score));
+            if (Number(p.score) > st.bestScore) st.bestScore = Number(p.score);
+          }
+          st.byGame[m.gameName] = (st.byGame[m.gameName] || 0) + 1;
+        });
+      });
+
+      const leaderboard = Object.values(playerMap).map((st) => {
+        const winRate = st.plays > 0 ? Math.round((st.wins / st.plays) * 100) : 0;
+        const avg = st.scores.length > 0 ? (st.scores.reduce((a, b) => a + b, 0) / st.scores.length).toFixed(1) : null;
+        const favGame = Object.entries(st.byGame).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+        return { ...st, winRate, avg, favGame };
+      }).sort((a, b) => (b.wins - a.wins) || (b.winRate - a.winRate) || (b.plays - a.plays));
+
+      // Récord de puntuación del filtro
+      let recordEntry = null;
+      subset.forEach((m) => {
+        (m.players || []).forEach((p) => {
+          if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
+            if (!recordEntry || Number(p.score) > recordEntry.score) {
+              recordEntry = { score: Number(p.score), player: p.name, game: m.gameName };
+            }
+          }
+        });
+      });
+
+      // Donut SVG por juego (solo en vista global)
+      let donutCardHtml = '';
+      if (uiState.statsFilterGame === 'all') {
+        const gameCounts = {};
+        subset.forEach((m) => { gameCounts[m.gameId] = (gameCounts[m.gameId] || 0) + 1; });
+        const sortedGames = Object.entries(gameCounts)
+          .map(([gid, count]) => ({ game: getGameById(gid), count, pct: Math.round((count / totalPlays) * 100) }))
+          .sort((a, b) => b.count - a.count);
+
+        const radius = 52;
+        const circ = 2 * Math.PI * radius;
+        let offset = 0;
+        const slices = sortedGames.map((item) => {
+          const dash = (item.count / totalPlays) * circ;
+          const svg = `<circle cx="70" cy="70" r="${radius}" fill="none" stroke="${item.game.color}" stroke-width="18" stroke-dasharray="${dash.toFixed(2)} ${(circ - dash).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" />`;
+          offset += dash;
+          return svg;
+        }).join('');
+
+        donutCardHtml = `
+          <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5">
+            <h3 class="font-display text-sm font-extrabold text-ink dark:text-white mb-4">Juegos más jugados</h3>
+            <div class="flex flex-col sm:flex-row items-center gap-5">
+              <div class="relative w-[140px] h-[140px] shrink-0">
+                <svg viewBox="0 0 140 140" class="w-full h-full -rotate-90">
+                  <circle cx="70" cy="70" r="${radius}" fill="none" stroke="rgba(128,128,128,0.12)" stroke-width="18" />
+                  ${slices}
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <span class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums leading-none">${totalPlays}</span>
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55 mt-0.5">partidas</span>
+                </div>
+              </div>
+              <div class="flex-1 w-full space-y-2">
+                ${sortedGames.slice(0, 6).map((item) => `
+                  <div class="flex items-center justify-between gap-2 text-xs">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="w-3 h-3 rounded-full shrink-0" style="background:${item.game.color}"></span>
+                      <span class="font-bold text-ink dark:text-white truncate">${esc(item.game.name)}</span>
+                    </div>
+                    <span class="text-inkMuted dark:text-white/60 font-semibold tabular-nums shrink-0">${item.count} (${item.pct}%)</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Curiosidades específicas si filtras por un juego con extras
+      let insightsHtml = '';
+      if (uiState.statsFilterGame !== 'all') {
+        const g = getGameById(uiState.statsFilterGame);
+        if (g.extraType === 'splendor') {
+          const counts = { '20 puntos': 0, '10 coronas': 0, '10 de un color': 0 };
+          subset.forEach((m) => {
+            const wt = m.meta?.winType || '';
+            if (counts[wt] !== undefined) counts[wt]++;
+          });
+          insightsHtml = `
+            <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5">
+              <h3 class="font-display text-sm font-extrabold text-ink dark:text-white mb-3">Cómo se gana en Splendor Duel</h3>
+              <div class="grid grid-cols-3 gap-2">
+                ${Object.entries(counts).map(([k, v]) => `
+                  <div class="p-3 rounded-2xl bg-canvas dark:bg-surfaceDarkAlt text-center">
+                    <div class="font-display text-xl font-extrabold text-[#2563EB] tabular-nums">${v}</div>
+                    <div class="text-[11px] font-bold text-inkMuted dark:text-white/65 mt-0.5">${k}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } else if (g.extraType === 'tfm') {
+          const corps = {};
+          subset.forEach((m) => {
+            (m.players || []).forEach((p) => {
+              if (!p.tag) return;
+              if (!corps[p.tag]) corps[p.tag] = { plays: 0, wins: 0 };
+              corps[p.tag].plays++;
+              if (p.winner) corps[p.tag].wins++;
+            });
+          });
+          const corpList = Object.entries(corps).sort((a, b) => b[1].wins - a[1].wins || b[1].plays - a[1].plays).slice(0, 6);
+          if (corpList.length > 0) {
+            insightsHtml = `
+              <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5">
+                <h3 class="font-display text-sm font-extrabold text-ink dark:text-white mb-3">Rendimiento por Corporación</h3>
+                <div class="space-y-2">
+                  ${corpList.map(([name, c]) => `
+                    <div class="flex items-center justify-between text-xs p-2.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt">
+                      <span class="font-bold text-ink dark:text-white">${esc(name)}</span>
+                      <span class="tabular-nums text-inkMuted dark:text-white/65">${c.wins}V / ${c.plays}P (${Math.round((c.wins / c.plays) * 100)}%)</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          }
+        }
+      }
+
+      // Actividad últimos 6 meses
+      const now = new Date();
+      const months = [];
+      for (let i = 5; i >= 0; i--) {
+        const dt = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+        const label = dt.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
+        months.push({ key, label, count: 0 });
+      }
+      subset.forEach((m) => {
+        const k = String(m.date || '').slice(0, 7);
+        const found = months.find((x) => x.key === k);
+        if (found) found.count++;
+      });
+      const maxMonth = Math.max(1, ...months.map((x) => x.count));
+
+      container.innerHTML = `
+        <!-- Filtro por juego -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          <button type="button" data-action="filter-stats-game" data-val="all"
+            class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${uiState.statsFilterGame === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}">
+            Toda la ludoteca
+          </button>
+          ${playedGameIds.map((gid) => {
+            const g = getGameById(gid);
+            const active = uiState.statsFilterGame === gid;
+            return `
+              <button type="button" data-action="filter-stats-game" data-val="${esc(gid)}"
+                class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${active ? 'text-white border-transparent' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}"
+                style="${active ? `background:${g.color};` : ''}">
+                <span class="w-2 h-2 rounded-full" style="background:${active ? '#fff' : g.color}"></span>
+                <span>${esc(g.name)}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- 4 KPI Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 anim-in">
+          <div class="p-4 rounded-[22px] bg-white dark:bg-surfaceDark border border-[#E7E0D4] dark:border-white/10 shadow-soft">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Partidas</div>
+            <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1">${totalPlays}</div>
+            <div class="text-[11px] text-emeraldBrand dark:text-emerald-400 font-semibold mt-0.5">${playedGameIds.length} ${playedGameIds.length === 1 ? 'juego' : 'juegos'}</div>
+          </div>
+
+          <div class="p-4 rounded-[22px] bg-white dark:bg-surfaceDark border border-[#E7E0D4] dark:border-white/10 shadow-soft">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Tiempo en mesa</div>
+            <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1">${totalHours}<span class="text-sm font-bold ml-0.5">h</span></div>
+            <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-0.5">${totalMins} min totales</div>
+          </div>
+
+          <div class="p-4 rounded-[22px] bg-white dark:bg-surfaceDark border border-[#E7E0D4] dark:border-white/10 shadow-soft">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Jugadores</div>
+            <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1">${leaderboard.length}</div>
+            <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-0.5 truncate">${leaderboard[0] ? `Líder: ${esc(leaderboard[0].name)}` : '—'}</div>
+          </div>
+
+          <div class="p-4 rounded-[22px] bg-white dark:bg-surfaceDark border border-[#E7E0D4] dark:border-white/10 shadow-soft">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Récord pts</div>
+            <div class="font-display text-2xl font-extrabold text-goldBrand tabular-nums mt-1">${recordEntry ? recordEntry.score : '—'}</div>
+            <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-0.5 truncate">${recordEntry ? esc(recordEntry.player) : 'Sin puntos'}</div>
+          </div>
+        </div>
+
+        <!-- Ranking de Jugadores -->
+        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Clasificación de Jugadores</h3>
+            <span class="text-[11px] font-semibold text-inkMuted dark:text-white/55">Victorias y % éxito</span>
+          </div>
+          <div class="space-y-3">
+            ${leaderboard.map((st, idx) => `
+              <div class="p-3 rounded-2xl bg-canvas/75 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/8">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="w-7 h-7 rounded-xl flex items-center justify-center font-display font-extrabold text-xs shrink-0 ${
+                      idx === 0 ? 'bg-goldBrand text-white' : idx === 1 ? 'bg-slate-400/25 text-ink dark:text-white' : 'bg-black/6 dark:bg-white/10 text-inkMuted dark:text-white/65'
+                    }">#${idx + 1}</span>
+                    <div class="min-w-0">
+                      <div class="text-sm font-extrabold text-ink dark:text-white truncate">${esc(st.name)}</div>
+                      <div class="text-[11px] text-inkMuted dark:text-white/55 truncate">
+                        ${st.wins}V / ${st.plays}P${st.avg !== null && uiState.statsFilterGame !== 'all' ? ` · Media ${st.avg}` : (st.favGame ? ` · Top: ${esc(st.favGame)}` : '')}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="font-display text-base font-extrabold text-emeraldBrand dark:text-emerald-400 tabular-nums">${st.winRate}%</div>
+                    ${st.bestScore > -Infinity && uiState.statsFilterGame !== 'all' ? `<div class="text-[10px] text-inkMuted dark:text-white/55">Máx ${st.bestScore}</div>` : ''}
+                  </div>
+                </div>
+                <div class="mt-2 h-1.5 w-full rounded-full bg-black/8 dark:bg-white/10 overflow-hidden">
+                  <div class="h-full rounded-full bg-gradient-to-r from-emeraldBrand to-goldBrand transition-all duration-500" style="width:${st.winRate}%"></div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        ${insightsHtml}
+        ${donutCardHtml}
+
+        <!-- Actividad Mensual -->
+        <div class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft p-5 anim-in">
+          <h3 class="font-display text-sm font-extrabold text-ink dark:text-white mb-4">Ritmo mensual (últimos 6 meses)</h3>
+          <div class="grid grid-cols-6 gap-2 items-end h-28 pt-2">
+            ${months.map((mo) => {
+              const hPct = mo.count > 0 ? Math.max(14, Math.round((mo.count / maxMonth) * 100)) : 6;
+              return `
+                <div class="flex flex-col items-center gap-1.5 h-full justify-end">
+                  <span class="text-[10px] font-extrabold tabular-nums ${mo.count > 0 ? 'text-ink dark:text-white' : 'text-inkMuted/50'}">${mo.count}</span>
+                  <div class="w-full max-w-[34px] rounded-t-xl transition-all ${mo.count > 0 ? 'bg-gradient-to-t from-pine to-emeraldBrand dark:from-emeraldBrand dark:to-emerald-400' : 'bg-black/6 dark:bg-white/10'}" style="height:${hPct}%"></div>
+                  <span class="text-[10px] font-bold uppercase text-inkMuted dark:text-white/55">${mo.label}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 13. TAB 4: LUDOTECA (ESTANTERÍA VISUAL + AÑADIR JUEGOS)
+    // =========================================================================
+    function renderShelfTab() {
+      const container = document.getElementById('view-shelf');
+
+      const cards = games.map((g) => {
+        const gMatches = matchHistory.filter((m) => m.gameId === g.id);
+        const playCount = gMatches.length;
+        const lastMatch = gMatches[0] || null;
+        let highScore = null;
+        gMatches.forEach((m) => {
+          if (m.topScore !== null && (highScore === null || m.topScore > highScore)) highScore = m.topScore;
+        });
+
+        return `
+          <article class="bg-white dark:bg-surfaceDark rounded-[24px] border border-[#E7E0D4] dark:border-white/10 shadow-soft overflow-hidden flex flex-col anim-in">
+            <div class="p-4 text-white relative overflow-hidden" style="background: linear-gradient(135deg, ${g.color}, ${g.color2 || g.color});">
+              <div class="flex items-start justify-between gap-2 relative z-10">
+                <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center">
+                  ${gameIconSvg(g.icon, 'w-5 h-5')}
+                </div>
+                <span class="px-2.5 py-1 rounded-full bg-black/20 text-[11px] font-extrabold tabular-nums">
+                  ${playCount} ${playCount === 1 ? 'partida' : 'partidas'}
+                </span>
+              </div>
+              <h3 class="font-display text-base font-extrabold mt-3 leading-tight relative z-10">${esc(g.name)}</h3>
+              <p class="text-[11px] text-white/80 mt-0.5 relative z-10">${esc(g.tagline || '')}</p>
+            </div>
+
+            <div class="p-3.5 flex-1 flex flex-col justify-between gap-3">
+              <div class="text-xs text-inkMuted dark:text-white/60 space-y-1">
+                ${lastMatch
+                  ? `<div>Última: <strong class="text-ink dark:text-white">${esc(formatDisplayDate(lastMatch.date, lastMatch.createdAtMs))}</strong></div>
+                     <div class="truncate">Ganó: <strong class="text-ink dark:text-white">${esc(lastMatch.winnerLabel)}</strong>${highScore !== null ? ` · Récord ${highScore}` : ''}</div>`
+                  : `<div class="italic">Sin partidas registradas todavía</div>`
+                }
+              </div>
+
+              <div class="flex items-center gap-1.5">
+                <button type="button" data-action="quick-log-game" data-game-id="${esc(g.id)}"
+                  class="btn-tap flex-1 py-2 px-3 rounded-xl bg-canvas dark:bg-surfaceDarkAlt hover:bg-pine hover:text-white dark:hover:bg-emeraldBrand text-ink dark:text-white text-xs font-bold border border-[#E2DACE] dark:border-white/12 transition-colors">
+                  + Registrar
+                </button>
+                ${g.quickCalc ? `
+                  <button type="button" data-action="open-quick-calc-for" data-game-id="${esc(g.id)}" data-calc="${g.quickCalc}"
+                    class="btn-tap py-2 px-2.5 rounded-xl text-xs font-bold text-white" style="background:${g.color};" title="Abrir marcador en vivo">
+                    Marcador
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="flex items-center justify-between gap-2 px-0.5">
+          <div>
+            <h2 class="font-display text-base font-extrabold text-ink dark:text-white">Tu Ludoteca (${games.length})</h2>
+            <p class="text-xs text-inkMuted dark:text-white/55">Toca cualquier juego para registrar una partida al instante</p>
+          </div>
+          <button type="button" data-action="open-add-game"
+            class="btn-tap px-3.5 py-2 rounded-xl bg-pine dark:bg-emeraldBrand text-white text-xs font-bold shadow-soft shrink-0">
+            + Añadir juego
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          ${cards}
+        </div>
+      `;
+    }
+
+    function openAddGameModal() {
+      let chosenColor = PALETTE_CHOICES[0];
+      let chosenIcon = 'dice';
+
+      const renderForm = () => {
+        const bodyHtml = `
+          <div class="space-y-4">
+            <div>
+              <label for="new-game-name" class="block text-xs font-bold mb-1.5">Nombre del juego</label>
+              <input id="new-game-name" type="text" maxlength="40" placeholder="Ej. Cascadia, Azul, Catan..."
+                class="w-full bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 focus:border-emeraldBrand rounded-xl px-3 py-2.5 text-sm font-semibold outline-none" />
+            </div>
+
+            <div>
+              <label for="new-game-tagline" class="block text-xs font-bold mb-1.5">Subtítulo corto (opcional)</label>
+              <input id="new-game-tagline" type="text" maxlength="40" placeholder="Ej. Losetas y fauna"
+                class="w-full bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 focus:border-emeraldBrand rounded-xl px-3 py-2 text-xs outline-none" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label for="new-game-mode" class="block text-xs font-bold mb-1.5">Tipo de puntuación</label>
+                <select id="new-game-mode" class="w-full h-10 bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 rounded-xl px-2.5 text-xs font-bold outline-none">
+                  <option value="points">Por puntos</option>
+                  <option value="winner_only">Solo ganador</option>
+                  <option value="coop">Cooperativo (Victoria/Derrota)</option>
+                </select>
+              </div>
+              <div>
+                <label for="new-game-dur" class="block text-xs font-bold mb-1.5">Duración media (min)</label>
+                <input id="new-game-dur" type="number" min="5" max="360" value="30"
+                  class="w-full h-10 bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 rounded-xl px-3 text-xs font-bold outline-none" />
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs font-bold mb-1.5">Color de portada</div>
+              <div class="flex flex-wrap gap-2">
+                ${PALETTE_CHOICES.map((p, idx) => `
+                  <button type="button" data-pick-color="${idx}"
+                    class="btn-tap w-8 h-8 rounded-full border-2 ${chosenColor.color === p.color ? 'border-ink dark:border-white scale-110' : 'border-transparent'}"
+                    style="background:${p.color};" aria-label="${p.label}"></button>
+                `).join('')}
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs font-bold mb-1.5">Icono</div>
+              <div class="grid grid-cols-6 gap-1.5">
+                ${ICON_CHOICES.map((ic) => `
+                  <button type="button" data-pick-icon="${ic}"
+                    class="btn-tap h-10 rounded-xl border flex items-center justify-center ${
+                      chosenIcon === ic ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent' : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white border-[#DFD8CB] dark:border-white/12'
+                    }">
+                    ${gameIconSvg(ic, 'w-5 h-5')}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+
+        openModal({
+          title: 'Añadir juego a tu ludoteca',
+          bodyHtml,
+          actions: [
+            { label: 'Cancelar' },
+            {
+              label: 'Añadir juego',
+              className: 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emeraldBrand text-white',
+              keepOpen: true,
+              onClick: () => {
+                const name = (document.getElementById('new-game-name')?.value || '').trim();
+                if (!name) {
+                  showToast('Escribe el nombre del juego', 'danger');
+                  return;
+                }
+                const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_') + '_' + Date.now().toString(36).slice(-3);
+                const newGame = {
+                  id: slug,
+                  name,
+                  tagline: (document.getElementById('new-game-tagline')?.value || '').trim() || 'Juego de mesa',
+                  color: chosenColor.color,
+                  color2: chosenColor.color2,
+                  icon: chosenIcon,
+                  scoringType: document.getElementById('new-game-mode')?.value || 'points',
+                  minPlayers: 1,
+                  maxPlayers: 6,
+                  defaultDuration: Number(document.getElementById('new-game-dur')?.value) || 30,
+                  extraType: 'none',
+                };
+                games.push(newGame);
+                saveGamesLocal();
+                draft.gameId = newGame.id;
+                draft.duration = newGame.defaultDuration;
+                saveDraftLocal();
+                closeModal();
+                renderActiveTab();
+                showToast(`${name} añadido a tu ludoteca`, 'success');
+              },
+            },
+          ],
+        });
+
+        document.getElementById('modal-body').onclick = (e) => {
+          const cBtn = e.target.closest('[data-pick-color]');
+          if (cBtn) {
+            const nameVal = document.getElementById('new-game-name')?.value || '';
+            const tagVal = document.getElementById('new-game-tagline')?.value || '';
+            const modeVal = document.getElementById('new-game-mode')?.value || 'points';
+            const durVal = document.getElementById('new-game-dur')?.value || '30';
+            chosenColor = PALETTE_CHOICES[Number(cBtn.dataset.pickColor)];
+            renderForm();
+            document.getElementById('new-game-name').value = nameVal;
+            document.getElementById('new-game-tagline').value = tagVal;
+            document.getElementById('new-game-mode').value = modeVal;
+            document.getElementById('new-game-dur').value = durVal;
+            return;
+          }
+          const iBtn = e.target.closest('[data-pick-icon]');
+          if (iBtn) {
+            const nameVal = document.getElementById('new-game-name')?.value || '';
+            const tagVal = document.getElementById('new-game-tagline')?.value || '';
+            const modeVal = document.getElementById('new-game-mode')?.value || 'points';
+            const durVal = document.getElementById('new-game-dur')?.value || '30';
+            chosenIcon = iBtn.dataset.pickIcon;
+            renderForm();
+            document.getElementById('new-game-name').value = nameVal;
+            document.getElementById('new-game-tagline').value = tagVal;
+            document.getElementById('new-game-mode').value = modeVal;
+            document.getElementById('new-game-dur').value = durVal;
+          }
+        };
+      };
+
+      renderForm();
+    }
+
+    // =========================================================================
+    // 14. ELIMINAR PARTIDA
+    // =========================================================================
+    function confirmDeleteMatch(matchId) {
+      openModal({
+        title: '¿Eliminar esta partida?',
+        bodyHtml: '<p class="text-xs sm:text-sm text-inkMuted dark:text-white/70">Se borrará del historial permanentemente (y de Google Sheets si estás conectado).</p>',
+        actions: [
+          { label: 'Cancelar' },
+          {
+            label: 'Sí, eliminar',
+            className: 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-coralBrand text-white',
+            onClick: async () => {
+              try {
+                if (syncState.connected && syncState.apiUrl) {
+                  showToast('Eliminando de Sheets...', 'neutral');
+                  await fetchSheetsJson(syncState.apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'delete', pin: syncState.pin || '', partidaId: matchId }),
+                  });
+                }
+                matchHistory = matchHistory.filter((m) => m.id !== matchId);
+                saveHistoryLocal();
+                rebuildFrequentPlayersFromHistory();
+                updateNavBadge();
+                renderActiveTab();
+                showToast('Partida eliminada', 'neutral');
+              } catch (err) {
+                console.error(err);
+                showToast('No se pudo eliminar en Sheets', 'danger');
+              }
+            },
+          },
+        ],
+      });
+    }
+
+    // =========================================================================
+    // 15. NAVEGACIÓN Y ENLACE DE EVENTOS
+    // =========================================================================
+    function switchTab(tabName) {
+      uiState.activeTab = tabName;
+      const sections = ['log', 'history', 'stats', 'shelf'];
+      sections.forEach((s) => {
+        document.getElementById(`view-${s}`).classList.toggle('hidden', s !== tabName);
+      });
+
+      document.querySelectorAll('.nav-btn').forEach((btn) => {
+        const active = btn.dataset.nav === tabName;
+        btn.className = `nav-btn btn-tap py-2 px-1 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-all relative ${
+          active
+            ? 'bg-pine dark:bg-emeraldBrand text-white shadow-sm'
+            : 'text-inkMuted dark:text-white/60 hover:text-ink dark:hover:text-white'
+        }`;
+      });
+
+      const subMap = {
+        log: 'Registrar nueva partida',
+        history: `${matchHistory.length} ${matchHistory.length === 1 ? 'partida registrada' : 'partidas registradas'}`,
+        stats: 'Estadísticas y récords',
+        shelf: `${games.length} juegos en colección`,
+      };
+      document.getElementById('header-subtitle').textContent = subMap[tabName] || 'Diario de Partidas';
+
+      renderActiveTab();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      if (tabName === 'history' && syncState.connected && !syncState.isLoading && (!syncState.lastSyncedAt || Date.now() - syncState.lastSyncedAt > 30000)) {
+        syncFromSheets({ silent: true });
+      }
+    }
+
+    function renderActiveTab() {
+      if (uiState.activeTab === 'log') renderLogTab();
+      else if (uiState.activeTab === 'history') renderHistoryTab();
+      else if (uiState.activeTab === 'stats') renderStatsTab();
+      else if (uiState.activeTab === 'shelf') renderShelfTab();
+    }
+
+    function bindGlobalEvents() {
+      document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+        const isDark = document.documentElement.classList.contains('dark');
+        applyTheme(isDark ? 'light' : 'dark');
+      });
+
+      document.getElementById('btn-sync-settings').addEventListener('click', openSyncSettingsModal);
+      document.getElementById('modal-close-x').addEventListener('click', closeModal);
+      document.getElementById('modal-backdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'modal-backdrop') closeModal();
+      });
+
+      document.body.addEventListener('click', (e) => {
+        const navBtn = e.target.closest('[data-nav]');
+        if (navBtn) {
+          switchTab(navBtn.dataset.nav);
+          return;
+        }
+
+        const el = e.target.closest('[data-action]');
+        if (!el) return;
+        const action = el.dataset.action;
+
+        switch (action) {
+          case 'select-game': {
+            const g = getGameById(el.dataset.gameId);
+            draft.gameId = g.id;
+            draft.duration = g.defaultDuration || 30;
+            draft.manualWinnerOverride = false;
+            saveDraftLocal();
+            renderLogTab();
+            break;
+          }
+          case 'quick-log-game': {
+            const g = getGameById(el.dataset.gameId);
+            draft.gameId = g.id;
+            draft.duration = g.defaultDuration || 30;
+            draft.manualWinnerOverride = false;
+            saveDraftLocal();
+            switchTab('log');
+            break;
+          }
+          case 'open-quick-calc': {
+            if (el.dataset.calc === 'flip7') openFlip7Scorer();
+            else if (el.dataset.calc === 'sushigo') openSushiGoScorer();
+            break;
+          }
+          case 'open-quick-calc-for': {
+            const g = getGameById(el.dataset.gameId);
+            draft.gameId = g.id;
+            draft.duration = g.defaultDuration || 20;
+            saveDraftLocal();
+            switchTab('log');
+            if (el.dataset.calc === 'flip7') openFlip7Scorer();
+            else if (el.dataset.calc === 'sushigo') openSushiGoScorer();
+            break;
+          }
+          case 'add-draft-player': {
+            if (draft.players.length < 10) {
+              draft.players.push({ name: '', score: '', winner: false, tag: '' });
+              saveDraftLocal();
+              renderLogTab();
+            }
+            break;
+          }
+          case 'remove-draft-player': {
+            const idx = Number(el.dataset.idx);
+            if (draft.players.length > 1) {
+              draft.players.splice(idx, 1);
+              syncAutoWinners();
+              saveDraftLocal();
+              renderLogTab();
+            }
+            break;
+          }
+          case 'quick-fill-player': {
+            const name = el.dataset.name;
+            const emptyIdx = draft.players.findIndex((p) => !p.name.trim());
+            if (emptyIdx >= 0) {
+              draft.players[emptyIdx].name = name;
+            } else if (draft.players.length < 10) {
+              draft.players.push({ name, score: '', winner: false, tag: '' });
+            }
+            saveDraftLocal();
+            renderLogTab();
+            break;
+          }
+          case 'toggle-player-winner': {
+            const idx = Number(el.dataset.idx);
+            draft.manualWinnerOverride = true;
+            draft.players[idx].winner = !draft.players[idx].winner;
+            saveDraftLocal();
+            renderLogTab();
+            break;
+          }
+          case 'set-draft-field': {
+            draft[el.dataset.field] = el.dataset.val;
+            saveDraftLocal();
+            renderLogTab();
+            break;
+          }
+          case 'toggle-draft-bool': {
+            draft[el.dataset.field] = !draft[el.dataset.field];
+            saveDraftLocal();
+            renderLogTab();
+            break;
+          }
+          case 'set-draft-bool': {
+            draft[el.dataset.field] = el.dataset.val === 'true';
+            saveDraftLocal();
+            renderLogTab();
+            break;
+          }
+          case 'step-tfm-gen': {
+            draft.tfmGenerations = Math.max(1, Math.min(30, (draft.tfmGenerations || 10) + Number(el.dataset.delta)));
+            saveDraftLocal();
+            renderLogTab();
+            break;
+          }
+          case 'step-coop-level': {
+            draft.coopLevel = Math.max(1, Math.min(12, (draft.coopLevel || 8) + Number(el.dataset.delta)));
+            saveDraftLocal();
+            renderLogTab();
+            break;
+          }
+          case 'set-duration': {
+            draft.duration = Number(el.dataset.val);
+            saveDraftLocal();
+            renderLogTab();
+            break;
+          }
+          case 'clear-draft': {
+            const keepGame = draft.gameId;
+            draft = createEmptyDraft(keepGame);
+            saveDraftLocal();
+            renderLogTab();
+            showToast('Formulario limpiado', 'neutral');
+            break;
+          }
+          case 'save-match': {
+            saveDraftMatch();
+            break;
+          }
+          case 'delete-match': {
+            confirmDeleteMatch(el.dataset.id);
+            break;
+          }
+          case 'refresh-sheets': {
+            syncFromSheets({ silent: false });
+            break;
+          }
+          case 'filter-history-game': {
+            uiState.historyFilterGame = el.dataset.val;
+            renderHistoryTab();
+            break;
+          }
+          case 'filter-stats-game': {
+            uiState.statsFilterGame = el.dataset.val;
+            renderStatsTab();
+            break;
+          }
+          case 'open-add-game': {
+            openAddGameModal();
+            break;
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // 16. ARRANQUE
+    // =========================================================================
+    initTheme();
+    setupPwaAssets();
+    loadLocalData();
+    bindGlobalEvents();
+    renderSyncBadge();
+    updateNavBadge();
+    switchTab('log');
+
+    const initialUrl = getSavedSheetsUrl();
+    if (initialUrl) {
+      syncState.apiUrl = initialUrl;
+      syncState.pin = getSavedPin();
+      syncFromSheets({ silent: true });
+    }
+  </script>
+</body>
+</html>
