@@ -789,15 +789,20 @@
 
     function todayISO() {
       const d = new Date();
-      const tzOff = d.getTimezoneOffset() * 60000;
-      return new Date(d.getTime() - tzOff).toISOString().slice(0, 10);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
     }
 
     function createEmptyDraft(gameId = 'harmonies') {
       const g = games.find((x) => x.id === gameId) || DEFAULT_GAMES[0];
+      const today = todayISO();
       return {
         gameId: g.id,
-        date: todayISO(),
+        date: today,
+        dateSetOn: today,
+        manualDateOverride: false,
         duration: g.defaultDuration || 30,
         notes: '',
         // Extras por juego
@@ -822,6 +827,18 @@
     }
 
     let draft = createEmptyDraft('harmonies');
+
+    function syncDraftDateToToday({ force = false } = {}) {
+      const today = todayISO();
+      const shouldReset = force || !draft.manualDateOverride || draft.dateSetOn !== today || !draft.date;
+      if (!shouldReset) return false;
+      const changed = draft.date !== today || draft.manualDateOverride || draft.dateSetOn !== today;
+      draft.date = today;
+      draft.dateSetOn = today;
+      draft.manualDateOverride = false;
+      if (changed) saveDraftLocal();
+      return changed;
+    }
 
     // Estado temporal para los marcadores en vivo
     let flip7State = null;
@@ -1113,6 +1130,9 @@
           }
         }
       } catch (e) {}
+
+      // Al abrir la app, la fecha siempre arranca en el día actual
+      syncDraftDateToToday({ force: true });
 
       try {
         const rawDel = localStorage.getItem(KEYS.DELETED_GAMES);
@@ -1876,7 +1896,15 @@
             <!-- Fecha y Duración -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
-                <label for="draft-date" class="block text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55 mb-1.5">Fecha</label>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label for="draft-date" class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Fecha</label>
+                  ${draft.date !== todayISO() ? `
+                    <button type="button" data-action="reset-draft-date"
+                      class="btn-tap text-[11px] font-extrabold text-emeraldBrand dark:text-emerald-400 hover:underline">
+                      Volver a hoy
+                    </button>
+                  ` : `<span class="text-[10.5px] font-bold text-emeraldBrand dark:text-emerald-400">Hoy</span>`}
+                </div>
                 <input id="draft-date" type="date" value="${esc(draft.date)}"
                   class="w-full h-10 input-pro rounded-xl px-3 text-xs font-bold text-ink dark:text-white outline-none" />
               </div>
@@ -1966,8 +1994,13 @@
       const dateEl = document.getElementById('draft-date');
       if (dateEl) {
         dateEl.addEventListener('change', (e) => {
-          draft.date = e.target.value || todayISO();
+          const today = todayISO();
+          const picked = e.target.value || today;
+          draft.date = picked;
+          draft.dateSetOn = today;
+          draft.manualDateOverride = picked !== today;
           saveDraftLocal();
+          renderLogTab();
         });
       }
 
@@ -2134,11 +2167,12 @@
           showToast('Partida guardada en este dispositivo', 'success');
         }
 
-        // Reinicia puntuaciones manteniendo jugadores y juego actual para registrar rápido otra si quieren
+        // Reinicia puntuaciones y fecha a hoy manteniendo jugadores y juego actual
         draft.players = draft.players.map((p) => ({ name: p.name, score: '', winner: false, tag: '' }));
         draft.notes = '';
         draft.harmoniesBreakdown = null;
         draft.manualWinnerOverride = false;
+        syncDraftDateToToday({ force: true });
         saveDraftLocal();
         updateNavBadge();
       } catch (err) {
@@ -6070,6 +6104,7 @@
       };
       document.getElementById('header-subtitle').textContent = subMap[tabName] || 'Diario de Partidas';
 
+      if (tabName === 'log') syncDraftDateToToday();
       if (tabName !== 'stats') destroyActiveCharts();
       renderActiveTab();
       const scroller = document.getElementById('main-scroll');
@@ -6098,6 +6133,18 @@
       document.getElementById('modal-backdrop').addEventListener('click', (e) => {
         if (e.target.id === 'modal-backdrop') closeModal();
       });
+
+      // Actualiza automáticamente la fecha al día actual al volver a abrir la PWA otro día
+      const refreshDateOnResume = () => {
+        if (syncDraftDateToToday() && uiState.activeTab === 'log') {
+          renderLogTab();
+        }
+      };
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshDateOnResume();
+      });
+      window.addEventListener('pageshow', refreshDateOnResume);
+      window.addEventListener('focus', refreshDateOnResume);
 
       document.body.addEventListener('click', (e) => {
         const navBtn = e.target.closest('[data-nav]');
@@ -6229,6 +6276,11 @@
           case 'set-duration': {
             draft.duration = Number(el.dataset.val);
             saveDraftLocal();
+            renderLogTab();
+            break;
+          }
+          case 'reset-draft-date': {
+            syncDraftDateToToday({ force: true });
             renderLogTab();
             break;
           }
