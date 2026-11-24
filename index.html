@@ -533,6 +533,7 @@
         maxPlayers: 4,
         defaultDuration: 30,
         extraType: 'harmonies',
+        quickCalc: 'harmonies',
         tagline: 'Paisajes y hábitats',
       },
       {
@@ -759,6 +760,10 @@
       statsFilterGame: 'all',
       statsSubTab: 'overview', // 'overview' | 'badges'
       statsDonutMode: 'plays', // 'plays' | 'hours'
+      statsPlayerMode: 'all', // 'all' | 'single' | 'vs'
+      statsPlayerA: '',
+      statsPlayerB: '',
+      statsVsScope: 'together', // 'together' | 'all'
       expandedMatchId: null,
     };
 
@@ -798,6 +803,7 @@
         // Extras por juego
         harmoniesSide: 'A',
         harmoniesSpirit: false,
+        harmoniesBreakdown: null,
         splendorWinType: '20 puntos',
         tfmMap: 'Tharsis',
         tfmGenerations: 10,
@@ -823,6 +829,7 @@
     let skullKingState = null;
     let farawayState = null;
     let odinState = null;
+    let harmoniesState = null;
 
     // =========================================================================
     // 5. PWA ICONO DINÁMICO + MANIFEST + TEMA OSCURO
@@ -1723,7 +1730,7 @@
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>Vivo
                 </span>
               </div>
-              <div class="text-[11px] text-white/80 mt-0.5 truncate">${({ flip7: 'Cartas, ×2, modificadores y +15 por ronda', sushigo: '3 rondas, wasabi, makis y pudines automáticos', skullking: '10 rondas: apuestas, bazas y bonificaciones', faraway: 'Puntuación inversa (Carta 8 → 1) y Santuarios', odin: 'Rondas hasta 15 pts · gana el menor puntaje' })[game.quickCalc] || 'Calculadora rápida de puntuación'}</div>
+              <div class="text-[11px] text-white/80 mt-0.5 truncate">${({ harmonies: 'Árboles, Montañas, Campos, Edificios, Agua, Animales y Espíritu', flip7: 'Cartas, ×2, modificadores y +15 por ronda', sushigo: '3 rondas, wasabi, makis y pudines automáticos', skullking: '10 rondas: apuestas, bazas y bonificaciones', faraway: 'Puntuación inversa (Carta 8 → 1) y Santuarios', odin: 'Rondas hasta 15 pts · gana el menor puntaje' })[game.quickCalc] || 'Calculadora rápida de puntuación'}</div>
             </div>
           </div>
           <div class="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center shrink-0 relative z-10">
@@ -1976,7 +1983,11 @@
     function buildMatchExtra(game) {
       if (game.extraType === 'harmonies') {
         const label = `Cara ${draft.harmoniesSide} (${draft.harmoniesSide === 'A' ? 'Río' : 'Islas'})${draft.harmoniesSpirit ? ' · Espíritu' : ''}`;
-        return { label, meta: { boardSide: draft.harmoniesSide, spirit: draft.harmoniesSpirit } };
+        const meta = { boardSide: draft.harmoniesSide, spirit: draft.harmoniesSpirit };
+        if (Array.isArray(draft.harmoniesBreakdown) && draft.harmoniesBreakdown.length > 0) {
+          meta.breakdown = draft.harmoniesBreakdown;
+        }
+        return { label, meta };
       }
       if (game.extraType === 'splendor') {
         return { label: `Victoria: ${draft.splendorWinType}`, meta: { winType: draft.splendorWinType } };
@@ -2126,6 +2137,7 @@
         // Reinicia puntuaciones manteniendo jugadores y juego actual para registrar rápido otra si quieren
         draft.players = draft.players.map((p) => ({ name: p.name, score: '', winner: false, tag: '' }));
         draft.notes = '';
+        draft.harmoniesBreakdown = null;
         draft.manualWinnerOverride = false;
         saveDraftLocal();
         updateNavBadge();
@@ -3107,6 +3119,424 @@
       };
     }
 
+    // -------------------------------------------------------------------------
+    // MARCADOR EN VIVO: HARMONIES (ÁRBOLES, MONTAÑAS, CAMPOS, EDIFICIOS, AGUA, ANIMALES Y ESPÍRITU)
+    // -------------------------------------------------------------------------
+    function openHarmoniesScorer() {
+      const names = draft.players.map((p, i) => p.name.trim() || `Jugador ${i + 1}`);
+      const makeEmptyPlayer = (name) => ({
+        name,
+        t1: 0, t2: 0, t3: 0,
+        m1: 0, m2: 0, m3: 0,
+        fields: 0,
+        buildings: 0,
+        riverLen: 0,
+        islands: 0,
+        animalCards: [],
+        animalAdj: 0,
+        spirit: 0,
+        cubes: 0,
+      });
+
+      if (!harmoniesState || harmoniesState.players.length !== names.length) {
+        harmoniesState = {
+          side: draft.harmoniesSide || 'A',
+          spiritEnabled: Boolean(draft.harmoniesSpirit),
+          activeIdx: 0,
+          players: names.map(makeEmptyPlayer),
+        };
+      } else {
+        harmoniesState.side = draft.harmoniesSide || harmoniesState.side || 'A';
+        harmoniesState.spiritEnabled = Boolean(draft.harmoniesSpirit);
+        harmoniesState.players.forEach((p, i) => { p.name = names[i]; });
+      }
+      renderHarmoniesModal();
+    }
+
+    function calcHarmoniesRiverPts(len) {
+      const n = Math.max(0, Number(len) || 0);
+      if (n <= 1) return 0;
+      const table = [0, 0, 2, 5, 8, 11, 15];
+      if (n <= 6) return table[n];
+      return 15 + (n - 6) * 4;
+    }
+
+    function calcHarmoniesPlayer(p, side, spiritEnabled) {
+      const trees = (p.t1 || 0) * 1 + (p.t2 || 0) * 3 + (p.t3 || 0) * 7;
+      const mountains = (p.m1 || 0) * 1 + (p.m2 || 0) * 3 + (p.m3 || 0) * 7;
+      const fields = (p.fields || 0) * 5;
+      const buildings = (p.buildings || 0) * 5;
+      const water = side === 'B' ? (p.islands || 0) * 5 : calcHarmoniesRiverPts(p.riverLen || 0);
+      const landscapes = trees + mountains + fields + buildings + water;
+      const animalsCardsSum = (p.animalCards || []).reduce((a, b) => a + b, 0);
+      const animals = Math.max(0, animalsCardsSum + (Number(p.animalAdj) || 0));
+      const spirit = spiritEnabled ? Math.max(0, Number(p.spirit) || 0) : 0;
+      const total = landscapes + animals + spirit;
+      return {
+        trees, mountains, fields, buildings, water, landscapes, animals, spirit, total,
+        cubes: Math.max(0, Number(p.cubes) || 0),
+      };
+    }
+
+    function renderHarmoniesModal() {
+      const side = harmoniesState.side;
+      const spiritOn = harmoniesState.spiritEnabled;
+      const pl = harmoniesState.players[harmoniesState.activeIdx];
+      const allCalcs = harmoniesState.players.map((p) => calcHarmoniesPlayer(p, side, spiritOn));
+      const cur = allCalcs[harmoniesState.activeIdx];
+
+      const playerStrip = harmoniesState.players.map((p, i) => {
+        const c = allCalcs[i];
+        const active = i === harmoniesState.activeIdx;
+        return `
+          <button type="button" data-hm="player" data-idx="${i}"
+            class="btn-tap shrink-0 min-w-[104px] p-2.5 rounded-2xl border text-left transition-all ${
+              active
+                ? 'bg-[#2E7D4F] text-white border-[#2E7D4F] shadow-sm'
+                : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white border-[#E2DACE] dark:border-white/12'
+            }">
+            <div class="text-[11px] font-bold truncate">${esc(p.name)}</div>
+            <div class="font-display text-lg font-extrabold tabular-nums leading-tight mt-0.5">${c.total} <span class="text-[10px] font-medium opacity-75">pts</span></div>
+            <div class="text-[9.5px] font-semibold mt-0.5 tabular-nums ${active ? 'text-white/80' : 'text-inkMuted dark:text-white/50'}">P:${c.landscapes} · A:${c.animals}${spiritOn ? ` · E:${c.spirit}` : ''}</div>
+          </button>
+        `;
+      }).join('');
+
+      const stepperRow = (label, sub, key, val, ptsText, dotColor) => `
+        <div class="flex items-center justify-between gap-2 py-2 border-b border-[#EFEAE0] dark:border-white/8 last:border-0">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${dotColor};"></span>
+            <div class="min-w-0">
+              <div class="text-xs font-bold text-ink dark:text-white leading-tight">${label}</div>
+              <div class="text-[10px] text-inkMuted dark:text-white/55">${sub}${ptsText ? ` · <strong class="text-ink dark:text-white/85">${ptsText}</strong>` : ''}</div>
+            </div>
+          </div>
+          <div class="inline-flex items-center gap-1.5 bg-canvas dark:bg-surfaceDark rounded-xl p-0.5 border border-black/[0.08] dark:border-white/12 shrink-0">
+            <button type="button" data-hm="step" data-key="${key}" data-delta="-1" class="btn-tap w-8 h-8 rounded-lg font-bold text-base">−</button>
+            <span class="w-6 text-center text-xs font-extrabold tabular-nums">${val}</span>
+            <button type="button" data-hm="step" data-key="${key}" data-delta="1" class="btn-tap w-8 h-8 rounded-lg font-bold text-base">+</button>
+          </div>
+        </div>
+      `;
+
+      const waterSectionHtml = side === 'A' ? `
+        <div class="p-3 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-[#2B7A9B]"></span>
+              <div>
+                <div class="text-xs font-extrabold text-ink dark:text-white">Agua · Río más largo (Cara A)</div>
+                <div class="text-[10px] text-inkMuted dark:text-white/55">2→2 · 3→5 · 4→8 · 5→11 · 6→15 · 7+→+4 c/u</div>
+              </div>
+            </div>
+            <span class="px-2 py-0.5 rounded-lg bg-[#2B7A9B]/14 text-[#2B7A9B] dark:text-sky-300 text-xs font-extrabold tabular-nums">${cur.water} pts</span>
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
+            <div class="grid grid-cols-7 gap-1 flex-1">
+              ${[0, 2, 3, 4, 5, 6, 7].map((len) => `
+                <button type="button" data-hm="set-river" data-val="${len}"
+                  class="btn-tap h-8 rounded-lg text-[11px] font-extrabold tabular-nums border ${
+                    pl.riverLen === len
+                      ? 'bg-[#2B7A9B] text-white border-[#2B7A9B]'
+                      : 'bg-canvas dark:bg-surfaceDark text-ink dark:text-white/80 border-black/[0.07] dark:border-white/10'
+                  }">${len}</button>
+              `).join('')}
+            </div>
+            <div class="inline-flex items-center gap-1 shrink-0">
+              <button type="button" data-hm="step" data-key="riverLen" data-delta="-1" class="btn-tap w-7 h-8 rounded-lg bg-canvas dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 font-bold text-sm">−</button>
+              <span class="w-5 text-center text-xs font-extrabold tabular-nums">${pl.riverLen}</span>
+              <button type="button" data-hm="step" data-key="riverLen" data-delta="1" class="btn-tap w-7 h-8 rounded-lg bg-canvas dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 font-bold text-sm">+</button>
+            </div>
+          </div>
+        </div>
+      ` : `
+        <div class="px-3.5 py-2 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10">
+          <div class="flex items-center justify-between pb-1.5 mb-1 border-b border-[#EFEAE0] dark:border-white/8">
+            <span class="text-xs font-extrabold text-ink dark:text-white">Agua · Islas (Cara B)</span>
+            <span class="px-2 py-0.5 rounded-lg bg-[#D9911E]/15 text-amber-800 dark:text-amber-300 text-xs font-extrabold tabular-nums">${cur.water} pts</span>
+          </div>
+          ${stepperRow('Islas separadas por agua', '5 pts por cada isla', 'islands', pl.islands, `${cur.water} pts`, '#2B7A9B')}
+        </div>
+      `;
+
+      const animalChips = [2, 3, 4, 5, 6, 7, 8, 10, 12, 15];
+
+      const bodyHtml = `
+        <div class="space-y-3">
+          <!-- Configuración Cara A/B + Espíritu -->
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button type="button" data-hm="side" data-val="A"
+              class="btn-tap flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold border ${side === 'A' ? 'bg-[#2B7A9B] text-white border-[#2B7A9B]' : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}">
+              Cara A · Río
+            </button>
+            <button type="button" data-hm="side" data-val="B"
+              class="btn-tap flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold border ${side === 'B' ? 'bg-[#D9911E] text-white border-[#D9911E]' : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}">
+              Cara B · Islas
+            </button>
+            <button type="button" data-hm="toggle-spirit"
+              class="btn-tap py-1.5 px-3 rounded-xl text-xs font-bold border ${spiritOn ? 'bg-[#6D5A99] text-white border-[#6D5A99]' : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}">
+              ${spiritOn ? '✓ Espíritu' : '+ Espíritu'}
+            </button>
+          </div>
+
+          <!-- Selector de jugadores -->
+          <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
+            ${playerStrip}
+          </div>
+
+          <!-- Árboles -->
+          <div class="px-3.5 py-2 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10">
+            <div class="flex items-center justify-between pb-1.5 mb-0.5 border-b border-[#EFEAE0] dark:border-white/8">
+              <span class="text-xs font-extrabold text-ink dark:text-white">Árboles</span>
+              <span class="px-2 py-0.5 rounded-lg bg-[#2E7D4F]/14 text-[#2E7D4F] dark:text-emerald-300 text-xs font-extrabold tabular-nums">${cur.trees} pts</span>
+            </div>
+            ${stepperRow('1 ficha (verde)', '1 pt c/u', 't1', pl.t1, `${pl.t1 * 1} pts`, '#2E7D4F')}
+            ${stepperRow('2 fichas (marrón + verde)', '3 pts c/u', 't2', pl.t2, `${pl.t2 * 3} pts`, '#2E7D4F')}
+            ${stepperRow('3 fichas (2 marrones + verde)', '7 pts c/u', 't3', pl.t3, `${pl.t3 * 7} pts`, '#2E7D4F')}
+          </div>
+
+          <!-- Montañas -->
+          <div class="px-3.5 py-2 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10">
+            <div class="flex items-center justify-between pb-1.5 mb-0.5 border-b border-[#EFEAE0] dark:border-white/8">
+              <div>
+                <span class="text-xs font-extrabold text-ink dark:text-white">Montañas</span>
+                <span class="text-[10px] text-inkMuted dark:text-white/50 ml-1">(solo adyacentes a otra)</span>
+              </div>
+              <span class="px-2 py-0.5 rounded-lg bg-slate-500/15 text-slate-700 dark:text-slate-200 text-xs font-extrabold tabular-nums">${cur.mountains} pts</span>
+            </div>
+            ${stepperRow('Altura 1 (1 gris)', '1 pt c/u', 'm1', pl.m1, `${pl.m1 * 1} pts`, '#64748B')}
+            ${stepperRow('Altura 2 (2 grises)', '3 pts c/u', 'm2', pl.m2, `${pl.m2 * 3} pts`, '#64748B')}
+            ${stepperRow('Altura 3 (3 grises)', '7 pts c/u', 'm3', pl.m3, `${pl.m3 * 7} pts`, '#64748B')}
+          </div>
+
+          <!-- Campos y Edificios -->
+          <div class="px-3.5 py-2 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10">
+            <div class="flex items-center justify-between pb-1.5 mb-0.5 border-b border-[#EFEAE0] dark:border-white/8">
+              <span class="text-xs font-extrabold text-ink dark:text-white">Campos y Edificios</span>
+              <span class="px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-800 dark:text-amber-300 text-xs font-extrabold tabular-nums">${cur.fields + cur.buildings} pts</span>
+            </div>
+            ${stepperRow('Campos (2+ amarillas juntas)', '5 pts por grupo', 'fields', pl.fields, `${cur.fields} pts`, '#EAB308')}
+            ${stepperRow('Edificios (rodeados de 3+ colores)', '5 pts c/u', 'buildings', pl.buildings, `${cur.buildings} pts`, '#DC2626')}
+          </div>
+
+          <!-- Agua -->
+          ${waterSectionHtml}
+
+          <!-- Animales -->
+          <div class="p-3.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-ink dark:text-white">Cartas de Animales</div>
+                <div class="text-[10px] text-inkMuted dark:text-white/55">Toca los puntos de cada carta para ir sumándolos</div>
+              </div>
+              <span class="px-2.5 py-0.5 rounded-lg bg-amber-500/15 text-amber-800 dark:text-amber-300 text-xs font-extrabold tabular-nums">${cur.animals} pts</span>
+            </div>
+
+            <div class="grid grid-cols-5 gap-1.5">
+              ${animalChips.map((pts) => `
+                <button type="button" data-hm="add-animal" data-val="${pts}"
+                  class="btn-tap h-8 rounded-lg bg-canvas dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 text-xs font-extrabold tabular-nums text-ink dark:text-white hover:border-emeraldBrand">
+                  +${pts}
+                </button>
+              `).join('')}
+            </div>
+
+            <div class="flex items-center justify-between gap-2 pt-1 text-[11px]">
+              <div class="min-w-0 text-inkMuted dark:text-white/60 truncate">
+                ${pl.animalCards.length > 0
+                  ? `Cartas: <strong class="text-ink dark:text-white tabular-nums">${pl.animalCards.join(' + ')}</strong>`
+                  : 'Sin cartas sumadas aún'}
+              </div>
+              <div class="inline-flex items-center gap-1 shrink-0">
+                <button type="button" data-hm="animal-adj" data-delta="-1" class="btn-tap px-2 h-7 rounded-lg bg-canvas dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 font-bold text-xs">−1</button>
+                <button type="button" data-hm="animal-adj" data-delta="1" class="btn-tap px-2 h-7 rounded-lg bg-canvas dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 font-bold text-xs">+1</button>
+                ${pl.animalCards.length > 0 ? `<button type="button" data-hm="undo-animal" class="btn-tap px-2 h-7 rounded-lg text-coralBrand font-bold text-xs">Deshacer</button>` : ''}
+              </div>
+            </div>
+          </div>
+
+          ${spiritOn ? `
+            <!-- Espíritu de la Naturaleza -->
+            <div class="p-3.5 rounded-2xl bg-violet-50/80 dark:bg-violet-500/10 border border-violet-300/50 dark:border-violet-400/25 flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-ink dark:text-white">Espíritu de la Naturaleza</div>
+                <div class="text-[10.5px] text-inkMuted dark:text-white/55">Puntos de tu carta de Espíritu</div>
+              </div>
+              <div class="inline-flex items-center gap-1">
+                <button type="button" data-hm="step" data-key="spirit" data-delta="-1" class="btn-tap w-7 h-8 rounded-lg bg-white dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 font-bold text-sm">−</button>
+                <span class="w-8 text-center text-xs font-extrabold tabular-nums">${cur.spirit}</span>
+                <button type="button" data-hm="step" data-key="spirit" data-delta="1" class="btn-tap w-7 h-8 rounded-lg bg-white dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 font-bold text-sm">+</button>
+                <button type="button" data-hm="step" data-key="spirit" data-delta="5" class="btn-tap px-1.5 h-8 rounded-lg bg-[#6D5A99]/18 text-[#6D5A99] dark:text-violet-300 text-[10.5px] font-extrabold">+5</button>
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Desempate: Cubos de animal -->
+          <div class="px-3.5 py-2 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt/70 border border-black/[0.06] dark:border-white/10 flex items-center justify-between gap-2">
+            <div>
+              <div class="text-[11px] font-bold text-ink dark:text-white">Cubos de animal (opcional · desempate)</div>
+              <div class="text-[10px] text-inkMuted dark:text-white/50">Solo importa si dos jugadores empatan en puntos</div>
+            </div>
+            <div class="inline-flex items-center gap-1 shrink-0">
+              <button type="button" data-hm="step" data-key="cubes" data-delta="-1" class="btn-tap w-7 h-7 rounded-lg bg-white dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 font-bold text-sm">−</button>
+              <span class="w-6 text-center text-xs font-extrabold tabular-nums">${cur.cubes}</span>
+              <button type="button" data-hm="step" data-key="cubes" data-delta="1" class="btn-tap w-7 h-7 rounded-lg bg-white dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 font-bold text-sm">+</button>
+            </div>
+          </div>
+
+          <!-- Resumen en vivo del jugador activo -->
+          <div class="p-3 rounded-2xl bg-pine text-white flex items-center justify-between gap-2">
+            <div class="text-[11px] text-white/80 tabular-nums">
+              Paisajes <strong class="text-white">${cur.landscapes}</strong> + Animales <strong class="text-white">${cur.animals}</strong>${spiritOn ? ` + Espíritu <strong class="text-white">${cur.spirit}</strong>` : ''}
+            </div>
+            <div class="font-display text-lg font-extrabold text-amber-300 tabular-nums shrink-0">${cur.total} pts</div>
+          </div>
+        </div>
+      `;
+
+      openModal({
+        title: 'Harmonies — Calculadora',
+        subtitle: 'Desglose completo sincronizado con el registro y Google Sheets',
+        bodyHtml,
+        actions: [
+          {
+            label: 'Reiniciar',
+            keepOpen: true,
+            onClick: () => {
+              harmoniesState = null;
+              openHarmoniesScorer();
+            },
+          },
+          {
+            label: 'Pasar totales al registro',
+            className: 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emeraldBrand text-white',
+            onClick: () => {
+              const finalCalcs = harmoniesState.players.map((p) => calcHarmoniesPlayer(p, harmoniesState.side, harmoniesState.spiritEnabled));
+              draft.harmoniesSide = harmoniesState.side;
+              draft.harmoniesSpirit = harmoniesState.spiritEnabled;
+              draft.harmoniesBreakdown = harmoniesState.players.map((p, idx) => ({
+                jugador: p.name,
+                arboles: finalCalcs[idx].trees,
+                montanas: finalCalcs[idx].mountains,
+                campos: finalCalcs[idx].fields,
+                edificios: finalCalcs[idx].buildings,
+                agua: finalCalcs[idx].water,
+                paisajes: finalCalcs[idx].landscapes,
+                animales: finalCalcs[idx].animals,
+                espiritu: finalCalcs[idx].spirit,
+                cubos: finalCalcs[idx].cubes,
+                total: finalCalcs[idx].total,
+              }));
+
+              finalCalcs.forEach((c, idx) => {
+                if (draft.players[idx]) draft.players[idx].score = String(c.total);
+              });
+
+              // Comprueba si hubo empate en puntos y desempate por cubos de animal
+              const maxScore = Math.max(...finalCalcs.map((c) => c.total));
+              const tiedIdxs = finalCalcs.map((c, idx) => (c.total === maxScore ? idx : -1)).filter((i) => i >= 0);
+              const maxCubes = tiedIdxs.length > 1 ? Math.max(...tiedIdxs.map((i) => finalCalcs[i].cubes)) : 0;
+              const minCubes = tiedIdxs.length > 1 ? Math.min(...tiedIdxs.map((i) => finalCalcs[i].cubes)) : 0;
+
+              if (tiedIdxs.length > 1 && maxCubes > minCubes) {
+                draft.manualWinnerOverride = true;
+                draft.players.forEach((p, idx) => {
+                  p.winner = tiedIdxs.includes(idx) && finalCalcs[idx].cubes === maxCubes;
+                });
+                showToast('Totales pasados (desempate aplicado por cubos)', 'success');
+              } else {
+                draft.manualWinnerOverride = false;
+                syncAutoWinners();
+                showToast('Totales y desglose de Harmonies pasados al registro', 'success');
+              }
+
+              saveDraftLocal();
+              renderLogTab();
+            },
+          },
+        ],
+      });
+
+      document.getElementById('modal-body').onclick = (e) => {
+        const el = e.target.closest('[data-hm]');
+        if (!el) return;
+        const act = el.dataset.hm;
+        const p = harmoniesState.players[harmoniesState.activeIdx];
+        if (act === 'player') {
+          harmoniesState.activeIdx = Number(el.dataset.idx);
+          renderHarmoniesModal();
+        } else if (act === 'side') {
+          harmoniesState.side = el.dataset.val === 'B' ? 'B' : 'A';
+          renderHarmoniesModal();
+        } else if (act === 'toggle-spirit') {
+          harmoniesState.spiritEnabled = !harmoniesState.spiritEnabled;
+          renderHarmoniesModal();
+        } else if (act === 'step') {
+          const k = el.dataset.key;
+          const d = Number(el.dataset.delta);
+          p[k] = Math.max(0, (Number(p[k]) || 0) + d);
+          renderHarmoniesModal();
+        } else if (act === 'set-river') {
+          p.riverLen = Math.max(0, Number(el.dataset.val) || 0);
+          renderHarmoniesModal();
+        } else if (act === 'add-animal') {
+          p.animalCards.push(Number(el.dataset.val) || 0);
+          renderHarmoniesModal();
+        } else if (act === 'undo-animal') {
+          p.animalCards.pop();
+          renderHarmoniesModal();
+        } else if (act === 'animal-adj') {
+          const d = Number(el.dataset.delta);
+          const cardsSum = p.animalCards.reduce((a, b) => a + b, 0);
+          if (cardsSum + (p.animalAdj || 0) + d >= 0) {
+            p.animalAdj = (p.animalAdj || 0) + d;
+          }
+          renderHarmoniesModal();
+        }
+      };
+    }
+
+    function openHarmoniesBreakdownModal(matchId) {
+      const m = matchHistory.find((x) => x.id === matchId);
+      const breakdown = m?.meta?.breakdown;
+      if (!Array.isArray(breakdown) || breakdown.length === 0) return;
+
+      const bodyHtml = `
+        <div class="space-y-3">
+          ${breakdown.map((b) => `
+            <div class="p-3.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-display text-sm font-extrabold text-ink dark:text-white truncate">${esc(b.jugador)}</span>
+                <span class="px-2.5 py-0.5 rounded-lg bg-[#2E7D4F]/15 text-[#2E7D4F] dark:text-emerald-300 text-xs font-extrabold tabular-nums">${b.total} pts</span>
+              </div>
+              <div class="grid grid-cols-3 gap-1.5 text-[11px] tabular-nums">
+                <div class="px-2 py-1 rounded-lg bg-canvas dark:bg-surfaceDark">Árboles: <strong>${b.arboles ?? 0}</strong></div>
+                <div class="px-2 py-1 rounded-lg bg-canvas dark:bg-surfaceDark">Montañas: <strong>${b.montanas ?? 0}</strong></div>
+                <div class="px-2 py-1 rounded-lg bg-canvas dark:bg-surfaceDark">Campos: <strong>${b.campos ?? 0}</strong></div>
+                <div class="px-2 py-1 rounded-lg bg-canvas dark:bg-surfaceDark">Edificios: <strong>${b.edificios ?? 0}</strong></div>
+                <div class="px-2 py-1 rounded-lg bg-canvas dark:bg-surfaceDark">Agua: <strong>${b.agua ?? 0}</strong></div>
+                <div class="px-2 py-1 rounded-lg bg-canvas dark:bg-surfaceDark">Animales: <strong>${b.animales ?? 0}</strong></div>
+              </div>
+              ${b.espiritu || b.cubos ? `
+                <div class="text-[11px] text-inkMuted dark:text-white/60 flex items-center gap-3 pt-0.5 tabular-nums">
+                  ${b.espiritu ? `<span>Espíritu: <strong class="text-ink dark:text-white">${b.espiritu}</strong></span>` : ''}
+                  ${b.cubos ? `<span>Cubos: <strong class="text-ink dark:text-white">${b.cubos}</strong></span>` : ''}
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      openModal({
+        title: `Desglose · ${m.gameName}`,
+        subtitle: `${formatDisplayDate(m.date, m.createdAtMs)}${m.extraLabel ? ` · ${m.extraLabel}` : ''}`,
+        bodyHtml,
+        actions: [{ label: 'Cerrar' }],
+      });
+    }
+
     // =========================================================================
     // 11. TAB 2: HISTORIAL CON FILTROS Y TARJETAS EXPANDIBLES
     // =========================================================================
@@ -3211,6 +3641,14 @@
                   `).join('')}
                 </div>
 
+                ${Array.isArray(m.meta?.breakdown) && m.meta.breakdown.length > 0 ? `
+                  <div class="mt-2.5">
+                    <button type="button" data-action="view-harmonies-breakdown" data-id="${esc(m.id)}"
+                      class="btn-tap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#2E7D4F]/10 hover:bg-[#2E7D4F]/18 text-[#2E7D4F] dark:text-emerald-300 text-[11px] font-bold">
+                      Ver desglose por categorías →
+                    </button>
+                  </div>
+                ` : ''}
                 ${m.notes ? `<p class="mt-2.5 text-xs text-inkMuted dark:text-white/60 italic bg-canvas/60 dark:bg-surfaceDarkAlt/60 rounded-xl px-3 py-2 border-l-2 border-emeraldBrand/45">${esc(m.notes)}</p>` : ''}
               </div>
             </div>
@@ -3254,12 +3692,331 @@
     }
 
     // =========================================================================
-    // 12. TAB 3: ESTADÍSTICAS, GRÁFICAS INTERACTIVAS E INSIGNIAS / MEDALLAS
+    // 12. TAB 3: ESTADÍSTICAS, GRÁFICAS INTERACTIVAS, DUELO (VS) E INSIGNIAS
     // =========================================================================
     const PLAYER_CHART_PALETTE = [
       '#2B7A58', '#D9911E', '#2563EB', '#D04E36', '#7C3AED',
       '#0D9488', '#E11D48', '#0284C7', '#CA8A04', '#475569'
     ];
+
+    function normName(n) {
+      return String(n || '').trim().toLowerCase();
+    }
+
+    function getAllPlayersWithCounts() {
+      const map = new Map();
+      matchHistory.forEach((m) => {
+        (m.players || []).forEach((p) => {
+          const clean = String(p.name || '').trim();
+          const key = clean.toLowerCase();
+          if (!key) return;
+          if (!map.has(key)) map.set(key, { key, name: clean, plays: 0, wins: 0 });
+          const entry = map.get(key);
+          entry.plays += 1;
+          if (p.winner) entry.wins += 1;
+        });
+      });
+      return Array.from(map.values()).sort((a, b) => (b.plays - a.plays) || (b.wins - a.wins) || a.name.localeCompare(b.name));
+    }
+
+    function evaluateHeadToHeadMatch(match, keyA, keyB) {
+      const g = getGameById(match.gameId);
+      const players = match.players || [];
+      const pA = players.find((p) => normName(p.name) === keyA);
+      const pB = players.find((p) => normName(p.name) === keyB);
+      if (!pA || !pB) return null;
+      if (g.scoringType === 'coop') {
+        return { kind: 'coop', won: Boolean(match.meta?.coopWon), pA, pB };
+      }
+
+      // 1) Si ambos tienen puntuación numérica, desempata con exactitud respetando lowestWins
+      const hasScoreA = pA.score !== null && pA.score !== undefined && !isNaN(pA.score);
+      const hasScoreB = pB.score !== null && pB.score !== undefined && !isNaN(pB.score);
+      if (hasScoreA && hasScoreB && Number(pA.score) !== Number(pB.score)) {
+        const aWins = g.lowestWins ? Number(pA.score) < Number(pB.score) : Number(pA.score) > Number(pB.score);
+        return { kind: 'duel', outcome: aWins ? 'A' : 'B', pA, pB };
+      }
+
+      // 2) Compara posición / rank si es distinto
+      const rA = Number(pA.rank) || 99;
+      const rB = Number(pB.rank) || 99;
+      if (rA !== rB) {
+        return { kind: 'duel', outcome: rA < rB ? 'A' : 'B', pA, pB };
+      }
+
+      // 3) Flag de ganador
+      if (Boolean(pA.winner) !== Boolean(pB.winner)) {
+        return { kind: 'duel', outcome: pA.winner ? 'A' : 'B', pA, pB };
+      }
+
+      return { kind: 'duel', outcome: 'tie', pA, pB };
+    }
+
+    function resolveStatsPlayerContext() {
+      const allPlayers = getAllPlayersWithCounts();
+      const validKeys = new Set(allPlayers.map((p) => p.key));
+
+      if (uiState.statsPlayerMode === 'single') {
+        if (!validKeys.has(normName(uiState.statsPlayerA))) {
+          if (allPlayers.length > 0) uiState.statsPlayerA = allPlayers[0].name;
+          else uiState.statsPlayerMode = 'all';
+        }
+      } else if (uiState.statsPlayerMode === 'vs') {
+        if (allPlayers.length < 2) {
+          uiState.statsPlayerMode = 'all';
+        } else {
+          if (!validKeys.has(normName(uiState.statsPlayerA))) uiState.statsPlayerA = allPlayers[0].name;
+          if (!validKeys.has(normName(uiState.statsPlayerB)) || normName(uiState.statsPlayerB) === normName(uiState.statsPlayerA)) {
+            const alt = allPlayers.find((p) => p.key !== normName(uiState.statsPlayerA));
+            uiState.statsPlayerB = alt ? alt.name : '';
+          }
+        }
+      }
+
+      const mode = uiState.statsPlayerMode;
+      const vsScope = uiState.statsVsScope === 'all' ? 'all' : 'together';
+      const playerA = uiState.statsPlayerA;
+      const playerB = uiState.statsPlayerB;
+      const keyA = normName(playerA);
+      const keyB = normName(playerB);
+
+      let allowedKeys = null;
+      let scopedMatches = matchHistory;
+
+      if (mode === 'single' && keyA) {
+        allowedKeys = new Set([keyA]);
+        scopedMatches = matchHistory.filter((m) => (m.players || []).some((p) => normName(p.name) === keyA));
+      } else if (mode === 'vs' && keyA && keyB) {
+        allowedKeys = new Set([keyA, keyB]);
+        if (vsScope === 'together') {
+          scopedMatches = matchHistory.filter((m) => {
+            const keys = new Set((m.players || []).map((p) => normName(p.name)));
+            return keys.has(keyA) && keys.has(keyB);
+          });
+        } else {
+          scopedMatches = matchHistory.filter((m) =>
+            (m.players || []).some((p) => {
+              const k = normName(p.name);
+              return k === keyA || k === keyB;
+            })
+          );
+        }
+      }
+
+      return { allPlayers, mode, vsScope, playerA, playerB, keyA, keyB, allowedKeys, scopedMatches };
+    }
+
+    function openStatsPlayerFilterModal() {
+      const allPlayers = getAllPlayersWithCounts();
+      if (allPlayers.length === 0) {
+        showToast('Registra al menos una partida para filtrar jugadores', 'neutral');
+        return;
+      }
+
+      let tempMode = uiState.statsPlayerMode || 'all';
+      let tempA = uiState.statsPlayerA || allPlayers[0]?.name || '';
+      let tempB = uiState.statsPlayerB || allPlayers[1]?.name || '';
+      let tempScope = uiState.statsVsScope || 'together';
+
+      if (tempMode === 'vs' && allPlayers.length < 2) tempMode = 'single';
+      if (normName(tempA) === normName(tempB) && allPlayers.length >= 2) {
+        const alt = allPlayers.find((p) => p.key !== normName(tempA));
+        if (alt) tempB = alt.name;
+      }
+
+      const renderModalContent = () => {
+        const canCompare = allPlayers.length >= 2;
+        let pickerBody = '';
+
+        if (tempMode === 'all') {
+          pickerBody = `
+            <div class="p-4 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 text-center space-y-1.5">
+              <div class="text-xs font-extrabold text-ink dark:text-white">Vista General de toda la ludoteca</div>
+              <p class="text-[11px] text-inkMuted dark:text-white/60 leading-relaxed">
+                Muestra gráficas, estadísticas globales e insignias entre los <strong>${allPlayers.length}</strong> ${allPlayers.length === 1 ? 'jugador registrado' : 'jugadores registrados'}.
+              </p>
+            </div>
+          `;
+        } else if (tempMode === 'single') {
+          pickerBody = `
+            <div class="space-y-2.5">
+              <div class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Elige un jugador</div>
+              <div class="grid grid-cols-2 gap-2">
+                ${allPlayers.map((p) => {
+                  const sel = normName(tempA) === p.key;
+                  return `
+                    <button type="button" data-pf="pick-a" data-name="${esc(p.name)}"
+                      class="btn-tap p-3 rounded-2xl border text-left transition-all ${
+                        sel
+                          ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-sm'
+                          : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white border-[#E2DACE] dark:border-white/12'
+                      }">
+                      <div class="text-xs font-extrabold truncate">${esc(p.name)}</div>
+                      <div class="text-[10.5px] mt-0.5 tabular-nums ${sel ? 'text-white/80' : 'text-inkMuted dark:text-white/55'}">${p.wins}V / ${p.plays}P</div>
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          pickerBody = `
+            <div class="space-y-4">
+              <!-- Selectores Jugador A vs Jugador B -->
+              <div class="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+                <div>
+                  <label for="pf-sel-a" class="block text-[10.5px] font-extrabold uppercase tracking-wider text-emeraldBrand dark:text-emerald-400 mb-1.5">Jugador 1</label>
+                  <select id="pf-sel-a" class="w-full h-11 bg-white dark:bg-surfaceDarkAlt border-2 border-emeraldBrand/45 rounded-xl px-2.5 text-xs font-extrabold text-ink dark:text-white outline-none">
+                    ${allPlayers.map((p) => `<option value="${esc(p.name)}" ${normName(tempA) === p.key ? 'selected' : ''}>${esc(p.name)} (${p.plays})</option>`).join('')}
+                  </select>
+                </div>
+
+                <button type="button" data-pf="swap" title="Intercambiar" aria-label="Intercambiar jugadores"
+                  class="btn-tap h-11 w-9 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.08] dark:border-white/12 flex items-center justify-center text-inkMuted dark:text-white/75 font-bold text-xs">
+                  ⇄
+                </button>
+
+                <div>
+                  <label for="pf-sel-b" class="block text-[10.5px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1.5">Jugador 2</label>
+                  <select id="pf-sel-b" class="w-full h-11 bg-white dark:bg-surfaceDarkAlt border-2 border-goldBrand/50 rounded-xl px-2.5 text-xs font-extrabold text-ink dark:text-white outline-none">
+                    ${allPlayers.map((p) => `<option value="${esc(p.name)}" ${normName(tempB) === p.key ? 'selected' : ''}>${esc(p.name)} (${p.plays})</option>`).join('')}
+                  </select>
+                </div>
+              </div>
+
+              <!-- Interruptor: Solo juntos vs Todas sus partidas -->
+              <div class="p-3.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2">
+                <div class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Qué partidas comparar</div>
+                <div class="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-canvas dark:bg-surfaceDark border border-black/[0.06] dark:border-white/10">
+                  <button type="button" data-pf="scope" data-val="together"
+                    class="btn-tap py-2 px-2 rounded-lg text-xs font-extrabold transition-all ${
+                      tempScope === 'together'
+                        ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs'
+                        : 'text-inkMuted dark:text-white/65'
+                    }">
+                    Solo juntos (Duelo)
+                  </button>
+                  <button type="button" data-pf="scope" data-val="all"
+                    class="btn-tap py-2 px-2 rounded-lg text-xs font-extrabold transition-all ${
+                      tempScope === 'all'
+                        ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs'
+                        : 'text-inkMuted dark:text-white/65'
+                    }">
+                    Todas sus partidas
+                  </button>
+                </div>
+                <p class="text-[11px] text-inkMuted dark:text-white/55 leading-relaxed">
+                  ${tempScope === 'together'
+                    ? 'Cuenta solo las partidas en las que ambos jugaron en la misma mesa (duelo directo).'
+                    : 'Compara el historial completo de cada uno, incluidas las partidas jugadas por separado.'}
+                </p>
+              </div>
+            </div>
+          `;
+        }
+
+        const bodyHtml = `
+          <div class="space-y-4">
+            <div class="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12">
+              <button type="button" data-pf="mode" data-val="all"
+                class="btn-tap py-2 rounded-xl text-xs font-extrabold ${tempMode === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+                Todos
+              </button>
+              <button type="button" data-pf="mode" data-val="single"
+                class="btn-tap py-2 rounded-xl text-xs font-extrabold ${tempMode === 'single' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+                1 Jugador
+              </button>
+              <button type="button" data-pf="mode" data-val="vs" ${!canCompare ? 'disabled' : ''}
+                class="btn-tap py-2 rounded-xl text-xs font-extrabold disabled:opacity-40 ${tempMode === 'vs' ? 'bg-gradient-to-r from-emeraldBrand to-goldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+                Comparar VS
+              </button>
+            </div>
+            ${pickerBody}
+          </div>
+        `;
+
+        openModal({
+          title: 'Filtrar y Comparar Jugadores',
+          subtitle: 'Aplica a Gráficas, Estadísticas e Insignias',
+          bodyHtml,
+          actions: [
+            { label: 'Cancelar' },
+            {
+              label: 'Aplicar',
+              className: 'btn-tap px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emeraldBrand text-white',
+              keepOpen: true,
+              onClick: () => {
+                if (tempMode === 'vs' && normName(tempA) === normName(tempB)) {
+                  showToast('Elige dos personas distintas para comparar', 'danger');
+                  return;
+                }
+                uiState.statsPlayerMode = tempMode;
+                uiState.statsPlayerA = tempA;
+                uiState.statsPlayerB = tempB;
+                uiState.statsVsScope = tempScope;
+                closeModal();
+                renderStatsTab();
+              },
+            },
+          ],
+        });
+
+        const bodyEl = document.getElementById('modal-body');
+        bodyEl.onclick = (e) => {
+          const el = e.target.closest('[data-pf]');
+          if (!el) return;
+          const act = el.dataset.pf;
+          if (act === 'mode') {
+            tempMode = el.dataset.val;
+            if (tempMode === 'vs' && normName(tempA) === normName(tempB) && allPlayers.length >= 2) {
+              const alt = allPlayers.find((p) => p.key !== normName(tempA));
+              if (alt) tempB = alt.name;
+            }
+            renderModalContent();
+          } else if (act === 'pick-a') {
+            tempA = el.dataset.name;
+            renderModalContent();
+          } else if (act === 'scope') {
+            tempScope = el.dataset.val === 'all' ? 'all' : 'together';
+            renderModalContent();
+          } else if (act === 'swap') {
+            const tmp = tempA;
+            tempA = tempB;
+            tempB = tmp;
+            renderModalContent();
+          }
+        };
+
+        const selA = document.getElementById('pf-sel-a');
+        if (selA) {
+          selA.addEventListener('change', (e) => {
+            tempA = e.target.value;
+            if (normName(tempA) === normName(tempB)) {
+              const alt = allPlayers.find((p) => p.key !== normName(tempA));
+              if (alt) {
+                tempB = alt.name;
+                renderModalContent();
+              }
+            }
+          });
+        }
+        const selB = document.getElementById('pf-sel-b');
+        if (selB) {
+          selB.addEventListener('change', (e) => {
+            tempB = e.target.value;
+            if (normName(tempB) === normName(tempA)) {
+              const alt = allPlayers.find((p) => p.key !== normName(tempB));
+              if (alt) {
+                tempA = alt.name;
+                renderModalContent();
+              }
+            }
+          });
+        }
+      };
+
+      renderModalContent();
+    }
 
     function badgeMedalSvg(tier = 'gold', symbol = 'trophy', uid = '0') {
       const tiers = {
@@ -3311,15 +4068,11 @@
               <stop offset="100%" stop-color="${t.c3}"/>
             </linearGradient>
           </defs>
-          <!-- Cinta superior -->
           <polygon points="15,4 24,4 27,18 19,18" fill="${t.ribbon1}"/>
           <polygon points="37,4 28,4 25,18 33,18" fill="${t.ribbon2}"/>
-          <!-- Medalla metálica -->
           <circle cx="26" cy="30" r="18" fill="url(#mgrad_${uid})" stroke="${t.ring}" stroke-width="2"/>
           <circle cx="26" cy="30" r="14.2" fill="none" stroke="${t.ring}" stroke-opacity="0.55" stroke-width="1.2" stroke-dasharray="2.5 2"/>
-          <!-- Brillo superior -->
           <path d="M14.5 23.5A13.5 13.5 0 0 1 33 17.8" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="2.2" stroke-linecap="round"/>
-          <!-- Símbolo interior -->
           ${glyphs[symbol] || glyphs.trophy}
         </svg>
       `;
@@ -3332,24 +4085,40 @@
       return `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
     }
 
-    function computeAllBadges() {
+    function computeAllBadges(sourceMatches = matchHistory, playerCtx = null) {
       const globalBadges = [];
       const gameSections = [];
+      const allowedKeys = playerCtx?.allowedKeys || null;
+      const isDirectDuel = playerCtx?.mode === 'vs' && playerCtx?.vsScope === 'together';
 
-      if (matchHistory.length === 0) {
+      if (!sourceMatches || sourceMatches.length === 0) {
         return { globalBadges, gameSections, medalTable: [], totalBadgesCount: 0 };
       }
 
+      const isAllowed = (name) => !allowedKeys || allowedKeys.has(normName(name));
+
+      // Helper para determinar si p ganó la partida (o ganó el duelo directo A vs B en modo 'together')
+      const didPlayerWinInContext = (m, p) => {
+        if (isDirectDuel) {
+          const h2h = evaluateHeadToHeadMatch(m, playerCtx.keyA, playerCtx.keyB);
+          if (h2h && h2h.kind === 'duel') {
+            const pk = normName(p.name);
+            return (h2h.outcome === 'A' && pk === playerCtx.keyA) || (h2h.outcome === 'B' && pk === playerCtx.keyB);
+          }
+        }
+        return Boolean(p.winner);
+      };
+
       // 1) Estadísticas globales por jugador
       const gPlayers = {};
-      const chronologicalAll = [...matchHistory].sort((a, b) => (a.createdAtMs || 0) - (b.createdAtMs || 0));
+      const chronologicalAll = [...sourceMatches].sort((a, b) => (a.createdAtMs || 0) - (b.createdAtMs || 0));
 
-      let bestSingleScore = null; // { score, holders: Set, games: Set, date }
+      let bestSingleScore = null;
 
       chronologicalAll.forEach((m) => {
         (m.players || []).forEach((p) => {
           const name = (p.name || '').trim();
-          if (!name) return;
+          if (!name || !isAllowed(name)) return;
           if (!gPlayers[name]) {
             gPlayers[name] = {
               name,
@@ -3367,7 +4136,8 @@
           st.plays += 1;
           st.gamesPlayed.add(m.gameId);
 
-          if (p.winner) {
+          const wonHere = didPlayerWinInContext(m, p);
+          if (wonHere) {
             st.wins += 1;
             st.gamesWon.add(m.gameId);
             st.curStreak += 1;
@@ -3397,7 +4167,6 @@
 
       const playerStatsList = Object.values(gPlayers);
 
-      // Helper para sacar empatados al máximo
       const topHolders = (list, getter, minVal = 1) => {
         let best = -Infinity;
         list.forEach((x) => {
@@ -3411,18 +4180,18 @@
         };
       };
 
-      // GLOBAL 1: Más partidas ganadas
+      // GLOBAL 1: Más victorias (o duelos ganados en Cara a Cara)
       const mostWins = topHolders(playerStatsList, (p) => p.wins, 1);
       if (mostWins) {
         globalBadges.push({
           id: 'g_most_wins',
-          title: 'Rey de la Mesa',
-          subtitle: 'Más partidas ganadas',
+          title: isDirectDuel ? 'Rey del Duelo' : 'Rey de la Mesa',
+          subtitle: isDirectDuel ? 'Más enfrentamientos ganados' : 'Más partidas ganadas',
           tier: 'gold',
           symbol: 'crown',
           holders: mostWins.holders,
           metric: `${mostWins.value} ${mostWins.value === 1 ? 'victoria' : 'victorias'}`,
-          detail: 'Líder histórico en toda la ludoteca',
+          detail: isDirectDuel ? 'Dominio directo entre ambos' : 'Líder histórico en este filtro',
         });
       }
 
@@ -3455,7 +4224,7 @@
         });
       }
 
-      // GLOBAL 4: Mejor porcentaje de victorias (preferencia mín. 2 partidas)
+      // GLOBAL 4: Mejor porcentaje de victorias
       const eligibleWinRate = playerStatsList.filter((p) => p.plays >= 2);
       const winRatePool = eligibleWinRate.length > 0 ? eligibleWinRate : playerStatsList;
       const bestWinRate = topHolders(winRatePool, (p) => Math.round((p.wins / p.plays) * 100), 1);
@@ -3463,12 +4232,12 @@
         globalBadges.push({
           id: 'g_win_rate',
           title: 'Estratega Implacable',
-          subtitle: 'Mayor porcentaje de victorias',
+          subtitle: isDirectDuel ? 'Mayor % en el duelo' : 'Mayor porcentaje de victorias',
           tier: 'emerald',
           symbol: 'target',
           holders: bestWinRate.holders,
           metric: `${bestWinRate.value}% éxito`,
-          detail: eligibleWinRate.length > 0 ? 'Con mínimo 2 partidas jugadas' : 'Mejor efectividad actual',
+          detail: eligibleWinRate.length > 0 ? 'Con mínimo 2 partidas' : 'Mejor efectividad actual',
         });
       }
 
@@ -3483,26 +4252,28 @@
           symbol: 'flame',
           holders: bestStreak.holders,
           metric: `${bestStreak.value} seguidas`,
-          detail: 'Racha récord en orden cronológico',
+          detail: 'Racha récord cronológica',
         });
       }
 
-      // GLOBAL 6: Más partidas jugadas
-      const mostPlayed = topHolders(playerStatsList, (p) => p.plays, 1);
-      if (mostPlayed) {
-        globalBadges.push({
-          id: 'g_most_plays',
-          title: 'Alma de la Ludoteca',
-          subtitle: 'Más partidas jugadas',
-          tier: 'sapphire',
-          symbol: 'dice',
-          holders: mostPlayed.holders,
-          metric: `${mostPlayed.value} ${mostPlayed.value === 1 ? 'partida' : 'partidas'}`,
-          detail: 'Siempre listo para abrir caja',
-        });
+      // GLOBAL 6: Más partidas jugadas (se omite en duelo 'together' porque ambos jugaron las mismas)
+      if (!isDirectDuel) {
+        const mostPlayed = topHolders(playerStatsList, (p) => p.plays, 1);
+        if (mostPlayed) {
+          globalBadges.push({
+            id: 'g_most_plays',
+            title: 'Alma de la Ludoteca',
+            subtitle: 'Más partidas jugadas',
+            tier: 'sapphire',
+            symbol: 'dice',
+            holders: mostPlayed.holders,
+            metric: `${mostPlayed.value} ${mostPlayed.value === 1 ? 'partida' : 'partidas'}`,
+            detail: 'Siempre listo para abrir caja',
+          });
+        }
       }
 
-      // GLOBAL 7: Más juegos distintos ganados (o jugados)
+      // GLOBAL 7: Más juegos distintos ganados
       const mostVariety = topHolders(playerStatsList, (p) => p.gamesWon.size, 2);
       if (mostVariety) {
         globalBadges.push({
@@ -3517,9 +4288,9 @@
         });
       }
 
-      // 2) Insignias POR JUEGO (para cada juego con al menos 1 partida)
+      // 2) Insignias POR JUEGO
       const byGameMap = {};
-      matchHistory.forEach((m) => {
+      sourceMatches.forEach((m) => {
         if (!byGameMap[m.gameId]) byGameMap[m.gameId] = [];
         byGameMap[m.gameId].push(m);
       });
@@ -3541,7 +4312,7 @@
             if (won) coopWins++;
             if (lvl > maxLevel) {
               maxLevel = lvl;
-              maxLevelHolders = (m.players || []).map((p) => (p.name || '').trim()).filter(Boolean);
+              maxLevelHolders = (m.players || []).map((p) => (p.name || '').trim()).filter((n) => n && isAllowed(n));
             }
           });
           badges.push({
@@ -3564,10 +4335,10 @@
           matches.forEach((m) => {
             (m.players || []).forEach((p) => {
               const name = (p.name || '').trim();
-              if (!name) return;
+              if (!name || !isAllowed(name)) return;
               if (!gp[name]) gp[name] = { name, plays: 0, wins: 0, scores: [] };
               gp[name].plays += 1;
-              if (p.winner) {
+              if (didPlayerWinInContext(m, p)) {
                 gp[name].wins += 1;
                 if (g.extraType === 'splendor' && m.meta?.winType === '10 coronas') {
                   crownWinsByPlayer[name] = (crownWinsByPlayer[name] || 0) + 1;
@@ -3595,13 +4366,12 @@
 
           const gpList = Object.values(gp);
 
-          // Insignia 1 del juego: Más partidas ganadas
           const gMostWins = topHolders(gpList, (x) => x.wins, 1);
           if (gMostWins) {
             badges.push({
               id: `${gid}_wins`,
               title: g.scoringType === 'winner_only' ? 'Último Superviviente' : `Campeón de ${g.name}`,
-              subtitle: 'Más partidas ganadas',
+              subtitle: isDirectDuel ? 'Más duelos ganados' : 'Más partidas ganadas',
               tier: 'gold',
               symbol: 'crown',
               holders: gMostWins.holders,
@@ -3610,7 +4380,6 @@
             });
           }
 
-          // Insignia 2 del juego: Récord de puntos en una partida
           if (g.scoringType === 'points' && gameRecord) {
             badges.push({
               id: `${gid}_record`,
@@ -3624,7 +4393,6 @@
             });
           }
 
-          // Insignia 3 del juego: Mejor media (cuando hay al menos 2 partidas con puntos)
           const scoredPlayers = gpList.filter((x) => x.scores.length >= 2);
           if (g.scoringType === 'points' && scoredPlayers.length > 0) {
             const avgVal = (x) => Number((x.scores.reduce((a, b) => a + b, 0) / x.scores.length).toFixed(1));
@@ -3649,7 +4417,6 @@
             }
           }
 
-          // Insignias especiales temáticas por juego
           if (g.extraType === 'splendor') {
             const crownList = Object.entries(crownWinsByPlayer).map(([name, c]) => ({ name, c }));
             const topCrown = topHolders(crownList, (x) => x.c, 1);
@@ -3680,7 +4447,7 @@
             });
           }
 
-          if (g.scoringType === 'winner_only') {
+          if (g.scoringType === 'winner_only' && !isDirectDuel) {
             const gMostPlays = topHolders(gpList, (x) => x.plays, 2);
             if (gMostPlays) {
               badges.push({
@@ -3702,8 +4469,12 @@
         }
       });
 
-      // 3) Medallero consolidado por jugador (cuántas insignias posee cada uno)
+      // 3) Medallero consolidado por jugador
       const medalCounts = {};
+      if (playerCtx?.mode === 'vs') {
+        medalCounts[playerCtx.playerA] = { name: playerCtx.playerA, total: 0, gold: 0, other: 0 };
+        medalCounts[playerCtx.playerB] = { name: playerCtx.playerB, total: 0, gold: 0, other: 0 };
+      }
       const countBadgeList = (list) => {
         list.forEach((b) => {
           if (b.isTeamBadge) return;
@@ -3768,6 +4539,141 @@
       `;
     }
 
+    function computeVsDuelSummary(subset, pCtx) {
+      let winsA = 0, winsB = 0, ties = 0, sharedPlays = 0, coopShared = 0;
+      let totalWinsA = 0, totalWinsB = 0, playsA = 0, playsB = 0;
+      const scoresA = [], scoresB = [];
+      const sharedGamesCount = {};
+
+      subset.forEach((m) => {
+        const pA = (m.players || []).find((p) => normName(p.name) === pCtx.keyA);
+        const pB = (m.players || []).find((p) => normName(p.name) === pCtx.keyB);
+
+        if (pA) {
+          playsA++;
+          if (pA.winner) totalWinsA++;
+          if (pA.score !== null && pA.score !== undefined && !isNaN(pA.score)) scoresA.push(Number(pA.score));
+        }
+        if (pB) {
+          playsB++;
+          if (pB.winner) totalWinsB++;
+          if (pB.score !== null && pB.score !== undefined && !isNaN(pB.score)) scoresB.push(Number(pB.score));
+        }
+
+        if (pA && pB) {
+          sharedPlays++;
+          sharedGamesCount[m.gameName] = (sharedGamesCount[m.gameName] || 0) + 1;
+          const res = evaluateHeadToHeadMatch(m, pCtx.keyA, pCtx.keyB);
+          if (res?.kind === 'coop') coopShared++;
+          else if (res?.outcome === 'A') winsA++;
+          else if (res?.outcome === 'B') winsB++;
+          else if (res?.outcome === 'tie') ties++;
+        }
+      });
+
+      const avgA = scoresA.length > 0 ? (scoresA.reduce((a, b) => a + b, 0) / scoresA.length).toFixed(1) : null;
+      const avgB = scoresB.length > 0 ? (scoresB.reduce((a, b) => a + b, 0) / scoresB.length).toFixed(1) : null;
+      const topSharedGame = Object.entries(sharedGamesCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+
+      return {
+        winsA, winsB, ties, sharedPlays, coopShared,
+        totalWinsA, totalWinsB, playsA, playsB,
+        winRateA: playsA > 0 ? Math.round((totalWinsA / playsA) * 100) : 0,
+        winRateB: playsB > 0 ? Math.round((totalWinsB / playsB) * 100) : 0,
+        avgA, avgB, topSharedGame,
+      };
+    }
+
+    function renderVsDuelCardHtml(vs, pCtx, gameObj) {
+      const isTogether = pCtx.vsScope === 'together';
+      const scoreLeft = isTogether ? vs.winsA : vs.totalWinsA;
+      const scoreRight = isTogether ? vs.winsB : vs.totalWinsB;
+      const denom = scoreLeft + scoreRight;
+      const pctA = denom > 0 ? Math.round((scoreLeft / denom) * 100) : 50;
+      const pctB = 100 - pctA;
+
+      const subLeft = isTogether
+        ? `${vs.sharedPlays} ${vs.sharedPlays === 1 ? 'partida juntos' : 'partidas juntos'}${vs.avgA !== null && gameObj ? ` · Media ${vs.avgA}` : ''}`
+        : `${vs.playsA}P · ${vs.winRateA}% éxito${vs.avgA !== null && gameObj ? ` · Media ${vs.avgA}` : ''}`;
+
+      const subRight = isTogether
+        ? `${vs.sharedPlays} ${vs.sharedPlays === 1 ? 'partida juntos' : 'partidas juntos'}${vs.avgB !== null && gameObj ? ` · Media ${vs.avgB}` : ''}`
+        : `${vs.playsB}P · ${vs.winRateB}% éxito${vs.avgB !== null && gameObj ? ` · Media ${vs.avgB}` : ''}`;
+
+      const footerNote = isTogether
+        ? `${vs.ties > 0 ? `${vs.ties} ${vs.ties === 1 ? 'empate' : 'empates'} · ` : ''}${vs.topSharedGame && !gameObj ? `Juego favorito juntos: ${esc(vs.topSharedGame)}` : (gameObj ? `Duelo directo en ${esc(gameObj.name)}` : 'Cara a cara directo en mesa')}`
+        : `Comparativa global · ${vs.sharedPlays} ${vs.sharedPlays === 1 ? 'partida coincidida' : 'partidas coincididas'} (${vs.winsA}–${vs.winsB} directo)`;
+
+      return `
+        <div class="cover-sheen rounded-[26px] p-4 sm:p-5 text-white shadow-elevated anim-in border border-white/10"
+          style="background: linear-gradient(130deg, #10261F 0%, #18362C 48%, #3B2810 100%);">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3.5 relative z-10">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded-lg bg-amber-400/20 border border-amber-300/30 text-[10px] font-extrabold uppercase tracking-widest text-amber-200">
+                ${isTogether ? 'Cara a Cara' : 'Comparativa'}
+              </span>
+              ${gameObj ? `<span class="text-[11px] font-bold text-white/75 truncate">${esc(gameObj.name)}</span>` : ''}
+            </div>
+
+            <!-- Interruptor rápido Solo juntos / Todas -->
+            <div class="inline-flex p-0.5 rounded-xl bg-black/25 border border-white/15">
+              <button type="button" data-action="set-stats-vs-scope" data-val="together"
+                class="btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-extrabold transition-all ${isTogether ? 'bg-white text-pine shadow-xs' : 'text-white/70 hover:text-white'}">
+                Solo juntos
+              </button>
+              <button type="button" data-action="set-stats-vs-scope" data-val="all"
+                class="btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-extrabold transition-all ${!isTogether ? 'bg-white text-pine shadow-xs' : 'text-white/70 hover:text-white'}">
+                Todas
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 relative z-10">
+            <!-- Jugador A -->
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+                <span class="font-display text-sm sm:text-base font-extrabold truncate">${esc(pCtx.playerA)}</span>
+              </div>
+              <div class="text-[10.5px] text-white/65 mt-0.5 truncate tabular-nums">${subLeft}</div>
+            </div>
+
+            <!-- Marcador central -->
+            <div class="px-3.5 py-1.5 rounded-2xl bg-black/25 border border-white/15 text-center shrink-0">
+              <div class="font-display text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight leading-none flex items-center gap-1.5">
+                <span class="${scoreLeft >= scoreRight && scoreLeft > 0 ? 'text-emerald-300' : 'text-white'}">${scoreLeft}</span>
+                <span class="text-white/35 text-sm">–</span>
+                <span class="${scoreRight >= scoreLeft && scoreRight > 0 ? 'text-amber-300' : 'text-white'}">${scoreRight}</span>
+              </div>
+              <div class="text-[9px] font-bold uppercase tracking-wider text-white/55 mt-0.5">${isTogether ? 'Duelos' : 'Victorias'}</div>
+            </div>
+
+            <!-- Jugador B -->
+            <div class="min-w-0 text-right">
+              <div class="flex items-center justify-end gap-1.5">
+                <span class="font-display text-sm sm:text-base font-extrabold truncate">${esc(pCtx.playerB)}</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>
+              </div>
+              <div class="text-[10.5px] text-white/65 mt-0.5 truncate tabular-nums">${subRight}</div>
+            </div>
+          </div>
+
+          <!-- Barra de dominio -->
+          <div class="mt-3.5 relative z-10">
+            <div class="h-2 w-full rounded-full bg-white/12 overflow-hidden flex">
+              <div class="h-full bg-gradient-to-r from-emerald-500 to-emerald-300 transition-all duration-500" style="width:${pctA}%"></div>
+              <div class="h-full bg-gradient-to-r from-amber-300 to-amber-500 transition-all duration-500" style="width:${pctB}%"></div>
+            </div>
+            <div class="mt-2 flex items-center justify-between gap-2 text-[10.5px] text-white/70">
+              <span class="tabular-nums font-bold text-emerald-200">${pctA}%</span>
+              <span class="truncate text-center">${footerNote}</span>
+              <span class="tabular-nums font-bold text-amber-200">${pctB}%</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     function renderStatsTab() {
       const container = document.getElementById('view-stats');
       destroyActiveCharts();
@@ -3788,14 +4694,76 @@
         return;
       }
 
-      const playedGameIds = [...new Set(matchHistory.map((m) => m.gameId))];
+      const pCtx = resolveStatsPlayerContext();
+      const playedGameIds = [...new Set(pCtx.scopedMatches.map((m) => m.gameId))];
       if (uiState.statsFilterGame !== 'all' && !playedGameIds.includes(uiState.statsFilterGame)) {
         uiState.statsFilterGame = 'all';
       }
 
-      const badgesData = computeAllBadges();
+      const subset = uiState.statsFilterGame === 'all'
+        ? pCtx.scopedMatches
+        : pCtx.scopedMatches.filter((m) => m.gameId === uiState.statsFilterGame);
 
-      // Barra superior compartida: Sub-pestañas (Gráficas | Insignias) + Filtro por juego
+      const badgesData = computeAllBadges(pCtx.scopedMatches, pCtx);
+      const selectedGameObj = uiState.statsFilterGame !== 'all' ? getGameById(uiState.statsFilterGame) : null;
+
+      // Barra de filtro de jugadores / VS
+      const playerFilterPillHtml = (() => {
+        if (pCtx.mode === 'vs') {
+          return `
+            <div class="flex items-center gap-1.5">
+              <button type="button" data-action="open-stats-player-filter"
+                class="btn-tap flex-1 min-w-0 px-3.5 py-2 rounded-2xl text-white text-xs font-extrabold flex items-center justify-between gap-2 shadow-soft"
+                style="background: linear-gradient(125deg, #132821, #227554 55%, #B45309);">
+                <span class="flex items-center gap-2 min-w-0">
+                  <svg class="w-4 h-4 shrink-0 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <span class="truncate">${esc(pCtx.playerA)} <span class="text-amber-300 mx-0.5">VS</span> ${esc(pCtx.playerB)}</span>
+                </span>
+                <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-lg bg-white/18">Cambiar</span>
+              </button>
+              <button type="button" data-action="clear-stats-player-filter" title="Volver a todos" aria-label="Quitar filtro de jugadores"
+                class="btn-tap w-9 h-9 rounded-2xl card-pro flex items-center justify-center text-inkMuted hover:text-coralBrand shrink-0">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          `;
+        }
+        if (pCtx.mode === 'single') {
+          return `
+            <div class="flex items-center gap-1.5">
+              <button type="button" data-action="open-stats-player-filter"
+                class="btn-tap flex-1 min-w-0 px-3.5 py-2 rounded-2xl bg-pine dark:bg-emeraldBrand text-white text-xs font-extrabold flex items-center justify-between gap-2 shadow-soft">
+                <span class="flex items-center gap-2 min-w-0">
+                  <svg class="w-4 h-4 shrink-0 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <span class="truncate">Jugador: ${esc(pCtx.playerA)}</span>
+                </span>
+                <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-lg bg-white/18">Cambiar</span>
+              </button>
+              <button type="button" data-action="clear-stats-player-filter" title="Volver a todos" aria-label="Quitar filtro de jugador"
+                class="btn-tap w-9 h-9 rounded-2xl card-pro flex items-center justify-center text-inkMuted hover:text-coralBrand shrink-0">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          `;
+        }
+        return `
+          <button type="button" data-action="open-stats-player-filter"
+            class="btn-tap w-full px-3.5 py-2 rounded-2xl card-pro hover:border-emeraldBrand/45 text-xs font-bold text-ink dark:text-white flex items-center justify-between gap-2">
+            <span class="flex items-center gap-2 min-w-0">
+              <span class="w-6 h-6 rounded-lg bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </span>
+              <span class="truncate">Todos los jugadores</span>
+            </span>
+            <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.06] dark:border-white/10 text-[11px] font-extrabold text-emeraldBrand dark:text-emerald-400">
+              <span>Filtrar / VS</span>
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+            </span>
+          </button>
+        `;
+      })();
+
+      // Barra superior compartida: Sub-pestañas (Gráficas | Insignias) + Filtro Jugador/VS + Filtro Juego
       const topControlsHtml = `
         <div class="grid grid-cols-2 gap-1.5 p-1 rounded-2xl card-pro">
           <button type="button" data-action="set-stats-subtab" data-val="overview"
@@ -3822,40 +4790,90 @@
           </button>
         </div>
 
-        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-          <button type="button" data-action="filter-stats-game" data-val="all"
-            class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${uiState.statsFilterGame === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}">
-            Toda la ludoteca
-          </button>
-          ${playedGameIds.map((gid) => {
-            const g = getGameById(gid);
-            const active = uiState.statsFilterGame === gid;
-            return `
-              <button type="button" data-action="filter-stats-game" data-val="${esc(gid)}"
-                class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${active ? 'text-white border-transparent' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}"
-                style="${active ? `background:${g.color};` : ''}">
-                <span class="w-2 h-2 rounded-full" style="background:${active ? '#fff' : g.color}"></span>
-                <span>${esc(g.name)}</span>
-              </button>
-            `;
-          }).join('')}
-        </div>
+        ${playerFilterPillHtml}
+
+        ${playedGameIds.length > 0 ? `
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+            <button type="button" data-action="filter-stats-game" data-val="all"
+              class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${uiState.statsFilterGame === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}">
+              Toda la ludoteca
+            </button>
+            ${playedGameIds.map((gid) => {
+              const g = getGameById(gid);
+              const active = uiState.statsFilterGame === gid;
+              return `
+                <button type="button" data-action="filter-stats-game" data-val="${esc(gid)}"
+                  class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${active ? 'text-white border-transparent' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}"
+                  style="${active ? `background:${g.color};` : ''}">
+                  <span class="w-2 h-2 rounded-full" style="background:${active ? '#fff' : g.color}"></span>
+                  <span>${esc(g.name)}</span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        ` : ''}
       `;
+
+      // Estado vacío si A y B no han jugado juntos todavía
+      if (subset.length === 0) {
+        container.innerHTML = `
+          ${topControlsHtml}
+          <div class="card-pro rounded-[26px] border-dashed p-9 text-center anim-in space-y-3">
+            <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-500/12 text-amber-600 dark:text-amber-300 flex items-center justify-center">
+              ${gameIconSvg('trio', 'w-6 h-6')}
+            </div>
+            <div>
+              <h3 class="font-display text-base font-extrabold text-ink dark:text-white">Sin partidas juntos todavía</h3>
+              <p class="text-xs text-inkMuted dark:text-white/60 mt-1 max-w-xs mx-auto leading-relaxed">
+                ${pCtx.mode === 'vs'
+                  ? `${esc(pCtx.playerA)} y ${esc(pCtx.playerB)} aún no han coincidido en la misma mesa. Puedes ver sus historiales por separado cambiando a "Todas sus partidas".`
+                  : 'No hay partidas que coincidan con este filtro.'}
+              </p>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
+              ${pCtx.mode === 'vs' && pCtx.vsScope === 'together' ? `
+                <button type="button" data-action="set-stats-vs-scope" data-val="all"
+                  class="btn-tap btn-primary-pro px-4 py-2 rounded-xl text-white text-xs font-bold">
+                  Ver todas sus partidas
+                </button>
+              ` : ''}
+              <button type="button" data-action="clear-stats-player-filter"
+                class="btn-tap card-pro px-4 py-2 rounded-xl text-xs font-bold text-ink dark:text-white">
+                Volver a todos
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const vsSummary = pCtx.mode === 'vs' ? computeVsDuelSummary(subset, pCtx) : null;
+      const vsDuelCardHtml = vsSummary ? renderVsDuelCardHtml(vsSummary, pCtx, selectedGameObj) : '';
 
       // ==================== SUB-VISTA: INSIGNIAS Y MEDALLERO ====================
       if (uiState.statsSubTab === 'badges') {
         let uidCounter = 1;
         const nextUid = () => `b${uidCounter++}`;
 
+        const medalTitle = pCtx.mode === 'vs'
+          ? `Duelo de Medallas · ${pCtx.playerA} vs ${pCtx.playerB}`
+          : pCtx.mode === 'single'
+            ? `Vitrina Personal · ${pCtx.playerA}`
+            : 'Medallero General';
+
+        const medalSubLabel = pCtx.mode === 'vs'
+          ? (pCtx.vsScope === 'together' ? 'Solo partidas juntos' : 'Todas sus partidas')
+          : 'Sala de Trofeos';
+
         const medalTableHtml = uiState.statsFilterGame === 'all' && badgesData.medalTable.length > 0 ? `
           <div class="cover-sheen rounded-[26px] p-5 text-white shadow-elevated anim-in border border-white/10"
             style="background: linear-gradient(135deg, #0E1F19 0%, #19382E 52%, #473011 100%);">
             <div class="flex items-center justify-between gap-2 mb-4 relative z-10">
-              <div>
-                <div class="text-[10px] font-extrabold uppercase tracking-[0.14em] text-amber-300/90">Sala de Trofeos</div>
-                <h3 class="font-display text-lg font-extrabold leading-tight mt-0.5">Medallero General</h3>
+              <div class="min-w-0">
+                <div class="text-[10px] font-extrabold uppercase tracking-[0.14em] text-amber-300/90">${esc(medalSubLabel)}</div>
+                <h3 class="font-display text-base sm:text-lg font-extrabold leading-tight mt-0.5 truncate">${esc(medalTitle)}</h3>
               </div>
-              <span class="px-3 py-1 rounded-full bg-white/12 border border-white/18 text-[11px] font-bold tabular-nums">
+              <span class="px-3 py-1 rounded-full bg-white/12 border border-white/18 text-[11px] font-bold tabular-nums shrink-0">
                 ${badgesData.totalBadgesCount} ${badgesData.totalBadgesCount === 1 ? 'insignia' : 'insignias'}
               </span>
             </div>
@@ -3890,7 +4908,7 @@
             <div class="flex items-center justify-between px-0.5">
               <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-goldBrand"></span>
-                <h3 class="font-display text-sm font-extrabold uppercase tracking-wider text-ink dark:text-white">Global</h3>
+                <h3 class="font-display text-sm font-extrabold uppercase tracking-wider text-ink dark:text-white">${pCtx.mode === 'vs' ? 'Global del Duelo' : 'Global'}</h3>
               </div>
               <span class="text-[11px] font-semibold text-inkMuted dark:text-white/55">${badgesData.globalBadges.length} medallas</span>
             </div>
@@ -3925,6 +4943,7 @@
         container.innerHTML = `
           ${topControlsHtml}
           <div class="space-y-5">
+            ${vsDuelCardHtml}
             ${medalTableHtml}
             ${globalBlockHtml}
             ${gamesBlocksHtml}
@@ -3934,28 +4953,33 @@
       }
 
       // ==================== SUB-VISTA: GRÁFICAS Y STATS ====================
-      const subset = uiState.statsFilterGame === 'all'
-        ? matchHistory
-        : matchHistory.filter((m) => m.gameId === uiState.statsFilterGame);
-
       const totalPlays = subset.length;
       const totalMins = subset.reduce((a, m) => a + (Number(m.duration) || 0), 0);
       const totalHours = (totalMins / 60).toFixed(1);
-
       const isLowestWinsFilter = uiState.statsFilterGame !== 'all' && Boolean(getGameById(uiState.statsFilterGame).lowestWins);
+      const isDirectDuel = pCtx.mode === 'vs' && pCtx.vsScope === 'together';
 
-      // Agregado por jugador
+      // Agregado por jugador (respetando filtro de jugadores)
       const playerMap = {};
       subset.forEach((m) => {
         (m.players || []).forEach((p) => {
           const name = (p.name || '').trim();
           if (!name) return;
+          if (pCtx.allowedKeys && !pCtx.allowedKeys.has(normName(name))) return;
           if (!playerMap[name]) {
             playerMap[name] = { name, plays: 0, wins: 0, scores: [], bestScore: isLowestWinsFilter ? Infinity : -Infinity, byGame: {} };
           }
           const st = playerMap[name];
           st.plays += 1;
-          if (p.winner) st.wins += 1;
+          let wonMatch = Boolean(p.winner);
+          if (isDirectDuel) {
+            const h2h = evaluateHeadToHeadMatch(m, pCtx.keyA, pCtx.keyB);
+            if (h2h && h2h.kind === 'duel') {
+              const pk = normName(name);
+              wonMatch = (h2h.outcome === 'A' && pk === pCtx.keyA) || (h2h.outcome === 'B' && pk === pCtx.keyB);
+            }
+          }
+          if (wonMatch) st.wins += 1;
           if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
             const sc = Number(p.score);
             st.scores.push(sc);
@@ -3972,12 +4996,13 @@
         return { ...st, winRate, avg, favGame };
       }).sort((a, b) => (b.wins - a.wins) || (b.winRate - a.winRate) || (b.plays - a.plays));
 
-      // Récord de puntuación del filtro (excluye juegos lowestWins del récord global de puntos altos)
+      // Récord de puntuación del filtro
       let recordEntry = null;
       subset.forEach((m) => {
         const mg = getGameById(m.gameId);
         if (uiState.statsFilterGame === 'all' && mg.lowestWins) return;
         (m.players || []).forEach((p) => {
+          if (pCtx.allowedKeys && !pCtx.allowedKeys.has(normName(p.name))) return;
           if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
             const sc = Number(p.score);
             if (!recordEntry || (isLowestWinsFilter ? sc < recordEntry.score : sc > recordEntry.score)) {
@@ -3987,7 +5012,7 @@
         });
       });
 
-      // Datos para Donut de Juegos (solo vista global)
+      // Donut de juegos (solo vista global)
       let sortedGamesData = [];
       if (uiState.statsFilterGame === 'all') {
         const gameAgg = {};
@@ -4006,17 +5031,16 @@
           .sort((a, b) => (uiState.statsDonutMode === 'hours' ? b.hours - a.hours : b.count - a.count));
       }
 
-      // Datos para evolución de puntuaciones (cuando hay un juego con puntos seleccionado)
-      const selectedGameObj = uiState.statsFilterGame !== 'all' ? getGameById(uiState.statsFilterGame) : null;
+      // Evolución de puntuaciones (cuando hay un juego con puntos seleccionado)
       const chronologicalScored = selectedGameObj && selectedGameObj.scoringType === 'points'
         ? [...subset]
-            .filter((m) => (m.players || []).some((p) => p.score !== null && p.score !== undefined && !isNaN(p.score)))
+            .filter((m) => (m.players || []).some((p) => (!pCtx.allowedKeys || pCtx.allowedKeys.has(normName(p.name))) && p.score !== null && p.score !== undefined && !isNaN(p.score)))
             .sort((a, b) => (a.createdAtMs || 0) - (b.createdAtMs || 0))
             .slice(-12)
         : [];
       const showScoreLineChart = chronologicalScored.length >= 2;
 
-      // Ritmo mensual (últimos 6 meses — versión limpia sin horas)
+      // Ritmo mensual (últimos 6 meses — limpio sin horas)
       const now = new Date();
       const months = [];
       for (let i = 5; i >= 0; i--) {
@@ -4032,7 +5056,7 @@
       });
       const maxMonth = Math.max(1, ...months.map((x) => x.count));
 
-      // Datos extra específicos de Splendor Duel o Terraforming Mars
+      // Gráfica extra por juego (Splendor Duel / LOTR Duel / TFM)
       let extraChartConfig = null;
       if (selectedGameObj && selectedGameObj.extraType === 'splendor') {
         const counts = { '20 puntos': 0, '10 coronas': 0, '10 de un color': 0 };
@@ -4065,6 +5089,7 @@
         subset.forEach((m) => {
           (m.players || []).forEach((p) => {
             if (!p.tag) return;
+            if (pCtx.allowedKeys && !pCtx.allowedKeys.has(normName(p.name))) return;
             if (!corps[p.tag]) corps[p.tag] = { plays: 0, wins: 0 };
             corps[p.tag].plays++;
             if (p.winner) corps[p.tag].wins++;
@@ -4084,7 +5109,7 @@
         }
       }
 
-      // Vista previa compacta de las 2 principales insignias del filtro actual
+      // Vista previa compacta de insignias
       const previewBadges = uiState.statsFilterGame === 'all'
         ? badgesData.globalBadges.slice(0, 2)
         : (badgesData.gameSections.find((s) => s.game.id === uiState.statsFilterGame)?.badges || []).slice(0, 2);
@@ -4092,7 +5117,7 @@
       const badgesTeaserHtml = previewBadges.length > 0 ? `
         <div class="space-y-2.5 anim-in">
           <div class="flex items-center justify-between px-0.5">
-            <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Insignias destacadas</h3>
+            <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">${pCtx.mode === 'vs' ? 'Insignias del duelo' : 'Insignias destacadas'}</h3>
             <button type="button" data-action="set-stats-subtab" data-val="badges"
               class="btn-tap text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline">
               Ver todas (${badgesData.totalBadgesCount}) →
@@ -4108,7 +5133,9 @@
         <div class="card-pro rounded-[24px] p-5 anim-in">
           <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div>
-              <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Distribución de tu ludoteca</h3>
+              <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">
+                ${pCtx.mode === 'vs' ? (isDirectDuel ? 'Juegos jugados juntos' : 'Distribución comparada') : pCtx.mode === 'single' ? `Juegos de ${esc(pCtx.playerA)}` : 'Distribución de tu ludoteca'}
+              </h3>
               <p class="text-[11px] text-inkMuted dark:text-white/55">Toca cualquier segmento para ver el detalle</p>
             </div>
             <div class="inline-flex p-0.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12">
@@ -4168,15 +5195,17 @@
         </div>
       ` : '';
 
-      const playersBarCardHtml = leaderboard.length > 0 ? `
+      const playersBarCardHtml = leaderboard.length > 0 && pCtx.mode !== 'single' ? `
         <div class="card-pro rounded-[24px] p-5 anim-in">
           <div class="flex items-center justify-between gap-2 mb-3">
             <div>
-              <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Victorias vs Partidas por Jugador</h3>
+              <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">
+                ${isDirectDuel ? 'Duelos ganados vs Partidas juntos' : 'Victorias vs Partidas por Jugador'}
+              </h3>
               <p class="text-[11px] text-inkMuted dark:text-white/55">Comparativa visual del rendimiento en mesa</p>
             </div>
           </div>
-          <div class="relative w-full" style="height:${Math.max(170, Math.min(340, leaderboard.slice(0, 8).length * 42 + 44))}px;">
+          <div class="relative w-full" style="height:${Math.max(145, Math.min(340, leaderboard.slice(0, 8).length * 42 + 48))}px;">
             <canvas id="chart-players-bar"></canvas>
           </div>
         </div>
@@ -4209,8 +5238,47 @@
         </div>
       `;
 
+      // Tercer KPI adaptativo según modo (Todos / 1 Jugador / VS)
+      const thirdKpiHtml = pCtx.mode === 'single' && leaderboard[0] ? `
+        <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+          <div class="flex items-center justify-between gap-1">
+            <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Victorias</span>
+            <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+              ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
+            </span>
+          </div>
+          <div class="font-display text-2xl font-extrabold text-emeraldBrand dark:text-emerald-400 tabular-nums mt-1.5 leading-none">${leaderboard[0].winRate}%</div>
+          <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${leaderboard[0].wins} de ${leaderboard[0].plays} partidas</div>
+        </div>
+      ` : pCtx.mode === 'vs' && vsSummary ? `
+        <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+          <div class="flex items-center justify-between gap-1">
+            <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Juntos</span>
+            <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+              ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
+            </span>
+          </div>
+          <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${vsSummary.sharedPlays}</div>
+          <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">Duelo: ${vsSummary.winsA}–${vsSummary.winsB}</div>
+        </div>
+      ` : `
+        <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+          <div class="flex items-center justify-between gap-1">
+            <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Jugadores</span>
+            <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+              ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
+            </span>
+          </div>
+          <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${leaderboard.length}</div>
+          <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${leaderboard[0] ? `Líder: ${esc(leaderboard[0].name)}` : '—'}</div>
+        </div>
+      `;
+
       container.innerHTML = `
         ${topControlsHtml}
+
+        <!-- Tarjeta Cara a Cara si el modo VS está activo -->
+        ${vsDuelCardHtml}
 
         <!-- 4 KPI Cards -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 anim-in">
@@ -4236,16 +5304,7 @@
             <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1">${totalMins} min totales</div>
           </div>
 
-          <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
-            <div class="flex items-center justify-between gap-1">
-              <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Jugadores</span>
-              <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
-                ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
-              </span>
-            </div>
-            <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${leaderboard.length}</div>
-            <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${leaderboard[0] ? `Líder: ${esc(leaderboard[0].name)}` : '—'}</div>
-          </div>
+          ${thirdKpiHtml}
 
           <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
             <div class="flex items-center justify-between gap-1">
@@ -4274,8 +5333,10 @@
         <!-- Ranking Detallado de Jugadores -->
         <div class="card-pro rounded-[24px] p-5 anim-in">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Clasificación Detallada</h3>
-            <span class="text-[11px] font-semibold text-inkMuted dark:text-white/55">Victorias y % éxito</span>
+            <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">
+              ${pCtx.mode === 'vs' ? 'Comparativa Detallada' : pCtx.mode === 'single' ? `Resumen de ${esc(pCtx.playerA)}` : 'Clasificación Detallada'}
+            </h3>
+            <span class="text-[11px] font-semibold text-inkMuted dark:text-white/55">${isDirectDuel ? 'Duelos y % éxito' : 'Victorias y % éxito'}</span>
           </div>
           <div class="space-y-3">
             ${leaderboard.map((st, idx) => `
@@ -4318,10 +5379,12 @@
         chronologicalScored,
         leaderboard,
         extraChartConfig,
+        allowedKeys: pCtx.allowedKeys,
+        vsNames: pCtx.mode === 'vs' ? [pCtx.playerA, pCtx.playerB] : null,
       });
     }
 
-    function mountStatsCharts({ sortedGamesData, chronologicalScored, leaderboard, extraChartConfig }) {
+    function mountStatsCharts({ sortedGamesData, chronologicalScored, leaderboard, extraChartConfig, allowedKeys = null, vsNames = null }) {
       if (typeof Chart === 'undefined') return;
 
       const isDark = document.documentElement.classList.contains('dark');
@@ -4342,7 +5405,7 @@
         bodyFont: { family: 'Inter, sans-serif', size: 12 },
       };
 
-      // 1. Donut de juegos (solo vista global)
+      // 1. Donut de juegos (anillo 100% continuo sin separación)
       const donutCanvas = document.getElementById('chart-games-donut');
       if (donutCanvas && sortedGamesData.length > 0) {
         const isHours = uiState.statsDonutMode === 'hours';
@@ -4385,7 +5448,7 @@
         activeChartInstances.push(ch);
       }
 
-      // 2. Línea de evolución de puntuaciones (por juego específico)
+      // 2. Línea de evolución de puntuaciones (solo jugadores del filtro si aplica)
       const evoCanvas = document.getElementById('chart-score-evolution');
       if (evoCanvas && chronologicalScored.length >= 2) {
         const labels = chronologicalScored.map((m, idx) => {
@@ -4393,16 +5456,26 @@
           return shortDate;
         });
 
-        const playerNames = [...new Set(
-          chronologicalScored.flatMap((m) => (m.players || []).map((p) => (p.name || '').trim()).filter(Boolean))
-        )].slice(0, 6);
+        let playerNames;
+        if (vsNames && vsNames.length === 2) {
+          playerNames = vsNames;
+        } else {
+          playerNames = [...new Set(
+            chronologicalScored.flatMap((m) =>
+              (m.players || [])
+                .map((p) => (p.name || '').trim())
+                .filter((n) => n && (!allowedKeys || allowedKeys.has(normName(n))))
+            )
+          )].slice(0, 6);
+        }
 
         const datasets = playerNames.map((pName, idx) => {
           const col = PLAYER_CHART_PALETTE[idx % PLAYER_CHART_PALETTE.length];
+          const pKey = normName(pName);
           return {
             label: pName,
             data: chronologicalScored.map((m) => {
-              const found = (m.players || []).find((p) => (p.name || '').trim() === pName);
+              const found = (m.players || []).find((p) => normName(p.name) === pKey);
               return found && found.score !== null && found.score !== undefined && !isNaN(found.score)
                 ? Number(found.score)
                 : null;
@@ -5058,7 +6131,8 @@
           }
           case 'open-quick-calc': {
             const c = el.dataset.calc;
-            if (c === 'flip7') openFlip7Scorer();
+            if (c === 'harmonies') openHarmoniesScorer();
+            else if (c === 'flip7') openFlip7Scorer();
             else if (c === 'sushigo') openSushiGoScorer();
             else if (c === 'skullking') openSkullKingScorer();
             else if (c === 'faraway') openFarawayScorer();
@@ -5072,11 +6146,16 @@
             saveDraftLocal();
             switchTab('log');
             const c = el.dataset.calc;
-            if (c === 'flip7') openFlip7Scorer();
+            if (c === 'harmonies') openHarmoniesScorer();
+            else if (c === 'flip7') openFlip7Scorer();
             else if (c === 'sushigo') openSushiGoScorer();
             else if (c === 'skullking') openSkullKingScorer();
             else if (c === 'faraway') openFarawayScorer();
             else if (c === 'odin') openOdinScorer();
+            break;
+          }
+          case 'view-harmonies-breakdown': {
+            openHarmoniesBreakdownModal(el.dataset.id);
             break;
           }
           case 'add-draft-player': {
@@ -5193,6 +6272,22 @@
             renderStatsTab();
             const scroller = document.getElementById('main-scroll');
             if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
+            break;
+          }
+          case 'open-stats-player-filter': {
+            openStatsPlayerFilterModal();
+            break;
+          }
+          case 'clear-stats-player-filter': {
+            uiState.statsPlayerMode = 'all';
+            uiState.statsPlayerA = '';
+            uiState.statsPlayerB = '';
+            renderStatsTab();
+            break;
+          }
+          case 'set-stats-vs-scope': {
+            uiState.statsVsScope = el.dataset.val === 'all' ? 'all' : 'together';
+            renderStatsTab();
             break;
           }
           case 'open-add-game': {
