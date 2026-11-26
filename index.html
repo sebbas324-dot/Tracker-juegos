@@ -365,6 +365,20 @@
     input[type="number"] {
       -moz-appearance: textfield;
     }
+
+    input[type="date"] {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      -webkit-appearance: none;
+      appearance: none;
+      color-scheme: light;
+    }
+    html.dark input[type="date"] {
+      color-scheme: dark;
+    }
   </style>
 </head>
 <body class="font-sans antialiased selection:bg-emeraldBrand/20">
@@ -2211,8 +2225,8 @@
             ${renderGameExtrasHtml(game)}
 
             <!-- Fecha y Duración -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 min-w-0">
+              <div class="min-w-0">
                 <div class="flex items-center justify-between mb-1.5">
                   <label for="draft-date" class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Fecha</label>
                   ${draft.date !== todayISO() ? `
@@ -2222,11 +2236,17 @@
                     </button>
                   ` : `<span class="text-[10.5px] font-bold text-emeraldBrand dark:text-emerald-400">Hoy</span>`}
                 </div>
-                <input id="draft-date" type="date" value="${esc(draft.date)}"
-                  class="w-full h-10 input-pro rounded-xl px-3 text-xs font-bold text-ink dark:text-white outline-none" />
+                <div class="relative w-full min-w-0 h-10 input-pro rounded-xl px-3 flex items-center justify-between gap-2 overflow-hidden focus-within:border-emeraldBrand focus-within:ring-2 focus-within:ring-emeraldBrand/15">
+                  <span class="text-xs font-bold text-ink dark:text-white truncate tabular-nums">${esc(formatDisplayDate(draft.date))}</span>
+                  <svg class="w-4 h-4 text-inkMuted dark:text-white/55 shrink-0 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                  </svg>
+                  <input id="draft-date" type="date" value="${esc(draft.date)}" aria-label="Fecha de la partida"
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-base" />
+                </div>
               </div>
 
-              <div>
+              <div class="min-w-0">
                 <div class="flex items-center justify-between mb-1.5">
                   <span class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Duración</span>
                   <span class="text-[11px] font-extrabold text-emeraldBrand dark:text-emerald-400 tabular-nums">${draft.duration} min</span>
@@ -2310,6 +2330,11 @@
 
       const dateEl = document.getElementById('draft-date');
       if (dateEl) {
+        dateEl.addEventListener('click', () => {
+          try {
+            if (typeof dateEl.showPicker === 'function') dateEl.showPicker();
+          } catch (e) {}
+        });
         dateEl.addEventListener('change', (e) => {
           const today = todayISO();
           const picked = e.target.value || today;
