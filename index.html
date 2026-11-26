@@ -494,6 +494,7 @@
         maxPlayers: 5,
         defaultDuration: 90,
         extraType: 'wyrmspan',
+        playModes: ['Multijugador', 'Solitario (Automa)'],
         tagline: 'Cuevas y dragones',
       },
       {
@@ -507,6 +508,8 @@
         maxPlayers: 2,
         defaultDuration: 30,
         extraType: 'splendor',
+        winModeLabel: 'Condición de victoria',
+        winModes: ['20 puntos', '10 coronas', '10 de un color'],
         tagline: 'Duelo de gemas y coronas',
       },
       {
@@ -520,6 +523,7 @@
         maxPlayers: 5,
         defaultDuration: 120,
         extraType: 'tfm',
+        playModes: ['Multijugador', 'Solitario'],
         tagline: 'Corporaciones en Marte',
       },
       {
@@ -533,6 +537,7 @@
         maxPlayers: 4,
         defaultDuration: 30,
         extraType: 'harmonies',
+        playModes: ['Multijugador', 'Solitario'],
         quickCalc: 'harmonies',
         tagline: 'Paisajes y hábitats',
       },
@@ -547,7 +552,103 @@
         maxPlayers: 2,
         defaultDuration: 30,
         extraType: 'lotr_duel',
+        winModeLabel: 'Condición de victoria',
+        winModes: ['Anillo / Monte', '6 Pueblos', '7 Regiones'],
         tagline: 'Duelo por la Tierra Media',
+      },
+      {
+        id: 'lotr_battle',
+        name: 'Lord of the Rings: Battle for Middle-earth',
+        color: '#3F6212',
+        color2: '#1A2E05',
+        icon: 'sword',
+        scoringType: 'points',
+        minPlayers: 2,
+        maxPlayers: 4,
+        defaultDuration: 60,
+        extraType: 'none',
+        winModeLabel: 'Forma de victoria',
+        winModes: ['Anillo / Misión', 'Batalla / Control', 'Por puntos'],
+        allowCustomWinMode: true,
+        tagline: 'Batalla por la Tierra Media',
+      },
+      {
+        id: 'jaipur',
+        name: 'Jaipur',
+        color: '#D97706',
+        color2: '#92400E',
+        icon: 'scales',
+        scoringType: 'points',
+        minPlayers: 2,
+        maxPlayers: 2,
+        defaultDuration: 25,
+        extraType: 'none',
+        winModeLabel: 'Forma de victoria',
+        winModes: ['2–0 Sellos', '2–1 Sellos', 'Por puntos'],
+        allowCustomWinMode: true,
+        tagline: 'Comercio y sellos del Maharajá',
+      },
+      {
+        id: 'oceanos_de_papel',
+        name: 'Océanos de Papel',
+        color: '#0369A1',
+        color2: '#0C4A6E',
+        icon: 'origami',
+        scoringType: 'points',
+        minPlayers: 2,
+        maxPlayers: 4,
+        defaultDuration: 25,
+        extraType: 'none',
+        winModeLabel: 'Objetivo / Victoria',
+        winModes: ['40 puntos', '35 puntos', '30 puntos', '4 Sirenas'],
+        allowCustomWinMode: true,
+        tagline: 'Origami, combos y sirenas',
+      },
+      {
+        id: 'last_bullet',
+        name: 'Last Bullet',
+        color: '#991B1B',
+        color2: '#450A0A',
+        icon: 'target',
+        scoringType: 'coop',
+        minPlayers: 1,
+        maxPlayers: 4,
+        defaultDuration: 20,
+        extraType: 'last_bullet',
+        playModes: ['Cooperativo', 'Solitario'],
+        tagline: 'Supervivencia solo o cooperativo',
+      },
+      {
+        id: 'splendor_marvel',
+        name: 'Splendor Marvel',
+        color: '#B91C1C',
+        color2: '#1D4ED8',
+        icon: 'gauntlet',
+        scoringType: 'points',
+        minPlayers: 2,
+        maxPlayers: 4,
+        defaultDuration: 30,
+        extraType: 'none',
+        winModeLabel: 'Forma de victoria',
+        winModes: ['16+ pts (Guantelete)', 'Desempate Vengadores', 'Desempate cartas'],
+        allowCustomWinMode: true,
+        tagline: 'Reúne las Gemas del Infinito',
+      },
+      {
+        id: 'azul_duel',
+        name: 'Azul Duel',
+        color: '#1D4ED8',
+        color2: '#1E3A8A',
+        icon: 'tile',
+        scoringType: 'points',
+        minPlayers: 2,
+        maxPlayers: 2,
+        defaultDuration: 45,
+        extraType: 'none',
+        winModeLabel: 'Forma de victoria',
+        winModes: ['Por puntos', 'Desempate (bonos)'],
+        allowCustomWinMode: true,
+        tagline: 'Azulejos y cúpulas para 2',
       },
       {
         id: 'ttr_europa',
@@ -573,7 +674,10 @@
         maxPlayers: 5,
         defaultDuration: 15,
         extraType: 'none',
-        tagline: '3 sets de propiedades',
+        winModeLabel: 'Forma de victoria',
+        winModes: ['3 propiedades', '4 propiedades', '5 propiedades'],
+        allowCustomWinMode: true,
+        tagline: 'Sets completos de propiedades',
       },
       {
         id: 'skull_king',
@@ -614,6 +718,9 @@
         maxPlayers: 6,
         defaultDuration: 15,
         extraType: 'trio',
+        winModeLabel: 'Cómo se ganó',
+        winModes: ['3 Tríos', 'Trío de Sietes', '2 Tríos conectados'],
+        allowCustomWinMode: true,
         tagline: 'Deducción de tríos',
       },
       {
@@ -627,7 +734,10 @@
         maxPlayers: 6,
         defaultDuration: 15,
         extraType: 'none',
-        tagline: '4 órganos sanos',
+        winModeLabel: 'Forma de victoria',
+        winModes: ['4 órganos', '5 órganos', '6 órganos'],
+        allowCustomWinMode: true,
+        tagline: 'Cuerpo sano sin virus',
       },
       {
         id: 'odin',
@@ -681,6 +791,9 @@
         maxPlayers: 8,
         defaultDuration: 20,
         extraType: 'none',
+        winModeLabel: 'Objetivo de puntos',
+        winModes: ['200 puntos', '150 puntos', '300 puntos'],
+        allowCustomWinMode: true,
         quickCalc: 'flip7',
         tagline: 'Tienta la suerte hasta 200',
       },
@@ -695,6 +808,9 @@
         maxPlayers: 5,
         defaultDuration: 20,
         extraType: 'none',
+        winModeLabel: 'Forma de victoria',
+        winModes: ['50 puntos', '5 reinas', '40 puntos', '4 reinas'],
+        allowCustomWinMode: true,
         tagline: 'Despierta reinas y suma puntos',
       },
       {
@@ -743,7 +859,7 @@
       { color: '#475569', color2: '#1E293B', label: 'Pizarra' },
     ];
 
-    const ICON_CHOICES = ['dice', 'hex', 'cards', 'gem', 'dragon', 'planet', 'train', 'sushi', 'mind', 'cat', 'crown', 'meeple', 'ring', 'skull', 'compass', 'virus', 'bank', 'helmet', 'trio', 'hand'];
+    const ICON_CHOICES = ['dice', 'hex', 'cards', 'gem', 'dragon', 'planet', 'train', 'sushi', 'mind', 'cat', 'crown', 'meeple', 'ring', 'skull', 'compass', 'virus', 'bank', 'helmet', 'trio', 'hand', 'scales', 'origami', 'target', 'gauntlet', 'tile', 'sword'];
 
     // =========================================================================
     // 4. ESTADO GLOBAL DE LA APP
@@ -815,6 +931,9 @@
         wyrmspanSolo: false,
         lotrWinType: 'Anillo / Monte',
         trioWinType: '3 Tríos',
+        winMode: '',
+        customWinMode: '',
+        playMode: '',
         coopWon: true,
         coopLevel: 8,
         // Jugadores
@@ -838,6 +957,31 @@
       draft.manualDateOverride = false;
       if (changed) saveDraftLocal();
       return changed;
+    }
+
+    function getEffectivePlayMode(game) {
+      if (!game || !Array.isArray(game.playModes) || game.playModes.length === 0) return '';
+      if (draft.playMode && game.playModes.includes(draft.playMode)) return draft.playMode;
+      return game.playModes[0];
+    }
+
+    function isDraftSoloMode(game) {
+      const pm = getEffectivePlayMode(game).toLowerCase();
+      return pm.includes('solitario') || pm.includes('automa');
+    }
+
+    function getEffectiveWinMode(game) {
+      if (!game || !Array.isArray(game.winModes) || game.winModes.length === 0) return '';
+      if (draft.winMode === '__custom__' && game.allowCustomWinMode) return '__custom__';
+      if (draft.winMode && game.winModes.includes(draft.winMode)) return draft.winMode;
+      return game.winModes[0];
+    }
+
+    function getResolvedWinModeText(game) {
+      const wm = getEffectiveWinMode(game);
+      if (!wm) return '';
+      if (wm === '__custom__') return (draft.customWinMode || '').trim() || game.winModes[0];
+      return wm;
     }
 
     // Estado temporal para los marcadores en vivo
@@ -1005,6 +1149,12 @@
         helmet: `<path d="M6 13a6 6 0 0 1 12 0v5H6v-5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M6 12C3.5 11.5 2.5 9.2 3.5 6.5c1 1.7 2 2.2 3.5 2.2M18 12c2.5-.5 3.5-2.8 2.5-5.5-1 1.7-2 2.2-3.5 2.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v11M6 14h12" stroke="currentColor" stroke-width="1.6"/>`,
         trio: `<circle cx="12" cy="7.5" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="7.5" cy="15.8" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16.5" cy="15.8" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/>`,
         hand: `<rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 8.5H9.8l-.5 3.4c.7-.5 1.6-.7 2.5-.7 2 0 3.3 1.1 3.3 2.8 0 1.8-1.4 3-3.5 3-1.4 0-2.5-.5-3.1-1.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+        scales: `<path d="M12 4v16M7 20h10M5 8h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 8 3.5 14a3 3 0 0 0 5 0L6 8ZM18 8l-2.5 6a3 3 0 0 0 5 0L18 8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>`,
+        origami: `<path d="M3 15.5 12 4.5l9 11-3.5 3.5h-11L3 15.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M12 4.5v14.5M3 15.5h18" stroke="currentColor" stroke-width="1.6"/>`,
+        target: `<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>`,
+        gauntlet: `<path d="M12 3 4.5 6.5V12c0 4.6 3.2 7.8 7.5 9 4.3-1.2 7.5-4.4 7.5-9V6.5L12 3Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="12" cy="11.5" r="2.2" fill="currentColor"/><circle cx="8.8" cy="8.7" r="1" fill="currentColor"/><circle cx="15.2" cy="8.7" r="1" fill="currentColor"/><circle cx="9.2" cy="14.5" r="1" fill="currentColor"/><circle cx="14.8" cy="14.5" r="1" fill="currentColor"/>`,
+        tile: `<rect x="4" y="4" width="16" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 6.5 14 10l3.5 2-3.5 2-2 3.5-2-3.5-3.5-2 3.5-2 2-3.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>`,
+        sword: `<path d="M14.5 4.5 19.5 4.5 19.5 9.5 9.5 19.5 4.5 14.5 14.5 4.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M5.5 13.5 10.5 18.5M4 20l2.5-2.5M12 12l7.5-7.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>`,
         dice: `<rect x="4" y="4" width="16" height="16" rx="3.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/>`,
       };
       return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${icons[iconName] || icons.dice}</svg>`;
@@ -1171,6 +1321,16 @@
           }
           if (def.extraType && def.extraType !== 'none' && (!existing.extraType || existing.extraType === 'none')) {
             existing.extraType = def.extraType;
+            gamesChanged = true;
+          }
+          if (Array.isArray(def.winModes) && (!Array.isArray(existing.winModes) || existing.winModes.length === 0)) {
+            existing.winModes = [...def.winModes];
+            if (def.winModeLabel) existing.winModeLabel = def.winModeLabel;
+            if (def.allowCustomWinMode) existing.allowCustomWinMode = true;
+            gamesChanged = true;
+          }
+          if (Array.isArray(def.playModes) && (!Array.isArray(existing.playModes) || existing.playModes.length === 0)) {
+            existing.playModes = [...def.playModes];
             gamesChanged = true;
           }
         }
@@ -1553,51 +1713,110 @@
       });
     }
 
-    function renderGameExtrasHtml(game) {
-      if (game.extraType === 'harmonies') {
-        return `
-          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-2.5">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Detalles de Harmonies</div>
-            <div class="flex flex-wrap items-center gap-2">
-              <button type="button" data-action="set-draft-field" data-field="harmoniesSide" data-val="A"
-                class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border ${draft.harmoniesSide === 'A' ? 'bg-[#2B7A9B] text-white border-[#2B7A9B]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
-                Cara A · Río
-              </button>
-              <button type="button" data-action="set-draft-field" data-field="harmoniesSide" data-val="B"
-                class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border ${draft.harmoniesSide === 'B' ? 'bg-[#D9911E] text-white border-[#D9911E]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
-                Cara B · Islas
-              </button>
-              <button type="button" data-action="toggle-draft-bool" data-field="harmoniesSpirit"
-                class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border ${draft.harmoniesSpirit ? 'bg-[#6D5A99] text-white border-[#6D5A99]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
-                ${draft.harmoniesSpirit ? '✓ Con Espíritu' : '+ Espíritu'}
-              </button>
-            </div>
-          </div>
-        `;
-      }
-
-      if (game.extraType === 'splendor') {
-        const opts = ['20 puntos', '10 coronas', '10 de un color'];
-        return `
-          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-2">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Condición de victoria</div>
-            <div class="grid grid-cols-3 gap-1.5">
-              ${opts.map((o) => `
-                <button type="button" data-action="set-draft-field" data-field="splendorWinType" data-val="${esc(o)}"
-                  class="btn-tap py-2 px-2 rounded-xl text-xs font-bold border text-center ${draft.splendorWinType === o ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-xs' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
-                  ${esc(o)}
+    function renderPlayModeButtonsHtml(game) {
+      if (!Array.isArray(game.playModes) || game.playModes.length === 0) return '';
+      const activeMode = getEffectivePlayMode(game);
+      return `
+        <div class="space-y-1.5">
+          <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Modo de partida</div>
+          <div class="grid gap-1.5" style="grid-template-columns: repeat(${Math.min(3, game.playModes.length)}, minmax(0, 1fr));">
+            ${game.playModes.map((pm) => {
+              const active = activeMode === pm;
+              return `
+                <button type="button" data-action="set-play-mode" data-val="${esc(pm)}"
+                  class="btn-tap py-2 px-2.5 rounded-xl text-xs font-bold border text-center truncate ${
+                    active
+                      ? 'text-white border-transparent shadow-xs'
+                      : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'
+                  }"
+                  style="${active ? `background:${game.color};` : ''}">
+                  ${esc(pm)}
                 </button>
-              `).join('')}
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderWinModeBlockHtml(game) {
+      if (!Array.isArray(game.winModes) || game.winModes.length === 0) return '';
+      const activeWm = getEffectiveWinMode(game);
+      const isCustom = activeWm === '__custom__';
+      const heading = game.winModeLabel || 'Forma de victoria';
+
+      return `
+        <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-2.5">
+          <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">${esc(heading)}</div>
+          <div class="flex flex-wrap gap-1.5">
+            ${game.winModes.map((opt) => {
+              const active = activeWm === opt;
+              return `
+                <button type="button" data-action="set-win-mode" data-val="${esc(opt)}"
+                  class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                    active
+                      ? 'text-white border-transparent shadow-xs'
+                      : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'
+                  }"
+                  style="${active ? `background:${game.color};` : ''}">
+                  ${esc(opt)}
+                </button>
+              `;
+            }).join('')}
+            ${game.allowCustomWinMode ? `
+              <button type="button" data-action="set-win-mode" data-val="__custom__"
+                class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                  isCustom
+                    ? 'text-white border-transparent shadow-xs'
+                    : 'bg-white dark:bg-surfaceDark text-inkMuted dark:text-white/65 border-dashed border-[#CFC7B8] dark:border-white/20'
+                }"
+                style="${isCustom ? `background:${game.color};` : ''}">
+                + Otra
+              </button>
+            ` : ''}
+          </div>
+          ${isCustom ? `
+            <input id="draft-custom-win-mode" type="text" maxlength="36" value="${esc(draft.customWinMode || '')}"
+              placeholder="Ej. 50 puntos, 6 órganos, 4 sets..."
+              class="w-full h-9 bg-white dark:bg-surfaceDark border border-emeraldBrand/50 rounded-xl px-3 text-xs font-semibold text-ink dark:text-white outline-none" />
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function renderGameExtrasHtml(game) {
+      const blocks = [];
+
+      // 1) Bloque específico de Harmonies (Cara A/B, Espíritu y Modo Solitario/Multijugador)
+      if (game.extraType === 'harmonies') {
+        blocks.push(`
+          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-3">
+            ${renderPlayModeButtonsHtml(game)}
+            <div class="space-y-2">
+              <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Tablero y expansión</div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button type="button" data-action="set-draft-field" data-field="harmoniesSide" data-val="A"
+                  class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border ${draft.harmoniesSide === 'A' ? 'bg-[#2B7A9B] text-white border-[#2B7A9B]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
+                  Cara A · Río
+                </button>
+                <button type="button" data-action="set-draft-field" data-field="harmoniesSide" data-val="B"
+                  class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border ${draft.harmoniesSide === 'B' ? 'bg-[#D9911E] text-white border-[#D9911E]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
+                  Cara B · Islas
+                </button>
+                <button type="button" data-action="toggle-draft-bool" data-field="harmoniesSpirit"
+                  class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border ${draft.harmoniesSpirit ? 'bg-[#6D5A99] text-white border-[#6D5A99]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
+                  ${draft.harmoniesSpirit ? '✓ Con Espíritu' : '+ Espíritu'}
+                </button>
+              </div>
             </div>
           </div>
-        `;
-      }
-
-      if (game.extraType === 'tfm') {
+        `);
+      } else if (game.extraType === 'tfm') {
         const maps = ['Tharsis', 'Hellas', 'Elysium'];
-        return `
+        blocks.push(`
           <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-3">
-            <div class="flex items-center justify-between gap-2">
+            ${renderPlayModeButtonsHtml(game)}
+            <div class="flex items-center justify-between gap-2 pt-0.5">
               <span class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Mapa y Generaciones</span>
               <div class="inline-flex items-center gap-1.5 bg-white dark:bg-surfaceDark border border-[#DFD8CB] dark:border-white/15 rounded-xl p-0.5">
                 <button type="button" data-action="step-tfm-gen" data-delta="-1" class="btn-tap w-7 h-7 rounded-lg font-bold text-sm">−</button>
@@ -1614,82 +1833,50 @@
               `).join('')}
             </div>
           </div>
-        `;
-      }
-
-      if (game.extraType === 'wyrmspan') {
-        return `
-          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 flex items-center justify-between gap-2">
-            <span class="text-xs font-bold text-inkMuted dark:text-white/70">Modo de partida</span>
-            <button type="button" data-action="toggle-draft-bool" data-field="wyrmspanSolo"
-              class="btn-tap px-3 py-1.5 rounded-xl text-xs font-bold border ${draft.wyrmspanSolo ? 'bg-[#9B2C4E] text-white border-[#9B2C4E]' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
-              ${draft.wyrmspanSolo ? '✓ Contra Automa' : 'Multijugador estándar'}
-            </button>
-          </div>
-        `;
-      }
-
-      if (game.extraType === 'lotr_duel') {
-        const opts = ['Anillo / Monte', '6 Pueblos', '7 Regiones'];
-        return `
-          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-2">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Condición de victoria</div>
-            <div class="grid grid-cols-3 gap-1.5">
-              ${opts.map((o) => `
-                <button type="button" data-action="set-draft-field" data-field="lotrWinType" data-val="${esc(o)}"
-                  class="btn-tap py-2 px-2 rounded-xl text-xs font-bold border text-center ${draft.lotrWinType === o ? 'bg-[#B45309] text-white border-[#B45309] shadow-xs' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
-                  ${esc(o)}
-                </button>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      }
-
-      if (game.extraType === 'trio') {
-        const opts = ['3 Tríos', 'Trío de Sietes'];
-        return `
-          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-2">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Cómo se ganó</div>
-            <div class="grid grid-cols-2 gap-2">
-              ${opts.map((o) => `
-                <button type="button" data-action="set-draft-field" data-field="trioWinType" data-val="${esc(o)}"
-                  class="btn-tap py-2 px-2 rounded-xl text-xs font-bold border text-center ${draft.trioWinType === o ? 'bg-[#0891B2] text-white border-[#0891B2] shadow-xs' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#DFD8CB] dark:border-white/15'}">
-                  ${esc(o)}
-                </button>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      }
-
-      if (game.extraType === 'themind' || game.scoringType === 'coop') {
-        return `
+        `);
+      } else if (game.extraType === 'themind' || game.scoringType === 'coop') {
+        const showLevels = game.extraType === 'themind';
+        blocks.push(`
           <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-3">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Resultado cooperativo</div>
-            <div class="grid grid-cols-2 gap-2">
-              <button type="button" data-action="set-draft-bool" data-field="coopWon" data-val="true"
-                class="btn-tap py-2.5 rounded-xl text-xs font-extrabold border ${draft.coopWon ? 'bg-emeraldBrand text-white border-emeraldBrand shadow-xs' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/75 border-[#DFD8CB] dark:border-white/15'}">
-                ✓ ¡Superado!
-              </button>
-              <button type="button" data-action="set-draft-bool" data-field="coopWon" data-val="false"
-                class="btn-tap py-2.5 rounded-xl text-xs font-extrabold border ${!draft.coopWon ? 'bg-coralBrand text-white border-coralBrand shadow-xs' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/75 border-[#DFD8CB] dark:border-white/15'}">
-                ✕ Derrota
-              </button>
-            </div>
-            <div class="flex items-center justify-between gap-2 pt-1">
-              <span class="text-xs font-bold text-ink dark:text-white/85">Nivel alcanzado</span>
-              <div class="inline-flex items-center gap-1.5 bg-white dark:bg-surfaceDark border border-[#DFD8CB] dark:border-white/15 rounded-xl p-0.5">
-                <button type="button" data-action="step-coop-level" data-delta="-1" class="btn-tap w-9 h-9 rounded-lg font-bold text-base">−</button>
-                <span class="w-10 text-center text-sm font-extrabold tabular-nums">Nv. ${draft.coopLevel}</span>
-                <button type="button" data-action="step-coop-level" data-delta="1" class="btn-tap w-9 h-9 rounded-lg font-bold text-base">+</button>
+            ${renderPlayModeButtonsHtml(game)}
+            <div class="space-y-2">
+              <div class="text-[11px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Resultado</div>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" data-action="set-draft-bool" data-field="coopWon" data-val="true"
+                  class="btn-tap py-2.5 rounded-xl text-xs font-extrabold border ${draft.coopWon ? 'bg-emeraldBrand text-white border-emeraldBrand shadow-xs' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/75 border-[#DFD8CB] dark:border-white/15'}">
+                  ✓ ¡Superado!
+                </button>
+                <button type="button" data-action="set-draft-bool" data-field="coopWon" data-val="false"
+                  class="btn-tap py-2.5 rounded-xl text-xs font-extrabold border ${!draft.coopWon ? 'bg-coralBrand text-white border-coralBrand shadow-xs' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/75 border-[#DFD8CB] dark:border-white/15'}">
+                  ✕ Derrota
+                </button>
               </div>
             </div>
+            ${showLevels ? `
+              <div class="flex items-center justify-between gap-2 pt-1">
+                <span class="text-xs font-bold text-ink dark:text-white/85">Nivel alcanzado</span>
+                <div class="inline-flex items-center gap-1.5 bg-white dark:bg-surfaceDark border border-[#DFD8CB] dark:border-white/15 rounded-xl p-0.5">
+                  <button type="button" data-action="step-coop-level" data-delta="-1" class="btn-tap w-9 h-9 rounded-lg font-bold text-base">−</button>
+                  <span class="w-10 text-center text-sm font-extrabold tabular-nums">Nv. ${draft.coopLevel}</span>
+                  <button type="button" data-action="step-coop-level" data-delta="1" class="btn-tap w-9 h-9 rounded-lg font-bold text-base">+</button>
+                </div>
+              </div>
+            ` : ''}
           </div>
-        `;
+        `);
+      } else if (Array.isArray(game.playModes) && game.playModes.length > 0) {
+        blocks.push(`
+          <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10">
+            ${renderPlayModeButtonsHtml(game)}
+          </div>
+        `);
       }
 
-      return '';
+      // 2) Bloque unificado de Formas de Victoria / Objetivo (Océanos de Papel, Virus!, Monopoly Deal, Jaipur, Splendor Duel/Marvel, LOTR, Trío, Sleeping Queens, etc.)
+      const winBlock = renderWinModeBlockHtml(game);
+      if (winBlock) blocks.push(winBlock);
+
+      return blocks.join('');
     }
 
     function renderLogTab() {
@@ -2011,47 +2198,73 @@
           saveDraftLocal();
         });
       }
+
+      const customWinEl = document.getElementById('draft-custom-win-mode');
+      if (customWinEl) {
+        customWinEl.addEventListener('input', (e) => {
+          draft.customWinMode = e.target.value;
+          saveDraftLocal();
+        });
+      }
     }
 
     function buildMatchExtra(game) {
+      const parts = [];
+      const meta = {};
+      const playMode = getEffectivePlayMode(game);
+      const winType = getResolvedWinModeText(game);
+
+      if (playMode) {
+        meta.playMode = playMode;
+        if (isDraftSoloMode(game)) meta.solo = true;
+      }
+
       if (game.extraType === 'harmonies') {
-        const label = `Cara ${draft.harmoniesSide} (${draft.harmoniesSide === 'A' ? 'Río' : 'Islas'})${draft.harmoniesSpirit ? ' · Espíritu' : ''}`;
-        const meta = { boardSide: draft.harmoniesSide, spirit: draft.harmoniesSpirit };
+        if (playMode && isDraftSoloMode(game)) parts.push('Solitario');
+        parts.push(`Cara ${draft.harmoniesSide} (${draft.harmoniesSide === 'A' ? 'Río' : 'Islas'})`);
+        if (draft.harmoniesSpirit) parts.push('Espíritu');
+        meta.boardSide = draft.harmoniesSide;
+        meta.spirit = draft.harmoniesSpirit;
         if (Array.isArray(draft.harmoniesBreakdown) && draft.harmoniesBreakdown.length > 0) {
           meta.breakdown = draft.harmoniesBreakdown;
         }
-        return { label, meta };
+      } else if (game.extraType === 'tfm') {
+        if (playMode && isDraftSoloMode(game)) parts.push('Solitario');
+        parts.push(`${draft.tfmMap} · Gen ${draft.tfmGenerations}`);
+        meta.map = draft.tfmMap;
+        meta.generations = draft.tfmGenerations;
+      } else if (game.extraType === 'themind') {
+        parts.push(`${draft.coopWon ? 'Superado' : 'Derrota'} · Nivel ${draft.coopLevel}`);
+        meta.coopWon = draft.coopWon;
+        meta.level = draft.coopLevel;
+      } else if (game.scoringType === 'coop') {
+        if (playMode) parts.push(playMode);
+        parts.push(draft.coopWon ? 'Superado' : 'Derrota');
+        meta.coopWon = draft.coopWon;
+      } else if (playMode) {
+        parts.push(playMode);
       }
-      if (game.extraType === 'splendor') {
-        return { label: `Victoria: ${draft.splendorWinType}`, meta: { winType: draft.splendorWinType } };
+
+      if (winType) {
+        meta.winType = winType;
+        const prefix = (game.winModeLabel || '').toLowerCase().includes('objetivo') ? 'Objetivo' : 'Victoria';
+        parts.push(`${prefix}: ${winType}`);
       }
-      if (game.extraType === 'tfm') {
-        return { label: `${draft.tfmMap} · Gen ${draft.tfmGenerations}`, meta: { map: draft.tfmMap, generations: draft.tfmGenerations } };
-      }
-      if (game.extraType === 'wyrmspan') {
-        return { label: draft.wyrmspanSolo ? 'Modo Automa' : 'Multijugador', meta: { solo: draft.wyrmspanSolo } };
-      }
-      if (game.extraType === 'lotr_duel') {
-        return { label: `Victoria: ${draft.lotrWinType}`, meta: { winType: draft.lotrWinType } };
-      }
-      if (game.extraType === 'trio') {
-        return { label: `Victoria: ${draft.trioWinType}`, meta: { winType: draft.trioWinType } };
-      }
-      if (game.extraType === 'themind' || game.scoringType === 'coop') {
-        return {
-          label: `${draft.coopWon ? 'Superado' : 'Derrota'} · Nivel ${draft.coopLevel}`,
-          meta: { coopWon: draft.coopWon, level: draft.coopLevel },
-        };
-      }
-      return { label: '', meta: {} };
+
+      return { label: parts.join(' · '), meta };
     }
 
     async function saveDraftMatch() {
       if (syncState.isSaving) return;
       const game = getGameById(draft.gameId);
 
-      // Limpia jugadores
-      const cleanedPlayers = draft.players
+      // Limpia jugadores (en modo solitario omite filas secundarias totalmente vacías)
+      let sourcePlayers = draft.players;
+      if (isDraftSoloMode(game) && sourcePlayers.length > 1) {
+        const nonEmpty = sourcePlayers.filter((p) => p.name.trim() || (p.score !== '' && p.score !== null) || p.winner || (p.tag || '').trim());
+        sourcePlayers = nonEmpty.length > 0 ? nonEmpty : [sourcePlayers[0]];
+      }
+      const cleanedPlayers = sourcePlayers
         .map((p, i) => ({
           name: p.name.trim() || `Jugador ${i + 1}`,
           score: game.scoringType === 'points' && p.score !== '' && p.score !== null ? Number(p.score) : null,
@@ -2111,7 +2324,14 @@
       const winners = cleanedPlayers.filter((p) => p.winner);
       let winnerLabel = '';
       if (game.scoringType === 'coop') {
-        winnerLabel = draft.coopWon ? `¡Victoria! (Nv. ${draft.coopLevel})` : `Derrota en Nv. ${draft.coopLevel}`;
+        if (game.extraType === 'themind') {
+          winnerLabel = draft.coopWon ? `¡Victoria! (Nv. ${draft.coopLevel})` : `Derrota en Nv. ${draft.coopLevel}`;
+        } else {
+          const pm = getEffectivePlayMode(game);
+          winnerLabel = draft.coopWon
+            ? (pm ? `¡Superado! (${pm})` : '¡Superado!')
+            : (pm ? `Derrota (${pm})` : 'Derrota');
+        }
       } else if (cleanedPlayers.length === 1) {
         winnerLabel = `${cleanedPlayers[0].name} (Solitario)`;
       } else if (winners.length > 1) {
@@ -4340,23 +4560,31 @@
           let maxLevel = 0;
           let coopWins = 0;
           let maxLevelHolders = [];
+          const allCoopNames = new Set();
           matches.forEach((m) => {
             const lvl = Number(m.meta?.level) || 0;
             const won = Boolean(m.meta?.coopWon);
             if (won) coopWins++;
+            (m.players || []).forEach((p) => {
+              const nm = (p.name || '').trim();
+              if (nm && isAllowed(nm)) allCoopNames.add(nm);
+            });
             if (lvl > maxLevel) {
               maxLevel = lvl;
               maxLevelHolders = (m.players || []).map((p) => (p.name || '').trim()).filter((n) => n && isAllowed(n));
             }
           });
+          const hasLevels = g.extraType === 'themind' || maxLevel > 0;
+          const coopRate = matches.length > 0 ? Math.round((coopWins / matches.length) * 100) : 0;
+          const teamHolders = maxLevelHolders.length ? maxLevelHolders : (allCoopNames.size ? Array.from(allCoopNames) : ['Equipo']);
           badges.push({
             id: `${gid}_coop`,
-            title: 'Mente Colectiva',
-            subtitle: 'Nivel máximo alcanzado en equipo',
+            title: hasLevels ? 'Mente Colectiva' : `Superviviente · ${g.name}`,
+            subtitle: hasLevels ? 'Nivel máximo alcanzado en equipo' : 'Balance en solitario y cooperativo',
             tier: 'emerald',
-            symbol: 'team',
-            holders: maxLevelHolders.length ? maxLevelHolders : ['Equipo'],
-            metric: maxLevel > 0 ? `Nivel ${maxLevel}` : `${coopWins} victorias`,
+            symbol: hasLevels ? 'team' : 'target',
+            holders: teamHolders,
+            metric: hasLevels ? `Nivel ${maxLevel}` : `${coopRate}% éxito`,
             detail: `${coopWins} ${coopWins === 1 ? 'victoria' : 'victorias'} en ${matches.length} ${matches.length === 1 ? 'intento' : 'intentos'}`,
             isTeamBadge: true,
           });
@@ -5090,35 +5318,9 @@
       });
       const maxMonth = Math.max(1, ...months.map((x) => x.count));
 
-      // Gráfica extra por juego (Splendor Duel / LOTR Duel / TFM)
+      // Gráfica extra por juego (TFM corporaciones / Formas de victoria / Coop)
       let extraChartConfig = null;
-      if (selectedGameObj && selectedGameObj.extraType === 'splendor') {
-        const counts = { '20 puntos': 0, '10 coronas': 0, '10 de un color': 0 };
-        subset.forEach((m) => {
-          const wt = m.meta?.winType || '';
-          if (counts[wt] !== undefined) counts[wt]++;
-        });
-        extraChartConfig = {
-          type: 'splendor',
-          title: 'Cómo se gana en Splendor Duel',
-          labels: Object.keys(counts),
-          values: Object.values(counts),
-          colors: ['#2563EB', '#D9911E', '#7C3AED'],
-        };
-      } else if (selectedGameObj && selectedGameObj.extraType === 'lotr_duel') {
-        const counts = { 'Anillo / Monte': 0, '6 Pueblos': 0, '7 Regiones': 0 };
-        subset.forEach((m) => {
-          const wt = m.meta?.winType || '';
-          if (counts[wt] !== undefined) counts[wt]++;
-        });
-        extraChartConfig = {
-          type: 'lotr_duel',
-          title: 'Cómo se gana en Lord of the Rings: Duel',
-          labels: Object.keys(counts),
-          values: Object.values(counts),
-          colors: ['#B45309', '#227554', '#7C3AED'],
-        };
-      } else if (selectedGameObj && selectedGameObj.extraType === 'tfm') {
+      if (selectedGameObj && selectedGameObj.extraType === 'tfm') {
         const corps = {};
         subset.forEach((m) => {
           (m.players || []).forEach((p) => {
@@ -5140,6 +5342,45 @@
             wins: corpList.map(([, c]) => c.wins),
             losses: corpList.map(([, c]) => Math.max(0, c.plays - c.wins)),
           };
+        }
+      } else if (selectedGameObj) {
+        const winCounts = {};
+        if (Array.isArray(selectedGameObj.winModes)) {
+          selectedGameObj.winModes.forEach((w) => { winCounts[w] = 0; });
+        }
+        let hasAnyWinType = false;
+        subset.forEach((m) => {
+          const wt = String(m.meta?.winType || '').trim();
+          if (wt) {
+            winCounts[wt] = (winCounts[wt] || 0) + 1;
+            hasAnyWinType = true;
+          }
+        });
+        if (hasAnyWinType) {
+          const entries = Object.entries(winCounts).filter(([, v]) => v > 0);
+          const palette = [selectedGameObj.color || '#2563EB', '#D9911E', '#7C3AED', '#227554', '#E11D48', '#0284C7', '#475569'];
+          extraChartConfig = {
+            type: 'win_modes',
+            title: `Cómo se gana en ${selectedGameObj.name}`,
+            labels: entries.map(([k]) => k),
+            values: entries.map(([, v]) => v),
+            colors: entries.map((_, idx) => palette[idx % palette.length]),
+          };
+        } else if (selectedGameObj.scoringType === 'coop') {
+          let wins = 0, losses = 0;
+          subset.forEach((m) => {
+            if (m.meta?.coopWon) wins++;
+            else losses++;
+          });
+          if (wins + losses > 0) {
+            extraChartConfig = {
+              type: 'win_modes',
+              title: `Resultado en ${selectedGameObj.name}`,
+              labels: ['Superado', 'Derrota'],
+              values: [wins, losses],
+              colors: ['#227554', '#D04E36'],
+            };
+          }
         }
       }
 
@@ -5641,7 +5882,7 @@
       // 4. Gráfica extra por juego (Splendor Duel / LOTR Duel / Terraforming Mars)
       const extraCanvas = document.getElementById('chart-game-extra');
       if (extraCanvas && extraChartConfig) {
-        if (extraChartConfig.type === 'splendor' || extraChartConfig.type === 'lotr_duel') {
+        if (extraChartConfig.type === 'win_modes' || extraChartConfig.type === 'splendor' || extraChartConfig.type === 'lotr_duel') {
           const activeExtraSlices = extraChartConfig.values.filter((v) => v > 0).length;
           const ch = new Chart(extraCanvas, {
             type: 'doughnut',
@@ -5823,16 +6064,22 @@
       let currentTagline = isEdit ? (existingGame.tagline || '') : '';
       let currentMode = isEdit ? (existingGame.scoringType || 'points') : 'points';
       let currentDur = isEdit ? String(existingGame.defaultDuration || 30) : '30';
+      let currentWinModesStr = isEdit && Array.isArray(existingGame.winModes) ? existingGame.winModes.join(', ') : '';
+      let currentHasSolo = isEdit && Array.isArray(existingGame.playModes) && existingGame.playModes.some((pm) => pm.toLowerCase().includes('solitario') || pm.toLowerCase().includes('automa'));
 
       const syncFieldsFromDom = () => {
         const n = document.getElementById('new-game-name');
         const t = document.getElementById('new-game-tagline');
         const m = document.getElementById('new-game-mode');
         const d = document.getElementById('new-game-dur');
+        const w = document.getElementById('new-game-winmodes');
+        const s = document.getElementById('new-game-solo');
         if (n) currentName = n.value;
         if (t) currentTagline = t.value;
         if (m) currentMode = m.value;
         if (d) currentDur = d.value;
+        if (w) currentWinModesStr = w.value;
+        if (s) currentHasSolo = s.checked;
       };
 
       const renderForm = () => {
@@ -5865,6 +6112,17 @@
                   class="w-full h-10 bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 rounded-xl px-3 text-xs font-bold outline-none" />
               </div>
             </div>
+
+            <div>
+              <label for="new-game-winmodes" class="block text-xs font-bold mb-1.5">Formas de ganar / objetivos (opcional)</label>
+              <input id="new-game-winmodes" type="text" maxlength="120" value="${esc(currentWinModesStr)}" placeholder="Separadas por coma · Ej. 40 puntos, 30 puntos, 4 Sirenas"
+                class="w-full bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 focus:border-emeraldBrand rounded-xl px-3 py-2 text-xs outline-none" />
+            </div>
+
+            <label class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 cursor-pointer select-none">
+              <input id="new-game-solo" type="checkbox" ${currentHasSolo ? 'checked' : ''} class="w-4 h-4 accent-[#227554] rounded" />
+              <span class="text-xs font-bold text-ink dark:text-white">Tiene modo Solitario</span>
+            </label>
 
             <div>
               <div class="text-xs font-bold mb-1.5">Color de portada</div>
@@ -5912,6 +6170,10 @@
                 const tagline = currentTagline.trim() || 'Juego de mesa';
                 const scoringType = currentMode || 'points';
                 const defaultDuration = Math.max(5, Math.min(360, Number(currentDur) || 30));
+                const parsedWinModes = currentWinModesStr.split(',').map((s) => s.trim()).filter(Boolean);
+                const parsedPlayModes = currentHasSolo
+                  ? (scoringType === 'coop' ? ['Cooperativo', 'Solitario'] : ['Multijugador', 'Solitario'])
+                  : undefined;
 
                 if (isEdit) {
                   const target = games.find((g) => g.id === existingGame.id);
@@ -5923,6 +6185,18 @@
                     target.icon = chosenIcon;
                     target.scoringType = scoringType;
                     target.defaultDuration = defaultDuration;
+                    if (parsedWinModes.length > 0) {
+                      target.winModes = parsedWinModes;
+                      target.allowCustomWinMode = true;
+                    } else {
+                      delete target.winModes;
+                      delete target.allowCustomWinMode;
+                    }
+                    if (parsedPlayModes) {
+                      target.playModes = parsedPlayModes;
+                    } else {
+                      delete target.playModes;
+                    }
                   }
                   if (draft.gameId === existingGame.id) {
                     draft.duration = defaultDuration;
@@ -5946,6 +6220,8 @@
                     maxPlayers: 6,
                     defaultDuration,
                     extraType: 'none',
+                    ...(parsedWinModes.length > 0 ? { winModeLabel: 'Forma de victoria', winModes: parsedWinModes, allowCustomWinMode: true } : {}),
+                    ...(parsedPlayModes ? { playModes: parsedPlayModes } : {}),
                   };
                   games.push(newGame);
                   deletedGameIds = deletedGameIds.filter((id) => id !== newGame.id);
@@ -6162,6 +6438,9 @@
             const g = getGameById(el.dataset.gameId);
             draft.gameId = g.id;
             draft.duration = g.defaultDuration || 30;
+            draft.winMode = '';
+            draft.customWinMode = '';
+            draft.playMode = '';
             draft.manualWinnerOverride = false;
             saveDraftLocal();
             renderLogTab();
@@ -6171,9 +6450,39 @@
             const g = getGameById(el.dataset.gameId);
             draft.gameId = g.id;
             draft.duration = g.defaultDuration || 30;
+            draft.winMode = '';
+            draft.customWinMode = '';
+            draft.playMode = '';
             draft.manualWinnerOverride = false;
             saveDraftLocal();
             switchTab('log');
+            break;
+          }
+          case 'set-play-mode': {
+            const val = el.dataset.val;
+            draft.playMode = val;
+            const g = getGameById(draft.gameId);
+            const soloNow = isDraftSoloMode(g);
+            if (soloNow && draft.players.length > 1) {
+              // Elimina filas secundarias totalmente vacías al pasar a Solitario
+              const filled = draft.players.filter((p) => p.name.trim() || (p.score !== '' && p.score !== null) || p.winner || (p.tag || '').trim());
+              draft.players = filled.length > 0 ? filled : [draft.players[0]];
+            } else if (!soloNow && draft.players.length === 1) {
+              draft.players.push({ name: '', score: '', winner: false, tag: '' });
+            }
+            saveDraftLocal();
+            renderLogTab();
+            break;
+          }
+          case 'set-win-mode': {
+            const val = el.dataset.val;
+            draft.winMode = val;
+            saveDraftLocal();
+            renderLogTab();
+            if (val === '__custom__') {
+              const inp = document.getElementById('draft-custom-win-mode');
+              if (inp) inp.focus();
+            }
             break;
           }
           case 'open-quick-calc': {
