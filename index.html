@@ -79,16 +79,18 @@
     }
 
     body {
-      background-color: #F4F0E8;
-      color: #181715;
+      background-color: #F5F1E8;
+      color: #161513;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
     }
 
     html.dark body {
-      background-color: #0A100E;
-      color: #F2EFE9;
+      background-color: #080E0C;
+      color: #F3F0EA;
     }
 
-    /* App Shell fijo: scroll interno limpio, cero bugs de solapamiento en iOS Safari */
+    /* App Shell fijo con atmósfera cálida editorial / obsidiana esmeralda */
     #app-bg {
       position: fixed;
       inset: 0;
@@ -97,19 +99,19 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      background-color: #F4F0E8;
+      background-color: #F5F1E8;
       background-image:
-        radial-gradient(at 8% 0%, rgba(34, 117, 84, 0.10) 0px, transparent 44%),
-        radial-gradient(at 94% 6%, rgba(212, 138, 23, 0.09) 0px, transparent 40%),
-        radial-gradient(at 50% 100%, rgba(37, 99, 235, 0.05) 0px, transparent 52%);
+        radial-gradient(ellipse 70% 42% at 6% 0%, rgba(34, 117, 84, 0.11) 0%, transparent 65%),
+        radial-gradient(ellipse 58% 36% at 96% 4%, rgba(212, 138, 23, 0.10) 0%, transparent 62%),
+        radial-gradient(ellipse 70% 45% at 50% 100%, rgba(18, 36, 30, 0.05) 0%, transparent 70%);
     }
 
     html.dark #app-bg {
-      background-color: #0A100E;
+      background-color: #080E0C;
       background-image:
-        radial-gradient(at 10% 0%, rgba(34, 117, 84, 0.20) 0px, transparent 46%),
-        radial-gradient(at 92% 8%, rgba(212, 138, 23, 0.12) 0px, transparent 42%),
-        radial-gradient(at 50% 100%, rgba(124, 58, 237, 0.10) 0px, transparent 52%);
+        radial-gradient(ellipse 70% 44% at 8% 0%, rgba(34, 117, 84, 0.22) 0%, transparent 65%),
+        radial-gradient(ellipse 58% 36% at 94% 6%, rgba(212, 138, 23, 0.13) 0%, transparent 62%),
+        radial-gradient(ellipse 65% 45% at 50% 100%, rgba(124, 58, 237, 0.09) 0%, transparent 70%);
     }
 
     #main-scroll {
@@ -117,27 +119,35 @@
       overscroll-behavior-y: contain;
     }
 
-    /* Cabecera compacta de lujo */
+    /* Cabecera compacta premium con filo dorado sutil */
     .header-pro {
-      padding-top: calc(0.55rem + var(--safe-top));
-      background: linear-gradient(135deg, #0E1D18 0%, #173229 58%, #10241D 100%);
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07), 0 8px 24px -12px rgba(0, 0, 0, 0.35);
+      position: relative;
+      padding-top: calc(0.6rem + var(--safe-top));
+      background: linear-gradient(135deg, #0B1914 0%, #142D24 52%, #0E211A 100%);
+      box-shadow:
+        inset 0 -1px 0 rgba(212, 138, 23, 0.24),
+        0 10px 28px -12px rgba(6, 15, 12, 0.48);
     }
     html.dark .header-pro {
-      background: linear-gradient(135deg, #0B1512 0%, #12241E 58%, #0C1814 100%);
+      background: linear-gradient(135deg, #07100D 0%, #10221C 52%, #091511 100%);
+      box-shadow:
+        inset 0 -1px 0 rgba(251, 191, 36, 0.18),
+        0 12px 30px -12px rgba(0, 0, 0, 0.65);
     }
 
-    /* Barra inferior ultra-fina estilo iOS nativo (compacta y limpia) */
+    /* Barra inferior translúcida estilo iOS de alta gama */
     #bottom-nav {
-      background-color: #FAF8F4;
-      border-top: 1px solid rgba(24, 23, 21, 0.07);
-      padding-bottom: max(0.22rem, calc(var(--safe-bottom) * 0.52));
-      box-shadow: 0 -6px 20px -12px rgba(18, 36, 30, 0.10);
+      background-color: rgba(251, 249, 245, 0.88);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      backdrop-filter: blur(20px) saturate(160%);
+      border-top: 1px solid rgba(20, 36, 30, 0.08);
+      padding-bottom: max(0.28rem, calc(var(--safe-bottom) * 0.56));
+      box-shadow: 0 -8px 24px -14px rgba(18, 36, 30, 0.14);
     }
     html.dark #bottom-nav {
-      background-color: #0F1714;
-      border-top: 1px solid rgba(255, 255, 255, 0.07);
-      box-shadow: 0 -6px 20px -10px rgba(0, 0, 0, 0.55);
+      background-color: rgba(12, 20, 17, 0.88);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 -8px 26px -12px rgba(0, 0, 0, 0.65);
     }
 
     .nav-btn {
@@ -146,9 +156,9 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2px;
-      padding: 5px 4px 3px;
-      border-radius: 12px;
+      gap: 2.5px;
+      padding: 5.5px 4px 3.5px;
+      border-radius: 14px;
       color: rgba(109, 104, 95, 0.82);
       transition: color 0.18s ease, transform 0.13s cubic-bezier(0.22, 1, 0.36, 1);
     }
@@ -156,34 +166,34 @@
       color: rgba(242, 239, 233, 0.45);
     }
     .nav-btn:hover {
-      color: #181715;
+      color: #161513;
     }
     html.dark .nav-btn:hover {
-      color: rgba(242, 239, 233, 0.85);
+      color: rgba(242, 239, 233, 0.88);
     }
     .nav-btn .nav-ind {
       position: absolute;
       top: -1px;
       left: 50%;
-      width: 24px;
+      width: 26px;
       height: 2.5px;
       border-radius: 999px;
-      background: linear-gradient(90deg, #227554, #D48A17);
+      background: linear-gradient(90deg, #227554, #E5A93B);
       transform: translateX(-50%) scaleX(0);
       opacity: 0;
-      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+      transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
     }
     .nav-btn .nav-icon-wrap {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 38px;
-      height: 24px;
+      width: 40px;
+      height: 25px;
       border-radius: 999px;
-      transition: background-color 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: background-color 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
     }
     .nav-btn.is-active {
-      color: #12241E;
+      color: #10241D;
     }
     html.dark .nav-btn.is-active {
       color: #34D399;
@@ -193,10 +203,12 @@
       opacity: 1;
     }
     .nav-btn.is-active .nav-icon-wrap {
-      background-color: rgba(34, 117, 84, 0.12);
+      background: linear-gradient(135deg, rgba(34, 117, 84, 0.14), rgba(212, 138, 23, 0.10));
+      box-shadow: inset 0 0 0 1px rgba(34, 117, 84, 0.14);
     }
     html.dark .nav-btn.is-active .nav-icon-wrap {
-      background-color: rgba(52, 211, 153, 0.15);
+      background: linear-gradient(135deg, rgba(52, 211, 153, 0.18), rgba(251, 191, 36, 0.08));
+      box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.20);
     }
     @media (min-width: 640px) {
       .nav-btn {
@@ -205,24 +217,29 @@
         padding: 7px 10px;
       }
       .nav-btn .nav-icon-wrap {
-        width: 26px;
+        width: 28px;
         height: 24px;
       }
     }
 
-    /* Superficie editorial para tarjetas */
+    /* Superficie editorial cerámica / obsidiana con luz superior */
     .card-pro {
       background-color: #FFFFFF;
-      border: 1px solid rgba(24, 23, 21, 0.075);
-      box-shadow: 0 1px 2px rgba(18, 36, 30, 0.04), 0 10px 26px -14px rgba(18, 36, 30, 0.11);
+      border: 1px solid rgba(20, 36, 30, 0.075);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.92),
+        0 1px 2px rgba(18, 36, 30, 0.04),
+        0 12px 28px -14px rgba(18, 36, 30, 0.12);
     }
     html.dark .card-pro {
-      background-color: #131C19;
-      border: 1px solid rgba(255, 255, 255, 0.075);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 28px -12px rgba(0, 0, 0, 0.55);
+      background-color: #111A17;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.055),
+        0 14px 32px -12px rgba(0, 0, 0, 0.62);
     }
 
-    /* Textura sutil geométrica sobre cabeceras de juego */
+    /* Portadas de juego con luz especular + trama sutil de mesa */
     .cover-sheen {
       position: relative;
       overflow: hidden;
@@ -232,48 +249,74 @@
       position: absolute;
       inset: 0;
       background-image:
-        radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.24) 0%, transparent 48%),
-        radial-gradient(circle at 10% 95%, rgba(0, 0, 0, 0.18) 0%, transparent 45%);
+        radial-gradient(circle at 86% 10%, rgba(255, 255, 255, 0.28) 0%, transparent 46%),
+        radial-gradient(circle at 8% 96%, rgba(0, 0, 0, 0.24) 0%, transparent 48%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 36%);
       pointer-events: none;
     }
     .cover-sheen::after {
       content: "";
       position: absolute;
       inset: 0;
-      opacity: 0.08;
-      background-image: radial-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1px);
-      background-size: 14px 14px;
+      opacity: 0.075;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.95) 0.9px, transparent 0.9px);
+      background-size: 13px 13px;
       pointer-events: none;
     }
 
-    /* Botón principal premium con brillo superior sutil */
+    /* Marca de agua sutil del icono del juego en portadas */
+    .cover-watermark {
+      position: absolute;
+      right: -10px;
+      bottom: -14px;
+      opacity: 0.13;
+      pointer-events: none;
+      transform: rotate(-10deg);
+      color: #FFFFFF;
+    }
+
+    /* Botón principal de lujo con reflejo metálico superior */
     .btn-primary-pro {
-      background: linear-gradient(135deg, #132821 0%, #227554 100%);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 10px 22px -8px rgba(19, 40, 33, 0.48);
+      background: linear-gradient(135deg, #10251E 0%, #1F6B4D 58%, #267F5B 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.26),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+        0 12px 24px -8px rgba(16, 37, 30, 0.52);
     }
     .btn-primary-pro:hover:not(:disabled) {
-      filter: brightness(1.06);
+      filter: brightness(1.07);
     }
 
     /* Chips e inputs refinados */
     .input-pro {
       background-color: #F7F4EE;
-      border: 1px solid rgba(24, 23, 21, 0.09);
+      border: 1px solid rgba(20, 36, 30, 0.09);
+      box-shadow: inset 0 1px 2px rgba(18, 36, 30, 0.03);
       transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
     }
     .input-pro:focus {
       background-color: #FFFFFF;
       border-color: #227554;
-      box-shadow: 0 0 0 3px rgba(34, 117, 84, 0.14);
+      box-shadow: 0 0 0 3px rgba(34, 117, 84, 0.15);
     }
     html.dark .input-pro {
-      background-color: #1A2622;
+      background-color: #182420;
       border-color: rgba(255, 255, 255, 0.10);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.22);
     }
     html.dark .input-pro:focus {
-      background-color: #1E2D28;
+      background-color: #1D2B26;
       border-color: #34D399;
-      box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.14);
+      box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.16);
+    }
+
+    /* Safe-area bottom padding para acciones de modales en iPhone */
+    #modal-actions {
+      padding-bottom: max(0.85rem, calc(0.55rem + var(--safe-bottom)));
+    }
+
+    .font-display {
+      letter-spacing: -0.02em;
     }
 
     button, input, select, textarea, label, a {
@@ -288,11 +331,11 @@
       transition: transform 0.13s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, opacity 0.15s ease, filter 0.16s ease;
     }
     .btn-tap:active:not(:disabled) {
-      transform: scale(0.96);
+      transform: scale(0.965);
     }
 
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(7px); }
+      from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
     .anim-in {
@@ -300,11 +343,11 @@
     }
 
     @keyframes sheetSlideUp {
-      from { opacity: 0; transform: translateY(26px) scale(0.985); }
+      from { opacity: 0; transform: translateY(28px) scale(0.985); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
     .anim-sheet {
-      animation: sheetSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: sheetSlideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     @keyframes spin {
@@ -565,19 +608,16 @@
         scoringType: 'points',
         minPlayers: 2,
         maxPlayers: 4,
-        defaultDuration: 60,
+        defaultDuration: 45,
         extraType: 'none',
-        winModeLabel: 'Forma de victoria',
-        winModes: ['Anillo / Misión', 'Batalla / Control', 'Por puntos'],
-        allowCustomWinMode: true,
-        tagline: 'Batalla por la Tierra Media',
+        tagline: 'Derrota villanos y suma puntos',
       },
       {
         id: 'jaipur',
         name: 'Jaipur',
         color: '#D97706',
         color2: '#92400E',
-        icon: 'scales',
+        icon: 'camel',
         scoringType: 'points',
         minPlayers: 2,
         maxPlayers: 2,
@@ -587,6 +627,22 @@
         winModes: ['2–0 Sellos', '2–1 Sellos', 'Por puntos'],
         allowCustomWinMode: true,
         tagline: 'Comercio y sellos del Maharajá',
+      },
+      {
+        id: 'unstable_unicorns',
+        name: 'Unstable Unicorns',
+        color: '#A21CAF',
+        color2: '#581C87',
+        icon: 'unicorn',
+        scoringType: 'winner_only',
+        minPlayers: 2,
+        maxPlayers: 8,
+        defaultDuration: 30,
+        extraType: 'none',
+        winModeLabel: 'Forma de victoria',
+        winModes: ['7 unicornios', '6 unicornios (6+ jug.)'],
+        allowCustomWinMode: true,
+        tagline: 'Construye tu establo de unicornios',
       },
       {
         id: 'oceanos_de_papel',
@@ -853,13 +909,15 @@
       { color: '#2563EB', color2: '#1E3A8A', label: 'Zafiro' },
       { color: '#C84B31', color2: '#8B2C18', label: 'Marte' },
       { color: '#7C3AED', color2: '#4C1D95', label: 'Amatista' },
+      { color: '#A21CAF', color2: '#581C87', label: 'Orquídea' },
       { color: '#D97706', color2: '#9A4A06', label: 'Ámbar' },
       { color: '#E11D48', color2: '#9F1239', label: 'Carmesí' },
       { color: '#0D9488', color2: '#115E59', label: 'Turquesa' },
+      { color: '#3F6212', color2: '#1A2E05', label: 'Oliva' },
       { color: '#475569', color2: '#1E293B', label: 'Pizarra' },
     ];
 
-    const ICON_CHOICES = ['dice', 'hex', 'cards', 'gem', 'dragon', 'planet', 'train', 'sushi', 'mind', 'cat', 'crown', 'meeple', 'ring', 'skull', 'compass', 'virus', 'bank', 'helmet', 'trio', 'hand', 'scales', 'origami', 'target', 'gauntlet', 'tile', 'sword'];
+    const ICON_CHOICES = ['dragon', 'gem', 'planet', 'hex', 'ring', 'sword', 'camel', 'origami', 'target', 'gauntlet', 'tile', 'unicorn', 'train', 'bank', 'skull', 'compass', 'trio', 'virus', 'helmet', 'hand', 'mind', 'cards', 'crown', 'cat', 'sushi', 'scales', 'meeple', 'dice'];
 
     // =========================================================================
     // 4. ESTADO GLOBAL DE LA APP
@@ -880,6 +938,10 @@
       statsPlayerA: '',
       statsPlayerB: '',
       statsVsScope: 'together', // 'together' | 'all'
+      logGameSearch: '',
+      logSearchOpen: false,
+      shelfSearch: '',
+      shelfSort: 'default', // 'default' | 'most_played' | 'az' | 'calc'
       expandedMatchId: null,
     };
 
@@ -1130,32 +1192,60 @@
 
     function gameIconSvg(iconName, cls = 'w-5 h-5') {
       const icons = {
-        hex: `<polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M8.5 11.5 12 8l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>`,
-        dragon: `<path d="M4 18c2-6 6-11 13-13-1 4-2 6 2 7-3 2-5 4-5 8-3-1-6-1-10-2Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="14.5" cy="9.5" r="1" fill="currentColor"/>`,
-        planet: `<circle cx="12" cy="12" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="12" cy="12" rx="10.5" ry="3.8" transform="rotate(-24 12 12)" fill="none" stroke="currentColor" stroke-width="1.8"/>`,
-        gem: `<polygon points="6,4 18,4 22,10 12,21 2,10" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M2 10h20M12 21 8.5 10 12 4l3.5 6L12 21Z" fill="none" stroke="currentColor" stroke-width="1.5"/>`,
-        train: `<rect x="5" y="4" width="14" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 11h14M8 20l2-3M16 20l-2-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="14" r="1" fill="currentColor"/><circle cx="15" cy="14" r="1" fill="currentColor"/>`,
-        cards: `<rect x="4" y="5" width="11" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 7h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 10h3.5l-2 5.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>`,
-        sushi: `<ellipse cx="12" cy="9" rx="7.5" ry="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 9v6c0 2.2 3.4 4 7.5 4s7.5-1.8 7.5-4V9" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="12" cy="9" rx="3" ry="1.5" fill="currentColor"/>`,
-        mind: `<path d="M12 3a6 6 0 0 0-6 6c0 2.3 1.3 4.2 3 5.2V17a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2.8c1.7-1 3-2.9 3-5.2a6 6 0 0 0-6-6Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 21h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`,
-        cat: `<path d="M5 9V4l4 3h6l4-3v5c1.2 1.2 2 2.8 2 4.8C21 18 17 21 12 21s-9-3-9-7.2C3 11.8 3.8 10.2 5 9Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="9.2" cy="13" r="1.1" fill="currentColor"/><circle cx="14.8" cy="13" r="1.1" fill="currentColor"/>`,
-        crown: `<path d="M3 17 5 7l5 4 2-6 2 6 5-4 2 10H3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`,
-        meeple: `<circle cx="12" cy="5.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 10.5 12 9l6 1.5-2 4.5 2.5 5.5H14l-2-3.5-2 3.5H5.5L8 15l-2-4.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>`,
-        ring: `<circle cx="12" cy="13.5" r="7" fill="none" stroke="currentColor" stroke-width="2.3"/><path d="M9.5 6.5 12 3.5l2.5 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2 2"/>`,
-        skull: `<path d="M5 11.5a7 7 0 1 1 14 0c0 2.6-1.4 4.7-3.2 5.7V20H8.2v-2.8C6.4 16.2 5 14.1 5 11.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="9.5" cy="11.5" r="1.4" fill="currentColor"/><circle cx="14.5" cy="11.5" r="1.4" fill="currentColor"/><path d="M10.5 20v-2.2M13.5 20v-2.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>`,
-        compass: `<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><polygon points="15.8,8.2 13.7,13.7 8.2,15.8 10.3,10.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.1" fill="currentColor"/>`,
-        virus: `<circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="10.5" cy="11" r="1" fill="currentColor"/><circle cx="13.8" cy="13" r="0.9" fill="currentColor"/>`,
-        bank: `<path d="M3 9.5 12 4l9 5.5H3Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M5 10v7M9.5 10v7M14.5 10v7M19 10v7M3 20h18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>`,
-        helmet: `<path d="M6 13a6 6 0 0 1 12 0v5H6v-5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M6 12C3.5 11.5 2.5 9.2 3.5 6.5c1 1.7 2 2.2 3.5 2.2M18 12c2.5-.5 3.5-2.8 2.5-5.5-1 1.7-2 2.2-3.5 2.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v11M6 14h12" stroke="currentColor" stroke-width="1.6"/>`,
-        trio: `<circle cx="12" cy="7.5" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="7.5" cy="15.8" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16.5" cy="15.8" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/>`,
-        hand: `<rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 8.5H9.8l-.5 3.4c.7-.5 1.6-.7 2.5-.7 2 0 3.3 1.1 3.3 2.8 0 1.8-1.4 3-3.5 3-1.4 0-2.5-.5-3.1-1.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
-        scales: `<path d="M12 4v16M7 20h10M5 8h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 8 3.5 14a3 3 0 0 0 5 0L6 8ZM18 8l-2.5 6a3 3 0 0 0 5 0L18 8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>`,
-        origami: `<path d="M3 15.5 12 4.5l9 11-3.5 3.5h-11L3 15.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M12 4.5v14.5M3 15.5h18" stroke="currentColor" stroke-width="1.6"/>`,
-        target: `<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>`,
-        gauntlet: `<path d="M12 3 4.5 6.5V12c0 4.6 3.2 7.8 7.5 9 4.3-1.2 7.5-4.4 7.5-9V6.5L12 3Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="12" cy="11.5" r="2.2" fill="currentColor"/><circle cx="8.8" cy="8.7" r="1" fill="currentColor"/><circle cx="15.2" cy="8.7" r="1" fill="currentColor"/><circle cx="9.2" cy="14.5" r="1" fill="currentColor"/><circle cx="14.8" cy="14.5" r="1" fill="currentColor"/>`,
-        tile: `<rect x="4" y="4" width="16" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 6.5 14 10l3.5 2-3.5 2-2 3.5-2-3.5-3.5-2 3.5-2 2-3.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>`,
-        sword: `<path d="M14.5 4.5 19.5 4.5 19.5 9.5 9.5 19.5 4.5 14.5 14.5 4.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M5.5 13.5 10.5 18.5M4 20l2.5-2.5M12 12l7.5-7.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>`,
-        dice: `<rect x="4" y="4" width="16" height="16" rx="3.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/>`,
+        // Harmonies: hexágono con montaña, árbol y río
+        hex: `<polygon points="12,2.2 20.6,7.1 20.6,16.9 12,21.8 3.4,16.9 3.4,7.1" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/><path d="M5.5 15.8 9.2 10.5l2.6 3.5 2.4-3.1 4.3 4.9" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><circle cx="15.3" cy="8.2" r="1.35" fill="currentColor"/>`,
+        // Wyrmspan: dragón alado estilizado con cuerno y ala
+        dragon: `<path d="M4.5 18.5c1.5-5.6 5.2-10.2 12.2-12.5-.8 3.1-1.3 5 2.3 5.9-2.8 1.8-4.7 3.8-4.8 7.6-3.2-.6-6.2-.5-9.7-1Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/><path d="M9.5 13.5 5.2 9.2c2.8-.2 5 .7 6.8 2.2M14.2 7.5 13 4.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14.6" cy="9.6" r="1.05" fill="currentColor"/>`,
+        // Terraforming Mars: planeta rojo con órbita y cráteres
+        planet: `<circle cx="12" cy="12" r="5.6" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85"/><ellipse cx="12" cy="12" rx="10.2" ry="3.6" transform="rotate(-24 12 12)" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="10.2" cy="10.5" r="1.05" fill="currentColor"/><circle cx="13.8" cy="13.6" r="0.8" fill="currentColor"/>`,
+        // Splendor Duel: diamante tallado + destello real
+        gem: `<polygon points="6.2,4.5 17.8,4.5 21.5,9.8 12,20.8 2.5,9.8" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/><path d="M2.5 9.8h19M12 20.8 8.4 9.8 12 4.5l3.6 5.3L12 20.8Z" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/><path d="M19.5 3.2v2.4M18.3 4.4h2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>`,
+        // Lord of the Rings: Duel: El Anillo Único con luz estelar
+        ring: `<circle cx="12" cy="13.6" r="6.8" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="2.15"/><circle cx="12" cy="13.6" r="3.7" fill="none" stroke="currentColor" stroke-width="1.25" stroke-dasharray="2.1 1.9"/><path d="M12 2.4v3.4M10.3 4.1h3.4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>`,
+        // Lord of the Rings: Battle for Middle-earth: espadas cruzadas de batalla
+        sword: `<path d="M5 19 17.8 6.2M19 19 6.2 6.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15.2 4.4 19.6 4.4 19.6 8.8M8.8 4.4 4.4 4.4 4.4 8.8" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.2 14.5 9.5 18.8M18.8 14.5 14.5 18.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>`,
+        // Jaipur: camello mercader estilizado
+        camel: `<path d="M4.2 18.5v-5.2c0-1.4.8-2.3 2-2.6l1.3-.4c.8-2 2.3-3.1 3.7-2.6 1 .3 1.4 1.3 1.8 1.3s1-.9 2-1.1c1.3-.3 2.4.6 2.9 2.1l1.2-.8c.8-.5 1.8 0 1.8.9 0 .9-.7 1.6-1.5 1.8l-1.2.3v6.3M8 15.2v3.3M15.2 15.2v3.3M7.8 15.2h7.6" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19.1" cy="10.2" r="0.7" fill="currentColor"/>`,
+        // Océanos de Papel: barco de origami sobre ola
+        origami: `<path d="M3.2 14.6 12 4.4l8.8 10.2-3.4 3.4H6.6l-3.4-3.4Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/><path d="M12 4.4v13.6M3.2 14.6h17.6" stroke="currentColor" stroke-width="1.55"/><path d="M3.5 20.6c2-.9 3.6.9 5.6 0s3.6.9 5.6 0 3.6.9 5.8 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`,
+        // Last Bullet: mira táctica + bala central
+        target: `<circle cx="12" cy="12" r="7.8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="1.85"/><path d="M12 2.2v3.2M12 18.6v3.2M2.2 12h3.2M18.6 12h3.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M10.2 15.6v-4.2c0-1.5.8-2.8 1.8-3.5 1 .7 1.8 2 1.8 3.5v4.2h-3.6Z" fill="currentColor"/>`,
+        // Splendor Marvel: escudo/guantelete con las 6 Gemas del Infinito
+        gauntlet: `<path d="M12 2.8 4.4 6.2v5.6c0 4.7 3.2 8 7.6 9.4 4.4-1.4 7.6-4.7 7.6-9.4V6.2L12 2.8Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/><circle cx="12" cy="11.4" r="2" fill="currentColor"/><circle cx="8.6" cy="8.6" r="1.05" fill="currentColor"/><circle cx="15.4" cy="8.6" r="1.05" fill="currentColor"/><circle cx="8.8" cy="14.4" r="1.05" fill="currentColor"/><circle cx="15.2" cy="14.4" r="1.05" fill="currentColor"/><circle cx="12" cy="16.5" r="0.95" fill="currentColor"/>`,
+        // Azul Duel: azulejo portugués con estrella geométrica
+        tile: `<rect x="3.6" y="3.6" width="16.8" height="16.8" rx="2.8" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.85"/><path d="M12 6 13.7 10.3 18 12l-4.3 1.7L12 18l-1.7-4.3L6 12l4.3-1.7L12 6Z" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>`,
+        // Unstable Unicorns: cabeza de unicornio con cuerno en espiral
+        unicorn: `<path d="M6.2 19.6c.4-3.4 1.3-6.2 3.2-8.4l1.1-1.3c1.6-.8 3.5-.6 5 .5l3.6 2.8c.8.6.7 1.8-.2 2.3l-2.6 1.3c-1.1.5-2.3.3-3.1-.5l-.7-.7c-.3 1.5-.3 2.8 0 4" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.6 9.8 18.2 3.4l-2.8 7.4" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.8 9.9 8.4 7.2l2.6 1.4M6.8 14.2c-1.2.4-2 1.4-2.2 2.6" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14.6" cy="12.3" r="0.95" fill="currentColor"/>`,
+        // Ticket to Ride: Europa: locomotora clásica frontal
+        train: `<rect x="5.2" y="3.8" width="13.6" height="12.6" rx="3.2" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.85"/><path d="M5.2 10.5h13.6M8.2 20.2l2.1-3.8M15.8 20.2l-2.1-3.8M6.8 19.2h10.4" stroke="currentColor" stroke-width="1.85" stroke-linecap="round"/><circle cx="9.2" cy="13.5" r="1.15" fill="currentColor"/><circle cx="14.8" cy="13.5" r="1.15" fill="currentColor"/><path d="M9.5 6.8h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>`,
+        // Monopoly Deal: banco / propiedad con columnas
+        bank: `<path d="M3.2 9.4 12 3.8l8.8 5.6H3.2Z" fill="currentColor" fill-opacity="0.22" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/><path d="M5.4 9.8v7.4M9.8 9.8v7.4M14.2 9.8v7.4M18.6 9.8v7.4M3 20h18M4.2 17.4h15.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>`,
+        // Skull King: calavera pirata con parche y bandana
+        skull: `<path d="M5.2 11.4a6.8 6.8 0 1 1 13.6 0c0 2.5-1.3 4.5-3.1 5.5v2.8H8.3v-2.8C6.5 15.9 5.2 13.9 5.2 11.4Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/><circle cx="9.4" cy="11.5" r="1.35" fill="currentColor"/><rect x="13.1" y="10.2" width="2.8" height="2.6" rx="0.8" fill="currentColor"/><path d="M13 10.4 17.8 7.5M10.5 19.7v-2.2M13.5 19.7v-2.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>`,
+        // Faraway: rosa de los vientos de explorador
+        compass: `<circle cx="12" cy="12" r="8.6" fill="currentColor" fill-opacity="0.13" stroke="currentColor" stroke-width="1.85"/><polygon points="15.8,8.2 13.8,13.8 8.2,15.8 10.2,10.2" fill="currentColor" fill-opacity="0.32" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.15" fill="currentColor"/><path d="M12 4.5v1.3M12 18.2v1.3M4.5 12h1.3M18.2 12h1.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`,
+        // Trío: tres cartas/círculos en tríada perfecta
+        trio: `<circle cx="12" cy="7.3" r="3.4" fill="currentColor" fill-opacity="0.22" stroke="currentColor" stroke-width="1.85"/><circle cx="7.4" cy="15.7" r="3.4" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85"/><circle cx="16.6" cy="15.7" r="3.4" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85"/>`,
+        // Virus!: microbio con púas y núcleo
+        virus: `<circle cx="12" cy="12" r="4.9" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.85"/><path d="M12 3.2v3.6M12 17.2v3.6M3.2 12h3.6M17.2 12h3.6M5.8 5.8l2.5 2.5M15.7 15.7l2.5 2.5M18.2 5.8l-2.5 2.5M8.3 15.7l-2.5 2.5" stroke="currentColor" stroke-width="1.85" stroke-linecap="round"/><circle cx="10.4" cy="11.1" r="1.05" fill="currentColor"/><circle cx="13.8" cy="13.2" r="0.85" fill="currentColor"/>`,
+        // Odín: yelmo vikingo con cuernos y protección nasal
+        helmet: `<path d="M6.2 13a5.8 5.8 0 0 1 11.6 0v5.2H6.2V13Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/><path d="M6.2 12.2C3.6 11.6 2.6 9.1 3.6 6.2c1 1.9 2.1 2.5 3.6 2.5M17.8 12.2c2.6-.6 3.6-3.1 2.6-6-1 1.9-2.1 2.5-3.6 2.5" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7.2v11M6.2 14h11.6" stroke="currentColor" stroke-width="1.65"/>`,
+        // Got Five!: ficha/carta con el número 5
+        hand: `<rect x="3.8" y="3.8" width="16.4" height="16.4" rx="4.2" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.85"/><path d="M14.8 8.4H9.8l-.4 3.3c.7-.4 1.5-.6 2.4-.6 2 0 3.2 1.1 3.2 2.7 0 1.8-1.4 3-3.4 3-1.4 0-2.5-.5-3-1.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+        // The Mind: conexión telepática con ondas concéntricas
+        mind: `<path d="M12 3.2a5.8 5.8 0 0 0-5.8 5.8c0 2.2 1.2 4 2.8 5v2.8a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V14c1.6-1 2.8-2.8 2.8-5A5.8 5.8 0 0 0 12 3.2Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85"/><path d="M9.6 21h4.8M9.5 9.6c.7-.8 1.5-1.2 2.5-1.2s1.8.4 2.5 1.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="11.5" r="1.05" fill="currentColor"/>`,
+        // Flip 7: cartas en abanico con el 7 protagonista
+        cards: `<rect x="4" y="4.8" width="11.4" height="15.2" rx="2.2" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85"/><path d="M15.4 6.8h2.6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.2a2 2 0 0 1-2-2v-.8" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M7.6 9.8h4.2l-2.3 5.8" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"/>`,
+        // Sleeping Queens: corona real con media luna
+        crown: `<path d="M3.2 17.2 5.2 7.8l4.8 3.8 2-5.8 2 5.8 4.8-3.8 2 9.4H3.2Z" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/><path d="M4.2 20.2h15.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="12" cy="14.2" r="1.05" fill="currentColor"/>`,
+        // Exploding Kittens: gato travieso con mecha encendida
+        cat: `<path d="M5.2 9.6V4.4l4 2.9h5.6l4-2.9v5.2c1.2 1.2 2 2.8 2 4.7 0 4-3.8 6.9-8.8 6.9s-8.8-2.9-8.8-6.9c0-1.9.8-3.5 2-4.7Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/><circle cx="9.2" cy="13.2" r="1.15" fill="currentColor"/><circle cx="14.8" cy="13.2" r="1.15" fill="currentColor"/><path d="M10.8 16c.6.6 1.8.6 2.4 0M12 2.2v2.4M10.4 3.2l.8.8M13.6 3.2l-.8.8" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>`,
+        // Sushi Go!: rollo maki con palillos
+        sushi: `<ellipse cx="12" cy="9.6" rx="7.2" ry="3.8" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85"/><path d="M4.8 9.6v5.8c0 2.1 3.2 3.8 7.2 3.8s7.2-1.7 7.2-3.8V9.6" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="1.85"/><ellipse cx="12" cy="9.6" rx="2.9" ry="1.4" fill="currentColor"/><path d="M6 4.4 18.8 6.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`,
+        // Extras para juegos personalizados
+        scales: `<path d="M12 4v16M7 20h10M5 8h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M6 8 3.5 14a3 3 0 0 0 5 0L6 8ZM18 8l-2.5 6a3 3 0 0 0 5 0L18 8Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>`,
+        meeple: `<circle cx="12" cy="5.5" r="2.4" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.85"/><path d="M6.2 10.6 12 9.1l5.8 1.5-2 4.4 2.4 5.4h-4.1l-2.1-3.4-2.1 3.4H5.8L8.2 15l-2-4.4Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/>`,
+        dice: `<rect x="4" y="4" width="16" height="16" rx="3.6" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.85"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/>`,
       };
       return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${icons[iconName] || icons.dice}</svg>`;
     }
@@ -1331,6 +1421,18 @@
           }
           if (Array.isArray(def.playModes) && (!Array.isArray(existing.playModes) || existing.playModes.length === 0)) {
             existing.playModes = [...def.playModes];
+            gamesChanged = true;
+          }
+          // Migración específica: corrige Battle for Middle-earth (solo puntos por villanos) y actualiza icono de Jaipur
+          if (def.id === 'lotr_battle' && Array.isArray(existing.winModes) && existing.winModes.includes('Anillo / Misión')) {
+            delete existing.winModes;
+            delete existing.winModeLabel;
+            delete existing.allowCustomWinMode;
+            existing.tagline = def.tagline;
+            gamesChanged = true;
+          }
+          if (def.id === 'jaipur' && existing.icon === 'scales') {
+            existing.icon = 'camel';
             gamesChanged = true;
           }
         }
@@ -1890,36 +1992,46 @@
         playCountsByGame[m.gameId] = (playCountsByGame[m.gameId] || 0) + 1;
       });
 
-      const gamePills = games.map((g) => {
+      const logSearchTerm = (uiState.logGameSearch || '').trim().toLowerCase();
+      const visibleGames = logSearchTerm
+        ? games.filter((g) => g.name.toLowerCase().includes(logSearchTerm) || (g.tagline || '').toLowerCase().includes(logSearchTerm))
+        : games;
+
+      const gamePills = visibleGames.length > 0 ? visibleGames.map((g) => {
         const active = g.id === game.id;
         const pCount = playCountsByGame[g.id] || 0;
         return `
-          <button type="button" data-action="select-game" data-game-id="${esc(g.id)}"
-            class="btn-tap shrink-0 w-[106px] p-2.5 rounded-[20px] text-left transition-all flex flex-col justify-between gap-2 relative overflow-hidden ${
+          <button type="button" data-action="select-game" data-game-id="${esc(g.id)}" ${active ? 'data-active-game-pill="true"' : ''}
+            class="btn-tap shrink-0 w-[110px] p-2.5 rounded-[20px] text-left transition-all flex flex-col justify-between gap-2.5 relative overflow-hidden ${
               active
                 ? 'text-white cover-sheen ring-2 ring-offset-2 ring-offset-canvas dark:ring-offset-canvasDark'
                 : 'card-pro text-ink dark:text-white hover:border-black/15 dark:hover:border-white/20'
             }"
             style="${active
-              ? `background: linear-gradient(145deg, ${g.color}, ${g.color2 || g.color}); --tw-ring-color: ${g.color}; box-shadow: 0 12px 24px -10px ${g.color}99;`
+              ? `background: linear-gradient(145deg, ${g.color}, ${g.color2 || g.color}); --tw-ring-color: ${g.color}; box-shadow: 0 14px 26px -10px ${g.color}AA;`
               : ''}"
           >
+            ${active ? `<div class="cover-watermark">${gameIconSvg(g.icon, 'w-14 h-14')}</div>` : ''}
             <div class="flex items-center justify-between gap-1 relative z-10">
-              <div class="w-8 h-8 rounded-xl flex items-center justify-center ${active ? 'bg-white/20 text-white' : ''}"
-                style="${!active ? `background:${g.color}16; color:${g.color};` : ''}">
+              <div class="w-8 h-8 rounded-xl flex items-center justify-center ${active ? 'bg-white/20 border border-white/20 text-white' : ''}"
+                style="${!active ? `background:${g.color}16; color:${g.color}; box-shadow: inset 0 0 0 1px ${g.color}24;` : ''}">
                 ${gameIconSvg(g.icon, 'w-4 h-4')}
               </div>
               ${pCount > 0 ? `
-                <span class="text-[10px] font-extrabold tabular-nums px-1.5 py-0.5 rounded-md ${active ? 'bg-black/20 text-white' : 'bg-black/[0.04] dark:bg-white/[0.08] text-inkMuted dark:text-white/55'}">${pCount}</span>
+                <span class="text-[10px] font-extrabold tabular-nums px-1.5 py-0.5 rounded-md ${active ? 'bg-black/22 text-white' : 'bg-black/[0.045] dark:bg-white/[0.08] text-inkMuted dark:text-white/55'}">${pCount}</span>
               ` : ''}
             </div>
             <div class="relative z-10">
-              <div class="font-display text-xs font-extrabold leading-tight line-clamp-2">${esc(g.name)}</div>
-              ${g.quickCalc ? `<span class="mt-1 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${active ? 'bg-white/20 text-white' : 'bg-black/[0.045] dark:bg-white/[0.08] text-inkMuted dark:text-white/60'}">En vivo</span>` : ''}
+              <div class="font-display text-[11.5px] font-extrabold leading-tight line-clamp-2">${esc(g.name)}</div>
+              ${g.quickCalc ? `<span class="mt-1 inline-flex items-center gap-1 text-[8.5px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${active ? 'bg-white/22 text-white' : 'bg-emeraldBrand/10 text-emeraldBrand dark:text-emerald-300'}">En vivo</span>` : ''}
             </div>
           </button>
         `;
-      }).join('');
+      }).join('') : `
+        <div class="w-full py-4 text-center text-xs text-inkMuted dark:text-white/55">
+          No hay juegos que coincidan con "${esc(uiState.logGameSearch)}"
+        </div>
+      `;
 
       const quickCalcBanner = game.quickCalc ? `
         <button type="button" data-action="open-quick-calc" data-calc="${game.quickCalc}"
@@ -2025,13 +2137,30 @@
       container.innerHTML = `
         <!-- Carrusel de Juegos -->
         <div class="space-y-2 anim-in">
-          <div class="flex items-center justify-between px-0.5">
-            <h2 class="font-display text-xs font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Elige el juego</h2>
-            <button type="button" data-action="open-add-game" class="btn-tap text-xs font-bold text-emeraldBrand dark:text-emerald-400 hover:underline">
-              + Nuevo juego
-            </button>
+          <div class="flex items-center justify-between gap-2 px-0.5">
+            <div class="flex items-center gap-2">
+              <h2 class="font-display text-[11px] font-extrabold uppercase tracking-[0.12em] text-inkMuted dark:text-white/55">Elige el juego</h2>
+              <span class="px-1.5 py-0.5 rounded-md bg-black/[0.045] dark:bg-white/[0.08] text-[10px] font-extrabold text-inkMuted dark:text-white/60 tabular-nums">${games.length}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" data-action="toggle-log-search"
+                class="btn-tap inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${uiState.logSearchOpen || uiState.logGameSearch ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent' : 'card-pro text-inkMuted dark:text-white/70'}">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <span>Buscar</span>
+              </button>
+              <button type="button" data-action="open-add-game" class="btn-tap text-xs font-bold text-emeraldBrand dark:text-emerald-400 hover:underline">
+                + Nuevo
+              </button>
+            </div>
           </div>
-          <div class="flex items-stretch gap-2.5 overflow-x-auto no-scrollbar py-1.5 -mx-1 px-1">
+          ${uiState.logSearchOpen || uiState.logGameSearch ? `
+            <div class="relative">
+              <svg class="w-3.5 h-3.5 text-inkMuted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input id="log-game-search-input" type="search" value="${esc(uiState.logGameSearch)}" placeholder="Filtrar entre tus ${games.length} juegos..."
+                class="w-full h-9 pl-9 pr-3 card-pro focus:border-emeraldBrand rounded-xl text-xs font-semibold text-ink dark:text-white outline-none" />
+            </div>
+          ` : ''}
+          <div id="log-game-carousel" class="flex items-stretch gap-2.5 overflow-x-auto no-scrollbar py-1.5 -mx-1 px-1">
             ${gamePills}
           </div>
         </div>
@@ -2040,12 +2169,13 @@
 
         <!-- Tarjeta Principal de Registro -->
         <div class="card-pro rounded-[26px] overflow-hidden anim-in">
-          <!-- Cabecera con textura y degradado del juego -->
-          <div class="cover-sheen px-4 py-3.5 text-white flex items-center justify-between gap-3"
+          <!-- Cabecera con textura, marca de agua y degradado del juego -->
+          <div class="cover-sheen px-4 py-4 text-white flex items-center justify-between gap-3"
             style="background: linear-gradient(125deg, ${game.color}, ${game.color2 || game.color});">
+            <div class="cover-watermark">${gameIconSvg(game.icon, 'w-20 h-20')}</div>
             <div class="flex items-center gap-3 min-w-0 relative z-10">
-              <div class="w-10 h-10 rounded-2xl bg-white/18 border border-white/20 flex items-center justify-center shrink-0 shadow-xs">
-                ${gameIconSvg(game.icon, 'w-5 h-5')}
+              <div class="w-11 h-11 rounded-2xl bg-white/18 border border-white/25 flex items-center justify-center shrink-0 shadow-sm backdrop-blur-xs">
+                ${gameIconSvg(game.icon, 'w-6 h-6')}
               </div>
               <div class="min-w-0">
                 <div class="font-display text-base font-extrabold leading-tight truncate">${esc(game.name)}</div>
@@ -2204,6 +2334,16 @@
         customWinEl.addEventListener('input', (e) => {
           draft.customWinMode = e.target.value;
           saveDraftLocal();
+        });
+      }
+
+      const logSearchEl = document.getElementById('log-game-search-input');
+      if (logSearchEl) {
+        logSearchEl.addEventListener('input', (e) => {
+          uiState.logGameSearch = e.target.value;
+          renderLogTab();
+          const el = document.getElementById('log-game-search-input');
+          if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
         });
       }
     }
@@ -3869,12 +4009,20 @@
                     </div>
                   </div>
 
-                  <button type="button" data-action="delete-match" data-id="${esc(m.id)}"
-                    class="btn-tap p-2 rounded-xl text-inkMuted/70 hover:text-coralBrand hover:bg-coralBrand/10 shrink-0" aria-label="Eliminar">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                    </svg>
-                  </button>
+                  <div class="flex items-center gap-0.5 shrink-0">
+                    <button type="button" data-action="rematch-match" data-id="${esc(m.id)}"
+                      class="btn-tap p-2 rounded-xl text-inkMuted/70 hover:text-emeraldBrand hover:bg-emeraldBrand/10" title="Revancha (cargar juego y jugadores)" aria-label="Revancha">
+                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+                      </svg>
+                    </button>
+                    <button type="button" data-action="delete-match" data-id="${esc(m.id)}"
+                      class="btn-tap p-2 rounded-xl text-inkMuted/70 hover:text-coralBrand hover:bg-coralBrand/10" aria-label="Eliminar">
+                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Jugadores -->
@@ -5947,7 +6095,8 @@
     function renderShelfTab() {
       const container = document.getElementById('view-shelf');
 
-      const cards = games.map((g) => {
+      // Precalcula métricas por juego para ordenar y mostrar
+      const enriched = games.map((g, origIdx) => {
         const gMatches = matchHistory.filter((m) => m.gameId === g.id);
         const playCount = gMatches.length;
         const lastMatch = gMatches[0] || null;
@@ -5957,27 +6106,43 @@
             highScore = m.topScore;
           }
         });
+        return { g, origIdx, playCount, lastMatch, highScore };
+      });
 
-        return `
+      const q = (uiState.shelfSearch || '').trim().toLowerCase();
+      let list = enriched.filter(({ g }) => {
+        if (uiState.shelfSort === 'calc' && !g.quickCalc) return false;
+        if (!q) return true;
+        return g.name.toLowerCase().includes(q) || (g.tagline || '').toLowerCase().includes(q);
+      });
+
+      if (uiState.shelfSort === 'most_played') {
+        list.sort((a, b) => (b.playCount - a.playCount) || a.g.name.localeCompare(b.g.name));
+      } else if (uiState.shelfSort === 'az') {
+        list.sort((a, b) => a.g.name.localeCompare(b.g.name, 'es'));
+      }
+
+      const cards = list.length > 0 ? list.map(({ g, playCount, lastMatch, highScore }) => `
           <article class="card-pro rounded-[24px] overflow-hidden flex flex-col anim-in">
             <div class="cover-sheen p-4 text-white" style="background: linear-gradient(135deg, ${g.color}, ${g.color2 || g.color});">
+              <div class="cover-watermark">${gameIconSvg(g.icon, 'w-24 h-24')}</div>
               <div class="flex items-start justify-between gap-2 relative z-10">
-                <div class="w-10 h-10 rounded-2xl bg-white/18 border border-white/20 flex items-center justify-center shrink-0 shadow-xs">
-                  ${gameIconSvg(g.icon, 'w-5 h-5')}
+                <div class="w-11 h-11 rounded-2xl bg-white/18 border border-white/25 flex items-center justify-center shrink-0 shadow-sm backdrop-blur-xs">
+                  ${gameIconSvg(g.icon, 'w-6 h-6')}
                 </div>
                 <div class="flex items-center gap-1">
-                  <span class="px-2.5 py-1 rounded-full bg-black/22 border border-white/12 text-[11px] font-extrabold tabular-nums">
+                  <span class="px-2.5 py-1 rounded-full bg-black/24 border border-white/15 text-[11px] font-extrabold tabular-nums">
                     ${playCount} ${playCount === 1 ? 'partida' : 'partidas'}
                   </span>
                   <button type="button" data-action="open-edit-game" data-game-id="${esc(g.id)}"
-                    class="btn-tap w-7 h-7 rounded-full bg-black/22 hover:bg-black/38 border border-white/12 text-white flex items-center justify-center"
+                    class="btn-tap w-7 h-7 rounded-full bg-black/24 hover:bg-black/40 border border-white/15 text-white flex items-center justify-center"
                     title="Editar juego" aria-label="Editar ${esc(g.name)}">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
                     </svg>
                   </button>
                   <button type="button" data-action="confirm-delete-game" data-game-id="${esc(g.id)}"
-                    class="btn-tap w-7 h-7 rounded-full bg-black/22 hover:bg-coralBrand border border-white/12 text-white flex items-center justify-center transition-colors"
+                    class="btn-tap w-7 h-7 rounded-full bg-black/24 hover:bg-coralBrand border border-white/15 text-white flex items-center justify-center transition-colors"
                     title="Eliminar juego" aria-label="Eliminar ${esc(g.name)}">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -5985,8 +6150,8 @@
                   </button>
                 </div>
               </div>
-              <h3 class="font-display text-base font-extrabold mt-3 leading-tight relative z-10">${esc(g.name)}</h3>
-              <p class="text-[11px] text-white/80 mt-0.5 relative z-10 truncate">${esc(g.tagline || '')}</p>
+              <h3 class="font-display text-base font-extrabold mt-3.5 leading-tight relative z-10">${esc(g.name)}</h3>
+              <p class="text-[11px] text-white/82 mt-0.5 relative z-10 truncate">${esc(g.tagline || '')}</p>
             </div>
 
             <div class="p-3.5 flex-1 flex flex-col justify-between gap-3">
@@ -6021,21 +6186,47 @@
               </div>
             </div>
           </article>
+        `).join('') : `
+          <div class="col-span-full card-pro rounded-[24px] border-dashed p-8 text-center">
+            <p class="text-xs font-semibold text-inkMuted dark:text-white/60">No hay juegos que coincidan con "${esc(uiState.shelfSearch)}"</p>
+          </div>
         `;
-      }).join('');
 
       const deletedDefaultsCount = DEFAULT_GAMES.filter((d) => deletedGameIds.includes(d.id) && !games.some((g) => g.id === d.id)).length;
+      const sortOpts = [
+        { val: 'default', label: 'Colección' },
+        { val: 'most_played', label: 'Más jugados' },
+        { val: 'az', label: 'A–Z' },
+        { val: 'calc', label: 'Con marcador' },
+      ];
 
       container.innerHTML = `
         <div class="flex items-center justify-between gap-2 px-0.5">
           <div>
             <h2 class="font-display text-base font-extrabold text-ink dark:text-white">Tu Ludoteca (${games.length})</h2>
-            <p class="text-xs text-inkMuted dark:text-white/55">Edita, borra o añade juegos a tu estantería</p>
+            <p class="text-xs text-inkMuted dark:text-white/55">Edita, ordena o añade juegos a tu estantería</p>
           </div>
           <button type="button" data-action="open-add-game"
             class="btn-tap btn-primary-pro px-3.5 py-2 rounded-xl text-white text-xs font-bold shrink-0">
             + Añadir juego
           </button>
+        </div>
+
+        <div class="space-y-2.5">
+          <div class="relative">
+            <svg class="w-4 h-4 text-inkMuted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="shelf-search-input" type="search" value="${esc(uiState.shelfSearch)}" placeholder="Buscar en tu estantería..."
+              class="w-full h-10 pl-10 pr-4 card-pro focus:border-emeraldBrand rounded-2xl text-xs sm:text-sm text-ink dark:text-white outline-none" />
+          </div>
+
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+            ${sortOpts.map((o) => `
+              <button type="button" data-action="set-shelf-sort" data-val="${o.val}"
+                class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${uiState.shelfSort === o.val ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-xs' : 'card-pro text-inkMuted dark:text-white/75'}">
+                ${o.label}
+              </button>
+            `).join('')}
+          </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -6051,6 +6242,16 @@
           </div>
         ` : ''}
       `;
+
+      const shelfSearchEl = document.getElementById('shelf-search-input');
+      if (shelfSearchEl) {
+        shelfSearchEl.addEventListener('input', (e) => {
+          uiState.shelfSearch = e.target.value;
+          renderShelfTab();
+          const el = document.getElementById('shelf-search-input');
+          if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+        });
+      }
     }
 
     function openGameModal(existingGame = null) {
@@ -6442,8 +6643,14 @@
             draft.customWinMode = '';
             draft.playMode = '';
             draft.manualWinnerOverride = false;
+            uiState.logGameSearch = '';
+            uiState.logSearchOpen = false;
             saveDraftLocal();
             renderLogTab();
+            setTimeout(() => {
+              const activePill = document.querySelector('[data-active-game-pill="true"]');
+              if (activePill) activePill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }, 30);
             break;
           }
           case 'quick-log-game': {
@@ -6454,8 +6661,14 @@
             draft.customWinMode = '';
             draft.playMode = '';
             draft.manualWinnerOverride = false;
+            uiState.logGameSearch = '';
+            uiState.logSearchOpen = false;
             saveDraftLocal();
             switchTab('log');
+            setTimeout(() => {
+              const activePill = document.querySelector('[data-active-game-pill="true"]');
+              if (activePill) activePill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }, 60);
             break;
           }
           case 'set-play-mode': {
@@ -6666,6 +6879,39 @@
           }
           case 'restore-default-games': {
             restoreDefaultGames();
+            break;
+          }
+          case 'toggle-log-search': {
+            uiState.logSearchOpen = !uiState.logSearchOpen;
+            if (!uiState.logSearchOpen) uiState.logGameSearch = '';
+            renderLogTab();
+            if (uiState.logSearchOpen) {
+              const inp = document.getElementById('log-game-search-input');
+              if (inp) inp.focus();
+            }
+            break;
+          }
+          case 'set-shelf-sort': {
+            uiState.shelfSort = el.dataset.val || 'default';
+            renderShelfTab();
+            break;
+          }
+          case 'rematch-match': {
+            const m = matchHistory.find((x) => x.id === el.dataset.id);
+            if (m) {
+              const g = getGameById(m.gameId);
+              draft = createEmptyDraft(g.id);
+              draft.duration = m.duration || g.defaultDuration || 30;
+              if (Array.isArray(m.players) && m.players.length > 0) {
+                draft.players = m.players.map((p) => ({ name: p.name || '', score: '', winner: false, tag: '' }));
+              }
+              if (m.meta?.playMode) draft.playMode = m.meta.playMode;
+              if (m.meta?.boardSide) draft.harmoniesSide = m.meta.boardSide;
+              if (m.meta?.spirit !== undefined) draft.harmoniesSpirit = Boolean(m.meta.spirit);
+              saveDraftLocal();
+              switchTab('log');
+              showToast(`Revancha lista: ${g.name}`, 'success');
+            }
             break;
           }
         }
