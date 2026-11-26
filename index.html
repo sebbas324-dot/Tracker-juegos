@@ -680,13 +680,13 @@
         color: '#991B1B',
         color2: '#450A0A',
         icon: 'target',
-        scoringType: 'coop',
+        scoringType: 'winner_only',
         minPlayers: 1,
-        maxPlayers: 4,
+        maxPlayers: 5,
         defaultDuration: 20,
         extraType: 'last_bullet',
-        playModes: ['Cooperativo', 'Solitario'],
-        tagline: 'Supervivencia solo o cooperativo',
+        playModes: ['PvP', 'Cooperativo', 'Solitario'],
+        tagline: 'PvP (2–5 jug.), cooperativo o solitario',
       },
       {
         id: 'splendor_marvel',
@@ -1058,6 +1058,28 @@
       if (!wm) return '';
       if (wm === '__custom__') return (draft.customWinMode || '').trim() || game.winModes[0];
       return wm;
+    }
+
+    function getEffectiveScoringType(game, playMode = null) {
+      if (!game) return 'points';
+      if (game.extraType === 'last_bullet') {
+        const pm = String(playMode ?? getEffectivePlayMode(game)).toLowerCase();
+        if (pm.includes('coop') || pm.includes('solitario') || pm.includes('automa')) return 'coop';
+        return 'winner_only';
+      }
+      return game.scoringType || 'points';
+    }
+
+    function getMatchScoringType(match) {
+      if (match && match.scoringType) return match.scoringType;
+      const g = getGameById(match?.gameId);
+      if (g.extraType === 'last_bullet') {
+        const pm = String(match?.meta?.playMode || '').toLowerCase();
+        if (pm.includes('pvp')) return 'winner_only';
+        if (pm.includes('coop') || pm.includes('solitario') || match?.meta?.coopWon !== undefined) return 'coop';
+        return 'winner_only';
+      }
+      return g.scoringType || 'points';
     }
 
     // Estado temporal para los marcadores en vivo
@@ -1449,6 +1471,14 @@
             existing.icon = 'camel';
             gamesChanged = true;
           }
+          if (def.id === 'last_bullet' && (!Array.isArray(existing.playModes) || !existing.playModes.includes('PvP') || existing.maxPlayers !== 5 || existing.tagline === 'Duelo PvP, cooperativo o solitario')) {
+            existing.playModes = [...def.playModes];
+            existing.scoringType = def.scoringType;
+            existing.extraType = 'last_bullet';
+            existing.maxPlayers = 5;
+            existing.tagline = def.tagline;
+            gamesChanged = true;
+          }
         }
       });
       if (gamesChanged) saveGamesLocal();
@@ -1816,7 +1846,7 @@
     // =========================================================================
     function syncAutoWinners() {
       const g = getGameById(draft.gameId);
-      if (g.scoringType !== 'points' || draft.manualWinnerOverride) return;
+      if (getEffectiveScoringType(g) !== 'points' || draft.manualWinnerOverride) return;
       const numeric = draft.players.map((p) => (p.score === '' || p.score === null ? null : Number(p.score)));
       const valid = numeric.filter((n) => n !== null && !isNaN(n));
       if (valid.length === 0) {
@@ -1950,7 +1980,7 @@
             </div>
           </div>
         `);
-      } else if (game.extraType === 'themind' || game.scoringType === 'coop') {
+      } else if (game.extraType === 'themind' || getEffectiveScoringType(game) === 'coop') {
         const showLevels = game.extraType === 'themind';
         blocks.push(`
           <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/10 space-y-3">
@@ -2088,8 +2118,9 @@
       ` : '';
 
       const playerRowsHtml = draft.players.map((pl, idx) => {
-        const isPoints = game.scoringType === 'points';
-        const isCoop = game.scoringType === 'coop';
+        const effScoring = getEffectiveScoringType(game);
+        const isPoints = effScoring === 'points';
+        const isCoop = effScoring === 'coop';
         const showTfmCorp = game.extraType === 'tfm';
 
         return `
@@ -2206,7 +2237,7 @@
             <div class="space-y-2.5">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">
-                  Jugadores (${draft.players.length})${game.scoringType === 'winner_only' ? ' · toca la corona' : ''}
+                  Jugadores (${draft.players.length})${getEffectiveScoringType(game) === 'winner_only' ? ' · toca la corona' : ''}
                 </span>
                 <button type="button" data-action="add-draft-player"
                   class="btn-tap px-2.5 py-1 rounded-xl bg-emeraldBrand/12 hover:bg-emeraldBrand/18 text-emeraldBrand dark:text-emerald-300 text-xs font-bold">
@@ -2402,7 +2433,7 @@
         parts.push(`${draft.coopWon ? 'Superado' : 'Derrota'} · Nivel ${draft.coopLevel}`);
         meta.coopWon = draft.coopWon;
         meta.level = draft.coopLevel;
-      } else if (game.scoringType === 'coop') {
+      } else if (getEffectiveScoringType(game) === 'coop') {
         if (playMode) parts.push(playMode);
         parts.push(draft.coopWon ? 'Superado' : 'Derrota');
         meta.coopWon = draft.coopWon;
@@ -2429,10 +2460,11 @@
         const nonEmpty = sourcePlayers.filter((p) => p.name.trim() || (p.score !== '' && p.score !== null) || p.winner || (p.tag || '').trim());
         sourcePlayers = nonEmpty.length > 0 ? nonEmpty : [sourcePlayers[0]];
       }
+      const effScoring = getEffectiveScoringType(game);
       const cleanedPlayers = sourcePlayers
         .map((p, i) => ({
           name: p.name.trim() || `Jugador ${i + 1}`,
-          score: game.scoringType === 'points' && p.score !== '' && p.score !== null ? Number(p.score) : null,
+          score: effScoring === 'points' && p.score !== '' && p.score !== null ? Number(p.score) : null,
           winner: Boolean(p.winner),
           tag: (p.tag || '').trim(),
         }));
@@ -2442,7 +2474,7 @@
         return;
       }
 
-      if (game.scoringType === 'points') {
+      if (effScoring === 'points') {
         const hasAnyScore = cleanedPlayers.some((p) => p.score !== null && !isNaN(p.score));
         if (!hasAnyScore && !cleanedPlayers.some((p) => p.winner)) {
           showToast('Introduce al menos una puntuación o marca un ganador', 'neutral');
@@ -2470,7 +2502,7 @@
             p.rank = tied ? prev.rank : idx + 1;
           }
         });
-      } else if (game.scoringType === 'winner_only') {
+      } else if (effScoring === 'winner_only') {
         if (!cleanedPlayers.some((p) => p.winner)) {
           showToast('Toca la corona del jugador ganador', 'neutral');
           return;
@@ -2478,7 +2510,7 @@
         cleanedPlayers.sort((a, b) => (b.winner ? 1 : 0) - (a.winner ? 1 : 0));
         cleanedPlayers.forEach((p) => { p.rank = p.winner ? 1 : 2; });
       } else {
-        // Cooperativo
+        // Cooperativo o Solitario supervivencia
         cleanedPlayers.forEach((p) => {
           p.winner = draft.coopWon;
           p.rank = draft.coopWon ? 1 : 2;
@@ -2488,7 +2520,7 @@
       const { label: extraLabel, meta } = buildMatchExtra(game);
       const winners = cleanedPlayers.filter((p) => p.winner);
       let winnerLabel = '';
-      if (game.scoringType === 'coop') {
+      if (effScoring === 'coop') {
         if (game.extraType === 'themind') {
           winnerLabel = draft.coopWon ? `¡Victoria! (Nv. ${draft.coopLevel})` : `Derrota en Nv. ${draft.coopLevel}`;
         } else {
@@ -2520,7 +2552,7 @@
         createdAtMs,
         gameId: game.id,
         gameName: game.name,
-        scoringType: game.scoringType,
+        scoringType: effScoring,
         duration: Number(draft.duration) || 0,
         extraLabel,
         winnerLabel,
@@ -4152,7 +4184,7 @@
       const pA = players.find((p) => normName(p.name) === keyA);
       const pB = players.find((p) => normName(p.name) === keyB);
       if (!pA || !pB) return null;
-      if (g.scoringType === 'coop') {
+      if (getMatchScoringType(match) === 'coop') {
         return { kind: 'coop', won: Boolean(match.meta?.coopWon), pA, pB };
       }
 
@@ -4174,6 +4206,11 @@
       // 3) Flag de ganador
       if (Boolean(pA.winner) !== Boolean(pB.winner)) {
         return { kind: 'duel', outcome: pA.winner ? 'A' : 'B', pA, pB };
+      }
+
+      // En juegos de solo ganador con 3+ jugadores, si ganó un tercero ninguno venció al otro (no es empate entre A y B)
+      if (!pA.winner && !pB.winner && getMatchScoringType(match) === 'winner_only') {
+        return { kind: 'duel', outcome: 'none', pA, pB };
       }
 
       return { kind: 'duel', outcome: 'tie', pA, pB };
@@ -4729,12 +4766,15 @@
         const matches = byGameMap[gid];
         const badges = [];
 
-        if (g.scoringType === 'coop') {
+        const coopMatches = matches.filter((m) => getMatchScoringType(m) === 'coop');
+        const compMatches = matches.filter((m) => getMatchScoringType(m) !== 'coop');
+
+        if (coopMatches.length > 0) {
           let maxLevel = 0;
           let coopWins = 0;
           let maxLevelHolders = [];
           const allCoopNames = new Set();
-          matches.forEach((m) => {
+          coopMatches.forEach((m) => {
             const lvl = Number(m.meta?.level) || 0;
             const won = Boolean(m.meta?.coopWon);
             if (won) coopWins++;
@@ -4748,26 +4788,28 @@
             }
           });
           const hasLevels = g.extraType === 'themind' || maxLevel > 0;
-          const coopRate = matches.length > 0 ? Math.round((coopWins / matches.length) * 100) : 0;
+          const coopRate = coopMatches.length > 0 ? Math.round((coopWins / coopMatches.length) * 100) : 0;
           const teamHolders = maxLevelHolders.length ? maxLevelHolders : (allCoopNames.size ? Array.from(allCoopNames) : ['Equipo']);
           badges.push({
             id: `${gid}_coop`,
-            title: hasLevels ? 'Mente Colectiva' : `Superviviente · ${g.name}`,
-            subtitle: hasLevels ? 'Nivel máximo alcanzado en equipo' : 'Balance en solitario y cooperativo',
+            title: hasLevels ? 'Mente Colectiva' : `Superviviente Coop · ${g.name}`,
+            subtitle: hasLevels ? 'Nivel máximo alcanzado en equipo' : 'Balance en cooperativo y solitario',
             tier: 'emerald',
             symbol: hasLevels ? 'team' : 'target',
             holders: teamHolders,
             metric: hasLevels ? `Nivel ${maxLevel}` : `${coopRate}% éxito`,
-            detail: `${coopWins} ${coopWins === 1 ? 'victoria' : 'victorias'} en ${matches.length} ${matches.length === 1 ? 'intento' : 'intentos'}`,
+            detail: `${coopWins} ${coopWins === 1 ? 'victoria' : 'victorias'} en ${coopMatches.length} ${coopMatches.length === 1 ? 'intento' : 'intentos'}`,
             isTeamBadge: true,
           });
-        } else {
+        }
+
+        if (compMatches.length > 0) {
           const gp = {};
           let gameRecord = null;
           const crownWinsByPlayer = {};
           let bestSpiritScore = null;
 
-          matches.forEach((m) => {
+          compMatches.forEach((m) => {
             (m.players || []).forEach((p) => {
               const name = (p.name || '').trim();
               if (!name || !isAllowed(name)) return;
@@ -4805,13 +4847,13 @@
           if (gMostWins) {
             badges.push({
               id: `${gid}_wins`,
-              title: g.scoringType === 'winner_only' ? 'Último Superviviente' : `Campeón de ${g.name}`,
-              subtitle: isDirectDuel ? 'Más duelos ganados' : 'Más partidas ganadas',
+              title: g.scoringType === 'winner_only' ? (g.extraType === 'last_bullet' ? 'Pistolero PvP' : 'Último Superviviente') : `Campeón de ${g.name}`,
+              subtitle: isDirectDuel ? 'Más duelos ganados' : (g.extraType === 'last_bullet' ? 'Más partidas PvP ganadas' : 'Más partidas ganadas'),
               tier: 'gold',
               symbol: 'crown',
               holders: gMostWins.holders,
               metric: `${gMostWins.value} ${gMostWins.value === 1 ? 'victoria' : 'victorias'}`,
-              detail: `De ${matches.length} ${matches.length === 1 ? 'partida registrada' : 'partidas registradas'}`,
+              detail: `De ${compMatches.length} ${compMatches.length === 1 ? 'partida registrada' : 'partidas registradas'}`,
             });
           }
 
@@ -5539,6 +5581,23 @@
             values: entries.map(([, v]) => v),
             colors: entries.map((_, idx) => palette[idx % palette.length]),
           };
+        } else if (selectedGameObj.extraType === 'last_bullet') {
+          const modeCounts = {};
+          subset.forEach((m) => {
+            const pm = String(m.meta?.playMode || (getMatchScoringType(m) === 'coop' ? 'Cooperativo' : 'PvP')).trim();
+            modeCounts[pm] = (modeCounts[pm] || 0) + 1;
+          });
+          const entries = Object.entries(modeCounts).filter(([, v]) => v > 0);
+          if (entries.length > 0) {
+            const colorMap = { 'PvP': '#991B1B', 'Cooperativo': '#227554', 'Solitario': '#D9911E' };
+            extraChartConfig = {
+              type: 'win_modes',
+              title: `Modos jugados en ${selectedGameObj.name}`,
+              labels: entries.map(([k]) => k),
+              values: entries.map(([, v]) => v),
+              colors: entries.map(([k]) => colorMap[k] || '#475569'),
+            };
+          }
         } else if (selectedGameObj.scoringType === 'coop') {
           let wins = 0, losses = 0;
           subset.forEach((m) => {
@@ -6397,9 +6456,11 @@
                 const scoringType = currentMode || 'points';
                 const defaultDuration = Math.max(5, Math.min(360, Number(currentDur) || 30));
                 const parsedWinModes = currentWinModesStr.split(',').map((s) => s.trim()).filter(Boolean);
-                const parsedPlayModes = currentHasSolo
-                  ? (scoringType === 'coop' ? ['Cooperativo', 'Solitario'] : ['Multijugador', 'Solitario'])
-                  : undefined;
+                const parsedPlayModes = existingGame?.extraType === 'last_bullet'
+                  ? (currentHasSolo ? ['PvP', 'Cooperativo', 'Solitario'] : ['PvP', 'Cooperativo'])
+                  : (currentHasSolo
+                    ? (scoringType === 'coop' ? ['Cooperativo', 'Solitario'] : ['Multijugador', 'Solitario'])
+                    : undefined);
 
                 if (isEdit) {
                   const target = games.find((g) => g.id === existingGame.id);
