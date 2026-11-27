@@ -417,7 +417,8 @@ img, svg, video, canvas {
       align-items: center;
       justify-content: space-between;
       gap: 0.35rem;
-      padding: 0.18rem 0.34rem;
+      padding: 0.18rem 0.36rem;
+      border: 1px solid transparent;
       border-radius: 0.6rem;
       text-align: left;
       transition: background-color 0.15s ease, transform 0.13s cubic-bezier(0.22, 1, 0.36, 1);
@@ -428,7 +429,7 @@ img, svg, video, canvas {
     .shelf-top3-row.is-first {
       padding: 0.24rem 0.36rem;
       background: linear-gradient(90deg, rgba(251, 191, 36, 0.19) 0%, rgba(251, 191, 36, 0.05) 100%);
-      border: 1px solid rgba(251, 191, 36, 0.26);
+      border-color: rgba(251, 191, 36, 0.26);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
     }
     .shelf-top3-icon {
@@ -471,7 +472,11 @@ img, svg, video, canvas {
     .shelf-top3-score {
       display: inline-flex;
       align-items: center;
+      justify-content: flex-end;
       gap: 2px;
+      padding: 2px 5px;
+      border-radius: 6px;
+      border: 1px solid transparent;
       font-size: 9.5px;
       font-weight: 800;
       line-height: 1;
@@ -480,10 +485,8 @@ img, svg, video, canvas {
       color: #FCD34D;
     }
     .shelf-top3-score.is-first {
-      padding: 2px 5px;
-      border-radius: 6px;
       background: rgba(251, 191, 36, 0.20);
-      border: 1px solid rgba(251, 191, 36, 0.28);
+      border-color: rgba(251, 191, 36, 0.28);
       color: #FEF3C7;
     }
 

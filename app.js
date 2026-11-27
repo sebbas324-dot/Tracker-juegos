@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v2.6';
+const APP_VERSION = 'v2.7';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -3543,8 +3543,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v26 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v26';
+  return `// Ludoteca — Service Worker Offline v27 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v27';
 const PRECACHE_URLS = [
   './',
   './index.html',
