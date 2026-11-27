@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v2.0';
+const APP_VERSION = 'v2.1';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -3543,8 +3543,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v20 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v20';
+  return `// Ludoteca — Service Worker Offline v21 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v21';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -10091,7 +10091,10 @@ function renderStatsTab() {
       if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
         const sc = Number(p.score);
         st.scores.push(sc);
-        if (isLowestWinsFilter ? sc < st.bestScore : sc > st.bestScore) st.bestScore = sc;
+        const mg = getGameById(m.gameId);
+        if (!(uiState.statsFilterGame === 'all' && mg.lowestWins)) {
+          if (isLowestWinsFilter ? sc < st.bestScore : sc > st.bestScore) st.bestScore = sc;
+        }
       }
       st.byGame[m.gameName] = (st.byGame[m.gameName] || 0) + 1;
     });
@@ -10125,7 +10128,7 @@ function renderStatsTab() {
       if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
         const sc = Number(p.score);
         if (!recordEntry || (isLowestWinsFilter ? sc < recordEntry.score : sc > recordEntry.score)) {
-          recordEntry = { score: sc, player: p.name, game: m.gameName, isSpecial: false };
+          recordEntry = { score: sc, player: p.name, game: m.gameName, date: m.date, createdAtMs: m.createdAtMs, isSpecial: false };
         }
       }
     });
@@ -10658,16 +10661,21 @@ function renderStatsTab() {
     </div>
   `;
 
-  // Tercer KPI adaptativo según modo (Todos / 1 Jugador / VS), equilibrado con Récord
-  const showSecondKpiLine = Boolean(recordEntry && uiState.statsFilterGame === 'all');
+  // Tercer KPI adaptativo según modo (Todos / 1 Jugador / VS), siempre simétrico con Récord
+  const recordSecondLine = !recordEntry
+    ? ''
+    : (uiState.statsFilterGame === 'all'
+      ? recordEntry.game
+      : (recordEntry.subNote || (recordEntry.date ? formatDisplayDate(recordEntry.date, recordEntry.createdAtMs) : '')));
+  const showSecondKpiLine = Boolean(recordSecondLine);
   const thirdKpiHtml = pCtx.mode === 'single' && leaderboard[0] ? (() => {
     const st0 = leaderboard[0];
     const line1 = st0.coopOnly
       ? `${st0.wins} de ${st0.effectivePlays} coop`
       : `${st0.wins} de ${st0.effectivePlays}${st0.coopPlays > 0 ? ` (+${st0.coopPlays} coop)` : ' partidas'}`;
-    const line2 = st0.topWonGame
-      ? `Fuerte: ${st0.topWonGame}`
-      : (st0.favGame ? `Más jugado: ${st0.favGame}` : '');
+    const line2 = uiState.statsFilterGame !== 'all'
+      ? (st0.avg !== null ? `Media: ${st0.avg} pts` : (Number.isFinite(st0.bestScore) ? `${isLowestWinsFilter ? 'Mín' : 'Máx'}. pts: ${st0.bestScore}` : ''))
+      : (st0.topWonGame ? `Fuerte: ${st0.topWonGame}` : (st0.favGame ? `Más jugado: ${st0.favGame}` : ''));
     return `
       <div class="card-pro kpi-card-violet p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
         <div class="flex items-center justify-between gap-1">
@@ -10678,7 +10686,7 @@ function renderStatsTab() {
         </div>
         <div class="font-display text-2xl font-extrabold text-emeraldBrand dark:text-emerald-400 tabular-nums mt-1.5 leading-none">${st0.winRate}%</div>
         <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate tabular-nums">${esc(line1)}</div>
-        ${showSecondKpiLine && line2 ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5">${esc(line2)}</div>` : ''}
+        ${showSecondKpiLine && line2 ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5 tabular-nums">${esc(line2)}</div>` : ''}
       </div>
     `;
   })() : pCtx.mode === 'vs' && vsSummary ? (() => {
@@ -10689,7 +10697,7 @@ function renderStatsTab() {
       ? `${vsSummary.sharedCompPlays} duelos · +${vsSummary.coopShared} coop`
       : (vsSummary.ties > 0
         ? `${vsSummary.ties} ${vsSummary.ties === 1 ? 'empate' : 'empates'}`
-        : (vsSummary.topSharedGame ? `Top: ${vsSummary.topSharedGame}` : ''));
+        : (uiState.statsFilterGame === 'all' && vsSummary.topSharedGame ? `Top: ${vsSummary.topSharedGame}` : `${vsSummary.sharedCompPlays} ${vsSummary.sharedCompPlays === 1 ? 'duelo' : 'duelos'}`));
     return `
       <div class="card-pro kpi-card-violet p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
         <div class="flex items-center justify-between gap-1">
@@ -10705,7 +10713,11 @@ function renderStatsTab() {
     `;
   })() : (() => {
     const leader = leaderboard[0];
-    const line2 = leader ? `${leader.wins}V · ${leader.winRate}% éxito` : '';
+    const line2 = leader
+      ? (Number.isFinite(leader.bestScore)
+        ? `${isLowestWinsFilter ? 'Mín' : 'Máx'}. pts: ${leader.bestScore}`
+        : `${leader.wins}V · ${leader.winRate}% éxito`)
+      : '';
     return `
       <div class="card-pro kpi-card-violet p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
         <div class="flex items-center justify-between gap-1">
@@ -10865,11 +10877,9 @@ function renderStatsTab() {
             ${gameIconSvg('crown', 'w-3.5 h-3.5')}
           </span>
         </div>
-        <div class="font-display ${recordEntry?.isSpecial ? 'text-xl' : 'text-2xl'} font-extrabold text-goldBrand tabular-nums mt-1.5 leading-none truncate">${recordEntry ? (recordEntry.isSpecial ? esc(recordEntry.display) : recordEntry.score) : '—'}</div>
+        <div class="font-display ${recordEntry?.isSpecial ? 'text-xl' : 'text-2xl'} font-extrabold text-goldBrand tabular-nums mt-1.5 leading-none truncate" style="min-height:1.5rem; display:flex; align-items:flex-end;">${recordEntry ? (recordEntry.isSpecial ? esc(recordEntry.display) : recordEntry.score) : '—'}</div>
         <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${recordEntry ? esc(recordEntry.player) : 'Sin puntos'}</div>
-        ${recordEntry && uiState.statsFilterGame === 'all'
-          ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5">${esc(recordEntry.game)}</div>`
-          : (recordEntry?.subNote ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5">${esc(recordEntry.subNote)}</div>` : '')}
+        ${recordSecondLine ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5 tabular-nums">${esc(recordSecondLine)}</div>` : ''}
       </div>
     </div>
 
@@ -11598,7 +11608,7 @@ function renderShelfTab() {
     <div class="flex items-center justify-between gap-2 px-0.5">
       <div class="min-w-0">
         <h2 class="font-display text-base font-extrabold text-ink dark:text-white">Tu Ludoteca (${games.length})</h2>
-        <p class="text-xs text-inkMuted dark:text-white/55 truncate">${isHome ? 'Vista general · <strong class="text-ink dark:text-white">promedio de todos</strong>' : `Perfil de <strong class="text-ink dark:text-white">${esc(activeProfile.name)}</strong> · notas, favoritos y partidas`}</p>
+        <p class="text-xs text-inkMuted dark:text-white/55 truncate">${isHome ? 'Promedio de todos los perfiles' : `Perfil de <strong class="text-ink dark:text-white">${esc(activeProfile.name)}</strong> · notas y partidas`}</p>
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
         <button type="button" data-action="open-table-tools-tab" data-tab="picker"
@@ -11624,13 +11634,15 @@ function renderShelfTab() {
       </button>
       ${shelfProfiles.map((prof) => {
         const isAct = !isHome && prof.key === activeProfile.key;
-        const countTag = prof.ratedCount > 0 ? `★${prof.ratedCount}` : (prof.favCount > 0 ? `♥${prof.favCount}` : '');
+        const favBadge = prof.favCount > 0
+          ? `<span class="inline-flex items-center gap-0.5 text-[10px] font-extrabold tabular-nums ${isAct ? 'text-amber-300' : 'text-inkMuted dark:text-white/60'}" title="${prof.favCount} ${prof.favCount === 1 ? 'juego favorito' : 'juegos favoritos'}"><span class="${isAct ? 'text-amber-300' : 'text-goldBrand'}">★</span>${prof.favCount}</span>`
+          : '';
         return `
           <button type="button" data-action="set-shelf-profile" data-key="${esc(prof.key)}"
             class="profile-chip btn-tap shrink-0 ${isAct ? 'is-active' : ''}">
             ${renderPlayerAvatarHtml(prof.name, 'w-5 h-5 text-[9px] ring-1 ring-white/25')}
             <span>${esc(prof.name)}</span>
-            ${countTag ? `<span class="text-[10px] font-extrabold tabular-nums ${isAct ? 'text-amber-300' : 'text-inkMuted dark:text-white/50'}">${countTag}</span>` : ''}
+            ${favBadge}
           </button>
         `;
       }).join('')}
