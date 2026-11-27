@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v2.5';
+const APP_VERSION = 'v2.6';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -1291,7 +1291,7 @@ function getGameAverageRating(g) {
 
 function formatAverageRating(avg) {
   if (!avg || avg <= 0) return '';
-  return Number(avg.toFixed(1)).toString();
+  return Number(avg).toFixed(1);
 }
 
 function isGameFavoriteByAny(g) {
@@ -1647,7 +1647,7 @@ function syncSegmentedControls() {
 function formatStarRating(raw) {
   const val = normalizeStarRating(raw);
   if (!val) return '';
-  return val.toFixed(1).replace(/\.0$/, '');
+  return val.toFixed(1);
 }
 
 function renderStarSvg(state, uid) {
@@ -3543,8 +3543,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v25 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v25';
+  return `// Ludoteca — Service Worker Offline v26 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v26';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -11693,7 +11693,7 @@ function renderShelfTab() {
       <div class="min-w-0">
         <h2 class="font-display text-base font-extrabold text-ink dark:text-white leading-tight truncate">Tu Ludoteca (${games.length})</h2>
         <p class="text-xs text-inkMuted dark:text-white/55 mt-0.5 truncate">${isHome ? 'Promedio general' : `Perfil de <strong class="text-ink dark:text-white">${esc(activeProfile.name)}</strong>`}</p>
-        <p class="text-[10.5px] font-semibold text-emeraldBrand dark:text-emerald-400 mt-1 tabular-nums leading-none truncate">${ratedTotal} ${ratedTotal === 1 ? 'valorado' : 'valorados'} · ${playedTotal} ${playedTotal === 1 ? 'jugado' : 'jugados'}</p>
+        <p class="text-[10.5px] font-semibold text-emeraldBrand dark:text-emerald-400 mt-1 tabular-nums leading-tight truncate">${ratedTotal} ${ratedTotal === 1 ? 'valorado' : 'valorados'} · ${playedTotal} ${playedTotal === 1 ? 'jugado' : 'jugados'}</p>
       </div>
       ${miniTop3Html}
     </div>
