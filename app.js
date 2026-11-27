@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v2.4';
+const APP_VERSION = 'v2.5';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -3543,8 +3543,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v24 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v24';
+  return `// Ludoteca — Service Worker Offline v25 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v25';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -4421,11 +4421,11 @@ function renderLogTab() {
       <button type="button" data-action="select-game" data-game-id="${esc(g.id)}" ${active ? 'data-active-game-pill="true"' : ''}
         class="btn-tap shrink-0 w-[110px] p-2.5 rounded-[20px] text-left transition-all flex flex-col justify-between gap-2.5 relative overflow-hidden ${
           active
-            ? 'text-white cover-sheen ring-2 ring-offset-2 ring-offset-canvas dark:ring-offset-canvasDark'
-            : 'card-pro text-ink dark:text-white hover:border-black/15 dark:hover:border-white/20'
+            ? 'text-white cover-sheen carousel-pill-active'
+            : 'carousel-pill text-ink dark:text-white hover:border-black/15 dark:hover:border-white/20'
         }"
         style="${active
-          ? `background: linear-gradient(145deg, ${g.color}, ${g.color2 || g.color}); --tw-ring-color: ${g.color}; box-shadow: 0 14px 26px -10px ${g.color}AA;`
+          ? `background: linear-gradient(145deg, ${g.color}, ${g.color2 || g.color}); --pill-accent: ${g.color};`
           : ''}"
       >
         ${active ? `<div class="cover-watermark">${gameIconSvg(g.icon, 'w-14 h-14')}</div>` : ''}
@@ -4488,7 +4488,7 @@ function renderLogTab() {
   const currentNamesLower = draft.players.map((p) => p.name.trim().toLowerCase());
   const availableChips = frequentPlayers.filter((n) => !currentNamesLower.includes(n.toLowerCase()));
   const quickPlayerChipsHtml = availableChips.length > 0 ? `
-    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+    <div class="scroll-strip no-scrollbar">
       <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted/80 dark:text-white/45 shrink-0">Rápido:</span>
       ${availableChips.map((name) => `
         <button type="button" data-action="quick-fill-player" data-name="${esc(name)}"
@@ -4627,7 +4627,7 @@ function renderLogTab() {
             class="w-full h-9 pl-9 pr-3 card-pro focus:border-emeraldBrand rounded-xl text-xs font-semibold text-ink dark:text-white outline-none" />
         </div>
       ` : ''}
-      <div id="log-game-carousel" class="flex items-stretch gap-2.5 overflow-x-auto no-scrollbar py-1.5 -mx-1 px-1">
+      <div id="log-game-carousel" class="scroll-strip-cards no-scrollbar">
         ${gamePills}
       </div>
     </div>
@@ -5292,7 +5292,7 @@ function renderFlip7Modal() {
     <div class="space-y-4">
       ${maxTotal >= 200 ? `<div class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/35 text-amber-800 dark:text-amber-200 text-xs font-bold text-center">¡Alguien llegó a 200+ pts! Termina la ronda y pasa los totales al registro.</div>` : ''}
 
-      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div class="scroll-strip-cards is-tight no-scrollbar">
         ${playerStrip}
       </div>
 
@@ -5533,7 +5533,7 @@ function renderSushiModal() {
       </div>
 
       <!-- Jugadores -->
-      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
+      <div class="scroll-strip-cards is-tight no-scrollbar">
         ${sushiState.players.map((p, i) => `
           <button type="button" data-sg="player" data-idx="${i}"
             class="btn-tap shrink-0 min-w-[96px] p-2 rounded-xl border text-left ${
@@ -5937,7 +5937,7 @@ function renderFarawayModal() {
 
   const bodyHtml = `
     <div class="space-y-3.5">
-      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
+      <div class="scroll-strip-cards is-tight no-scrollbar">
         ${playerStrip}
       </div>
 
@@ -6121,7 +6121,7 @@ function renderOdinModal() {
     <div class="space-y-3.5">
       ${gameEnded ? `<div class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/35 text-amber-800 dark:text-amber-200 text-xs font-bold text-center">¡Alguien llegó a 15+ pts! Partida terminada · gana quien tenga MENOS puntos.</div>` : ''}
 
-      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
+      <div class="scroll-strip-cards is-tight no-scrollbar">
         ${playerStrip}
       </div>
 
@@ -6360,7 +6360,7 @@ function renderHarmoniesModal() {
       </div>
 
       <!-- Selector de jugadores -->
-      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
+      <div class="scroll-strip-cards is-tight no-scrollbar">
         ${playerStrip}
       </div>
 
@@ -6664,7 +6664,7 @@ function renderWyrmspanModal() {
 
   const bodyHtml = `
     <div class="space-y-3">
-      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">${playerStrip}</div>
+      <div class="scroll-strip-cards is-tight no-scrollbar">${playerStrip}</div>
 
       <div class="px-3.5 py-2 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10">
         ${numRow('Gremio de Dragones', 'Losetas de bonificación del tablero de Gremio', 'guild', pl.guild, 5)}
@@ -6873,7 +6873,7 @@ function renderTfmModal() {
 
   const bodyHtml = `
     <div class="space-y-3">
-      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">${playerStrip}</div>
+      <div class="scroll-strip-cards is-tight no-scrollbar">${playerStrip}</div>
 
       <div class="px-3.5 py-2 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10">
         ${numRow('Valor de Terraformación (VT)', 'Posición final en el marcador de VT', 'tr', pl.tr, false, 5)}
@@ -7099,7 +7099,7 @@ function renderTtrModal() {
 
   const bodyHtml = `
     <div class="space-y-3">
-      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">${playerStrip}</div>
+      <div class="scroll-strip-cards is-tight no-scrollbar">${playerStrip}</div>
 
       <!-- Recorridos -->
       <div class="p-3.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2.5">
@@ -9877,9 +9877,9 @@ function renderStatsTab() {
     ${playerFilterPillHtml}
 
     ${playedGameIds.length > 0 ? `
-      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+      <div class="scroll-strip no-scrollbar">
         <button type="button" data-action="filter-stats-game" data-val="all"
-          class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${uiState.statsFilterGame === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}">
+          class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${uiState.statsFilterGame === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-xs' : 'pill-chip text-ink dark:text-white/80'}">
           Toda la ludoteca
         </button>
         ${playedGameIds.map((gid) => {
@@ -9887,7 +9887,7 @@ function renderStatsTab() {
           const active = uiState.statsFilterGame === gid;
           return `
             <button type="button" data-action="filter-stats-game" data-val="${esc(gid)}"
-              class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${active ? 'text-white border-transparent' : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-[#E2DACE] dark:border-white/12'}"
+              class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${active ? 'text-white border-transparent shadow-xs' : 'pill-chip text-ink dark:text-white/80'}"
               style="${active ? `background:${g.color};` : ''}">
               <span class="w-2 h-2 rounded-full" style="background:${active ? '#fff' : g.color}"></span>
               <span>${esc(g.name)}</span>
@@ -11874,19 +11874,21 @@ function openGameSheetModal(gameId) {
         <!-- Valoración personal por perfil (1–5 estrellas con medias estrellas) -->
         <div class="p-3.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2.5">
           ${candidates.length > 1 ? `
-            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1.5 border-b border-black/[0.05] dark:border-white/[0.07]">
-              ${candidates.map((c) => {
-                const isSel = c.key === curProf.key;
-                const cRat = draftRatings[c.key] || 0;
-                return `
-                  <button type="button" data-gs="switch-profile" data-key="${esc(c.key)}"
-                    class="profile-chip btn-tap shrink-0 ${isSel ? 'is-active' : ''}">
-                    ${renderPlayerAvatarHtml(c.name, 'w-5 h-5 text-[9px] ring-1 ring-white/25')}
-                    <span>${esc(c.name)}</span>
-                    ${cRat > 0 ? `<span class="text-[10px] font-extrabold tabular-nums ${isSel ? 'text-amber-300' : 'text-goldBrand'}">★${formatStarRating(cRat)}</span>` : ''}
-                  </button>
-                `;
-              }).join('')}
+            <div class="pb-2 border-b border-black/[0.05] dark:border-white/[0.07]">
+              <div class="scroll-strip no-scrollbar">
+                ${candidates.map((c) => {
+                  const isSel = c.key === curProf.key;
+                  const cRat = draftRatings[c.key] || 0;
+                  return `
+                    <button type="button" data-gs="switch-profile" data-key="${esc(c.key)}"
+                      class="profile-chip btn-tap shrink-0 ${isSel ? 'is-active' : ''}">
+                      ${renderPlayerAvatarHtml(c.name, 'w-5 h-5 text-[9px] ring-1 ring-white/25')}
+                      <span>${esc(c.name)}</span>
+                      ${cRat > 0 ? `<span class="text-[10px] font-extrabold tabular-nums ${isSel ? 'text-amber-300' : 'text-goldBrand'}">★${formatStarRating(cRat)}</span>` : ''}
+                    </button>
+                  `;
+                }).join('')}
+              </div>
             </div>
           ` : ''}
 
