@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v2.3';
+const APP_VERSION = 'v2.4';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -3543,8 +3543,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v23 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v23';
+  return `// Ludoteca — Service Worker Offline v24 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v24';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -4600,19 +4600,19 @@ function renderLogTab() {
           </button>
         </div>
       </div>
-      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+      <div class="scroll-strip no-scrollbar">
         <button type="button" data-action="set-log-game-mode" data-val="recent"
-          class="btn-tap shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border ${uiState.logGameMode === 'recent' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-2xs' : 'card-pro text-inkMuted dark:text-white/70'}">
+          class="btn-tap shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border ${uiState.logGameMode === 'recent' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-2xs' : 'pill-chip text-inkMuted dark:text-white/70'}">
           Recientes
         </button>
         ${favCount > 0 ? `
           <button type="button" data-action="set-log-game-mode" data-val="favorites"
-            class="btn-tap shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border ${uiState.logGameMode === 'favorites' ? 'bg-goldBrand text-white border-transparent shadow-2xs' : 'card-pro text-inkMuted dark:text-white/70'}">
+            class="btn-tap shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border ${uiState.logGameMode === 'favorites' ? 'bg-goldBrand text-white border-transparent shadow-2xs' : 'pill-chip text-inkMuted dark:text-white/70'}">
             ★ Favoritos (${favCount})
           </button>
         ` : ''}
         <button type="button" data-action="set-log-game-mode" data-val="all"
-          class="btn-tap shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border ${uiState.logGameMode === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-2xs' : 'card-pro text-inkMuted dark:text-white/70'}">
+          class="btn-tap shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border ${uiState.logGameMode === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-2xs' : 'pill-chip text-inkMuted dark:text-white/70'}">
           Todos
         </button>
         <button type="button" data-action="open-table-tools-tab" data-tab="picker"
@@ -7360,9 +7360,9 @@ function buildHistoryDynamicHtml() {
   const remaining = Math.max(0, filtered.length - visibleSlice.length);
 
   const filterChips = usedGameIds.length > 0 ? `
-    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+    <div class="scroll-strip no-scrollbar">
       <button type="button" data-action="filter-history-game" data-val="all"
-        class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${uiState.historyFilterGame === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-xs' : 'card-pro text-ink dark:text-white/80'}">
+        class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${uiState.historyFilterGame === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-xs' : 'pill-chip text-ink dark:text-white/80'}">
         Todos (${matchHistory.length})
       </button>
       ${usedGameIds.map((gid) => {
@@ -7370,7 +7370,7 @@ function buildHistoryDynamicHtml() {
         const active = uiState.historyFilterGame === gid;
         return `
           <button type="button" data-action="filter-history-game" data-val="${esc(gid)}"
-            class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${active ? 'text-white border-transparent shadow-xs' : 'card-pro text-ink dark:text-white/80'}"
+            class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${active ? 'text-white border-transparent shadow-xs' : 'pill-chip text-ink dark:text-white/80'}"
             style="${active ? `background:${g.color};` : ''}">
             <span class="w-2 h-2 rounded-full" style="background:${active ? '#fff' : g.color}"></span>
             <span>${esc(g.name)}</span>
@@ -11620,7 +11620,7 @@ function renderShelfTab() {
   const playedTotal = enriched.filter((x) => x.playCount > 0).length;
 
   const miniTop3Html = top3Rated.length > 0 ? `
-    <div class="shelf-top3-card flex-1 min-w-0" style="max-width: 244px;">
+    <div class="shelf-top3-card flex-1 min-w-0" style="max-width: 236px;">
       <div class="relative z-10 flex items-center justify-between gap-2 px-1 pb-1 mb-1 border-b border-white/10">
         <span class="inline-flex items-center gap-1 text-[8.5px] font-extrabold uppercase tracking-[0.14em] text-amber-200 leading-none">
           ${gameIconSvg('crown', 'w-2.5 h-2.5 text-amber-300 shrink-0')}
@@ -11658,20 +11658,10 @@ function renderShelfTab() {
   `;
 
   container.innerHTML = `
-    <div class="flex items-center justify-between gap-2.5 px-0.5">
-      <div class="min-w-0 shrink-0">
-        <h2 class="font-display text-base font-extrabold text-ink dark:text-white leading-tight">Tu Ludoteca (${games.length})</h2>
-        <p class="text-xs text-inkMuted dark:text-white/55 mt-0.5 truncate">${isHome ? 'Promedio general' : `Perfil de <strong class="text-ink dark:text-white">${esc(activeProfile.name)}</strong>`}</p>
-        <p class="text-[10.5px] font-semibold text-emeraldBrand dark:text-emerald-400 mt-1 tabular-nums leading-none">${ratedTotal} ${ratedTotal === 1 ? 'valorado' : 'valorados'} · ${playedTotal} ${playedTotal === 1 ? 'jugado' : 'jugados'}</p>
-      </div>
-      ${miniTop3Html}
-    </div>
-
     <!-- Selector de vista de Ludoteca (Inicio promedio general + perfiles individuales) -->
-    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+    <div class="scroll-strip no-scrollbar">
       <button type="button" data-action="set-shelf-profile" data-key="${SHELF_HOME_KEY}"
-        class="profile-chip btn-tap shrink-0 ${isHome ? 'is-active' : ''}"
-        style="padding: 0.38rem 0.68rem;"
+        class="profile-chip is-icon-only btn-tap shrink-0 ${isHome ? 'is-active' : ''}"
         title="Vista general (promedio de todos)" aria-label="Inicio general de Ludoteca">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V9.5"/>
@@ -11692,10 +11682,20 @@ function renderShelfTab() {
         `;
       }).join('')}
       <button type="button" data-action="open-player-profiles"
-        class="btn-tap shrink-0 w-8 h-8 rounded-full card-pro inline-flex items-center justify-center text-inkMuted dark:text-white/70 hover:text-emeraldBrand"
+        class="pill-chip btn-tap shrink-0 w-8 h-8 rounded-full inline-flex items-center justify-center text-inkMuted dark:text-white/70 hover:text-emeraldBrand"
         title="Añadir o editar perfiles" aria-label="Gestionar perfiles">
         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
+    </div>
+
+    <!-- Resumen de Ludoteca + Mini Podio Top 3 -->
+    <div class="flex items-center justify-between gap-3 px-0.5">
+      <div class="min-w-0">
+        <h2 class="font-display text-base font-extrabold text-ink dark:text-white leading-tight truncate">Tu Ludoteca (${games.length})</h2>
+        <p class="text-xs text-inkMuted dark:text-white/55 mt-0.5 truncate">${isHome ? 'Promedio general' : `Perfil de <strong class="text-ink dark:text-white">${esc(activeProfile.name)}</strong>`}</p>
+        <p class="text-[10.5px] font-semibold text-emeraldBrand dark:text-emerald-400 mt-1 tabular-nums leading-none truncate">${ratedTotal} ${ratedTotal === 1 ? 'valorado' : 'valorados'} · ${playedTotal} ${playedTotal === 1 ? 'jugado' : 'jugados'}</p>
+      </div>
+      ${miniTop3Html}
     </div>
 
     <div class="space-y-2.5">
@@ -11705,15 +11705,15 @@ function renderShelfTab() {
           class="w-full h-10 pl-10 pr-4 card-pro focus:border-emeraldBrand rounded-2xl text-xs sm:text-sm text-ink dark:text-white outline-none" />
       </div>
 
-      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+      <div class="scroll-strip no-scrollbar">
         ${sortOpts.map((o) => `
           <button type="button" data-action="set-shelf-sort" data-val="${o.val}"
-            class="btn-tap shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${uiState.shelfSort === o.val ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-xs' : 'card-pro text-inkMuted dark:text-white/75'}">
+            class="btn-tap shrink-0 h-8 px-3 rounded-full text-xs font-bold inline-flex items-center justify-center ${uiState.shelfSort === o.val ? 'bg-pine dark:bg-emeraldBrand text-white border border-transparent shadow-xs' : 'pill-chip text-inkMuted dark:text-white/75'}">
             ${o.label}
           </button>
         `).join('')}
         <button type="button" data-action="open-add-game"
-          class="btn-tap btn-primary-pro shrink-0 w-8 h-8 rounded-full text-white inline-flex items-center justify-center"
+          class="btn-tap btn-add-circle shrink-0 w-8 h-8 rounded-full text-white inline-flex items-center justify-center"
           title="Añadir nuevo juego" aria-label="Añadir nuevo juego">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </button>
