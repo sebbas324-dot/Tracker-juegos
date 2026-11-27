@@ -22,6 +22,7 @@ const KEYS = {
   TABLE_TOOLS: 'ludoteca_table_tools_v1',
   PLAYER_PROFILES: 'ludoteca_player_profiles_v1',
   CATALOG_META: 'ludoteca_catalog_meta_v1',
+  SHELF_PROFILE: 'ludoteca_shelf_profile_v1',
 };
 
 // =========================================================================
@@ -695,6 +696,8 @@ let uiState = {
   logGameMode: 'recent', // 'recent' | 'favorites' | 'all'
   shelfSearch: '',
   shelfSort: 'default', // 'default' | 'favorites' | 'rating' | 'most_played' | 'az' | 'calc'
+  shelfProfileKey: 'sebas',
+  openCorpPickerIdx: -1,
   timerOpen: false,
   expandedMatchId: null,
   heatmapView: 'month', // 'month' | 'year'
@@ -1254,6 +1257,225 @@ function normalizeStarRating(raw) {
   return Math.min(5, Math.max(1, val));
 }
 
+const DEFAULT_OWNER_KEY = 'sebas';
+const DEFAULT_OWNER_NAME = 'Sebas';
+
+function migrateGameRatingsToProfiles(gameList) {
+  if (!Array.isArray(gameList)) return false;
+  let changed = false;
+  gameList.forEach((g) => {
+    if (!g || typeof g !== 'object') return;
+    if (!g.ratingsByPlayer || typeof g.ratingsByPlayer !== 'object' || Array.isArray(g.ratingsByPlayer)) {
+      g.ratingsByPlayer = {};
+      changed = true;
+    }
+    if (!g.favoritesByPlayer || typeof g.favoritesByPlayer !== 'object' || Array.isArray(g.favoritesByPlayer)) {
+      g.favoritesByPlayer = {};
+      changed = true;
+    }
+
+    // Normaliza valores existentes en ratingsByPlayer
+    Object.keys(g.ratingsByPlayer).forEach((k) => {
+      const cleanK = normName(k);
+      const val = normalizeStarRating(g.ratingsByPlayer[k]);
+      if (!cleanK || val <= 0) {
+        delete g.ratingsByPlayer[k];
+        changed = true;
+      } else {
+        if (cleanK !== k) {
+          delete g.ratingsByPlayer[k];
+          changed = true;
+        }
+        if (g.ratingsByPlayer[cleanK] !== val) {
+          g.ratingsByPlayer[cleanK] = val;
+          changed = true;
+        }
+      }
+    });
+
+    // Normaliza claves existentes en favoritesByPlayer
+    Object.keys(g.favoritesByPlayer).forEach((k) => {
+      const cleanK = normName(k);
+      const val = Boolean(g.favoritesByPlayer[k]);
+      if (!cleanK || !val) {
+        delete g.favoritesByPlayer[k];
+        changed = true;
+      } else if (cleanK !== k) {
+        delete g.favoritesByPlayer[k];
+        g.favoritesByPlayer[cleanK] = true;
+        changed = true;
+      }
+    });
+
+    // Migra rating/favorite planos al perfil principal (Sebas) si aún no estaban ahí
+    const legacyRating = normalizeStarRating(g.rating);
+    if (legacyRating > 0 && !g.ratingsByPlayer[DEFAULT_OWNER_KEY]) {
+      g.ratingsByPlayer[DEFAULT_OWNER_KEY] = legacyRating;
+      changed = true;
+    }
+    if (g.favorite === true && !g.favoritesByPlayer[DEFAULT_OWNER_KEY]) {
+      g.favoritesByPlayer[DEFAULT_OWNER_KEY] = true;
+      changed = true;
+    }
+
+    // Mantiene espejados g.rating y g.favorite con Sebas para compatibilidad con columnas de Sheets
+    const ownerRating = normalizeStarRating(g.ratingsByPlayer[DEFAULT_OWNER_KEY]);
+    if (ownerRating > 0) {
+      if (g.rating !== ownerRating) { g.rating = ownerRating; changed = true; }
+    } else if (g.rating !== undefined) {
+      delete g.rating;
+      changed = true;
+    }
+    const ownerFav = Boolean(g.favoritesByPlayer[DEFAULT_OWNER_KEY]);
+    if (Boolean(g.favorite) !== ownerFav) {
+      g.favorite = ownerFav;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+function getGameRatingFor(g, profileKey = null) {
+  if (!g) return 0;
+  const key = normName(profileKey || getActiveShelfProfile().key) || DEFAULT_OWNER_KEY;
+  if (g.ratingsByPlayer && typeof g.ratingsByPlayer === 'object' && g.ratingsByPlayer[key] !== undefined) {
+    return normalizeStarRating(g.ratingsByPlayer[key]);
+  }
+  if (key === DEFAULT_OWNER_KEY) return normalizeStarRating(g.rating);
+  return 0;
+}
+
+function setGameRatingFor(g, rating, profileKey = null) {
+  if (!g) return;
+  const key = normName(profileKey || getActiveShelfProfile().key) || DEFAULT_OWNER_KEY;
+  if (!g.ratingsByPlayer || typeof g.ratingsByPlayer !== 'object') g.ratingsByPlayer = {};
+  const norm = normalizeStarRating(rating);
+  if (norm > 0) g.ratingsByPlayer[key] = norm;
+  else delete g.ratingsByPlayer[key];
+  if (key === DEFAULT_OWNER_KEY) {
+    if (norm > 0) g.rating = norm;
+    else delete g.rating;
+  }
+}
+
+function isGameFavoriteFor(g, profileKey = null) {
+  if (!g) return false;
+  const key = normName(profileKey || getActiveShelfProfile().key) || DEFAULT_OWNER_KEY;
+  if (g.favoritesByPlayer && typeof g.favoritesByPlayer === 'object' && key in g.favoritesByPlayer) {
+    return Boolean(g.favoritesByPlayer[key]);
+  }
+  if (key === DEFAULT_OWNER_KEY) return Boolean(g.favorite);
+  return false;
+}
+
+function setGameFavoriteFor(g, isFav, profileKey = null) {
+  if (!g) return;
+  const key = normName(profileKey || getActiveShelfProfile().key) || DEFAULT_OWNER_KEY;
+  if (!g.favoritesByPlayer || typeof g.favoritesByPlayer !== 'object') g.favoritesByPlayer = {};
+  if (isFav) g.favoritesByPlayer[key] = true;
+  else delete g.favoritesByPlayer[key];
+  if (key === DEFAULT_OWNER_KEY) g.favorite = Boolean(isFav);
+}
+
+function getShelfProfileCandidates() {
+  const map = new Map();
+  const addCandidate = (rawName) => {
+    const clean = String(rawName || '').trim();
+    const key = clean.toLowerCase();
+    if (!key) return;
+    if (!map.has(key)) {
+      const prof = getPlayerProfile(clean);
+      map.set(key, { key, name: prof.name || clean, color: prof.color, initials: prof.initials, ratedCount: 0, favCount: 0 });
+    }
+  };
+
+  // Dueño principal siempre primero
+  const ownerSaved = playerProfiles[DEFAULT_OWNER_KEY]?.name || DEFAULT_OWNER_NAME;
+  addCandidate(ownerSaved);
+
+  // Jugadores del historial ordenados por frecuencia
+  getAllPlayersWithCounts().forEach((p) => addCandidate(p.name));
+  // Perfiles personalizados y frecuentes
+  Object.values(playerProfiles || {}).forEach((p) => addCandidate(p?.name));
+  (frequentPlayers || []).forEach((n) => addCandidate(n));
+  // Cualquier clave con valoraciones o favoritos guardados
+  games.forEach((g) => {
+    Object.keys(g.ratingsByPlayer || {}).forEach((k) => {
+      const pretty = playerProfiles[k]?.name || (k.charAt(0).toUpperCase() + k.slice(1));
+      addCandidate(pretty);
+    });
+    Object.keys(g.favoritesByPlayer || {}).forEach((k) => {
+      const pretty = playerProfiles[k]?.name || (k.charAt(0).toUpperCase() + k.slice(1));
+      addCandidate(pretty);
+    });
+  });
+
+  // Cuenta cuántas valoraciones/favoritos tiene cada persona
+  games.forEach((g) => {
+    map.forEach((cand) => {
+      if (getGameRatingFor(g, cand.key) > 0) cand.ratedCount += 1;
+      if (isGameFavoriteFor(g, cand.key)) cand.favCount += 1;
+    });
+  });
+
+  return Array.from(map.values());
+}
+
+function getActiveShelfProfile() {
+  const candidates = getShelfProfileCandidates();
+  const wanted = normName(uiState.shelfProfileKey) || DEFAULT_OWNER_KEY;
+  const found = candidates.find((c) => c.key === wanted) || candidates[0];
+  if (found && uiState.shelfProfileKey !== found.key) {
+    uiState.shelfProfileKey = found.key;
+  }
+  return found || {
+    key: DEFAULT_OWNER_KEY,
+    name: DEFAULT_OWNER_NAME,
+    color: getPlayerColor(DEFAULT_OWNER_NAME),
+    initials: computeDefaultInitials(DEFAULT_OWNER_NAME),
+    ratedCount: 0,
+    favCount: 0,
+  };
+}
+
+function setActiveShelfProfile(key) {
+  const cleanKey = normName(key) || DEFAULT_OWNER_KEY;
+  uiState.shelfProfileKey = cleanKey;
+  try { localStorage.setItem(KEYS.SHELF_PROFILE, cleanKey); } catch (e) {}
+}
+
+// Motor FLIP ligero para píldora deslizante en controles segmentados
+const segThumbPrevState = {};
+function syncSegmentedControls() {
+  document.querySelectorAll('.seg-control[data-seg-id]').forEach((wrap) => {
+    const id = wrap.dataset.segId;
+    const thumb = wrap.querySelector(':scope > .seg-thumb');
+    const activeBtn = wrap.querySelector(':scope > .seg-btn[data-seg-active="true"]');
+    if (!thumb || !activeBtn) return;
+
+    const targetX = activeBtn.offsetLeft - 2;
+    const targetW = activeBtn.offsetWidth;
+    if (targetW <= 0) return;
+
+    const prev = segThumbPrevState[id];
+    if (prev && (Math.abs(prev.x - targetX) > 0.5 || Math.abs(prev.w - targetW) > 0.5)) {
+      thumb.style.transition = 'none';
+      thumb.style.width = `${prev.w}px`;
+      thumb.style.transform = `translate3d(${prev.x}px, 0, 0)`;
+      void thumb.offsetWidth;
+      thumb.style.transition = '';
+      thumb.style.width = `${targetW}px`;
+      thumb.style.transform = `translate3d(${targetX}px, 0, 0)`;
+    } else {
+      thumb.style.transition = 'none';
+      thumb.style.width = `${targetW}px`;
+      thumb.style.transform = `translate3d(${targetX}px, 0, 0)`;
+      requestAnimationFrame(() => { thumb.style.transition = ''; });
+    }
+    segThumbPrevState[id] = { x: targetX, w: targetW };
+  });
+}
+
 function formatStarRating(raw) {
   const val = normalizeStarRating(raw);
   if (!val) return '';
@@ -1348,12 +1570,25 @@ function openModal({ title, subtitle = '', bodyHtml, actions = [] }) {
     });
   }
 
+  const card = document.getElementById('modal-card');
+  if (card) {
+    card.classList.remove('is-dragging', 'is-snapping');
+    card.style.transform = '';
+  }
+  backdrop.style.backgroundColor = '';
   backdrop.classList.remove('hidden');
   backdrop.classList.add('flex');
+  requestAnimationFrame(syncSegmentedControls);
 }
 
 function closeModal() {
   const backdrop = document.getElementById('modal-backdrop');
+  const card = document.getElementById('modal-card');
+  if (card) {
+    card.classList.remove('is-dragging', 'is-snapping');
+    card.style.transform = '';
+  }
+  backdrop.style.backgroundColor = '';
   backdrop.classList.add('hidden');
   backdrop.classList.remove('flex');
   if (turnTimerIntervalId && !tableToolsState.turnRunning) {
@@ -1568,19 +1803,15 @@ function loadLocalData() {
   });
   if (historyRenamed) saveHistoryLocal();
 
-  // Migra valoraciones antiguas (>5) a la nueva escala de 1 a 5 estrellas (pasos de 0.5)
-  games.forEach((g) => {
-    if (g.rating !== undefined && g.rating !== null && g.rating !== '') {
-      const normR = normalizeStarRating(g.rating);
-      if (normR > 0 && normR !== Number(g.rating)) {
-        g.rating = normR;
-        gamesChanged = true;
-      } else if (normR === 0) {
-        delete g.rating;
-        gamesChanged = true;
-      }
+  try {
+    const savedShelfProf = localStorage.getItem(KEYS.SHELF_PROFILE);
+    if (savedShelfProf && savedShelfProf.trim()) {
+      uiState.shelfProfileKey = savedShelfProf.trim().toLowerCase();
     }
-  });
+  } catch (e) {}
+
+  // Migra valoraciones/favoritos a perfiles por persona (tus notas actuales pasan a Sebas)
+  if (migrateGameRatingsToProfiles(games)) gamesChanged = true;
 
   // Migra paleta de colores v1 -> v2 (25 tonos únicos respetando colores personalizados)
   const paletteMigrated = migrateGamePaletteColors(games);
@@ -1768,6 +1999,30 @@ function renameOrMergePlayer(oldName, newName) {
   });
   if (draftChanged) saveDraftLocal();
 
+  // Migra valoraciones y favoritos de Ludoteca al nuevo perfil
+  let gamesProfileMoved = false;
+  games.forEach((g) => {
+    if (g.ratingsByPlayer && g.ratingsByPlayer[oldKey] !== undefined) {
+      if (g.ratingsByPlayer[newKey] === undefined) {
+        g.ratingsByPlayer[newKey] = g.ratingsByPlayer[oldKey];
+      }
+      if (oldKey !== newKey) delete g.ratingsByPlayer[oldKey];
+      gamesProfileMoved = true;
+    }
+    if (g.favoritesByPlayer && g.favoritesByPlayer[oldKey]) {
+      g.favoritesByPlayer[newKey] = true;
+      if (oldKey !== newKey) delete g.favoritesByPlayer[oldKey];
+      gamesProfileMoved = true;
+    }
+  });
+  if (gamesProfileMoved) {
+    migrateGameRatingsToProfiles(games);
+    saveGamesLocal();
+  }
+  if (normName(uiState.shelfProfileKey) === oldKey) {
+    setActiveShelfProfile(newKey);
+  }
+
   // Actualiza filtros de Stats si apuntaban al nombre antiguo
   if (normName(uiState.statsPlayerA) === oldKey) uiState.statsPlayerA = newClean;
   if (normName(uiState.statsPlayerB) === oldKey) uiState.statsPlayerB = newClean;
@@ -1899,16 +2154,29 @@ function openPlayerProfilesModal() {
                   Si <strong>${esc(item.name)}</strong> es la misma persona que otro jugador, mueve todas sus partidas a ese perfil.
                 </p>
               </div>
-              <div class="flex items-center gap-2">
-                <select id="pp-merge-select" class="flex-1 min-w-0 h-9 bg-white dark:bg-surfaceDark border border-amber-400/40 rounded-xl px-2.5 text-xs font-bold text-ink dark:text-white outline-none">
-                  <option value="">— Fusionar con... —</option>
-                  ${otherPlayers.map((op) => `<option value="${esc(op.name)}" ${tempMergeTarget === op.name ? 'selected' : ''}>${esc(op.name)} (${op.plays}P)</option>`).join('')}
-                </select>
-                <button type="button" data-pp="do-merge"
-                  class="btn-tap h-9 px-3 rounded-xl bg-amber-600 text-white text-xs font-extrabold shrink-0">
-                  Fusionar
-                </button>
+              <div class="flex flex-wrap gap-1.5">
+                ${otherPlayers.map((op) => {
+                  const sel = tempMergeTarget === op.name;
+                  return `
+                    <button type="button" data-pp="pick-merge" data-val="${esc(op.name)}"
+                      class="btn-tap inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                        sel
+                          ? 'bg-amber-600 text-white border-transparent shadow-xs'
+                          : 'bg-white dark:bg-surfaceDark text-ink dark:text-white border-amber-400/35'
+                      }">
+                      ${renderPlayerAvatarHtml(op.name, 'w-5 h-5 text-[9px] ring-1 ring-white/25')}
+                      <span>${esc(op.name)}</span>
+                      <span class="text-[10px] opacity-75 tabular-nums">${op.plays}P</span>
+                    </button>
+                  `;
+                }).join('')}
               </div>
+              ${tempMergeTarget ? `
+                <button type="button" data-pp="do-merge"
+                  class="btn-tap w-full h-9 px-3 rounded-xl bg-amber-600 text-white text-xs font-extrabold">
+                  Confirmar fusión en ${esc(tempMergeTarget)}
+                </button>
+              ` : ''}
             </div>
           ` : ''}
         </div>
@@ -1980,7 +2248,6 @@ function openPlayerProfilesModal() {
       const bodyEl = document.getElementById('modal-body');
       const renInp = document.getElementById('pp-rename-input');
       const iniInp = document.getElementById('pp-initials-input');
-      const mergeSel = document.getElementById('pp-merge-select');
       if (renInp) renInp.addEventListener('input', (e) => { tempRename = e.target.value; });
       if (iniInp) {
         iniInp.addEventListener('input', (e) => {
@@ -1989,7 +2256,6 @@ function openPlayerProfilesModal() {
           if (prev) prev.textContent = tempInitials || computeDefaultInitials(tempRename);
         });
       }
-      if (mergeSel) mergeSel.addEventListener('change', (e) => { tempMergeTarget = e.target.value; });
 
       bodyEl.onclick = (e) => {
         const el = e.target.closest('[data-pp]');
@@ -2001,8 +2267,11 @@ function openPlayerProfilesModal() {
         } else if (act === 'pick-color') {
           tempColor = el.dataset.val;
           renderProfilesModal();
+        } else if (act === 'pick-merge') {
+          tempMergeTarget = tempMergeTarget === el.dataset.val ? '' : el.dataset.val;
+          renderProfilesModal();
         } else if (act === 'do-merge') {
-          const target = (document.getElementById('pp-merge-select')?.value || tempMergeTarget || '').trim();
+          const target = (tempMergeTarget || '').trim();
           if (!target) {
             showToast('Elige el jugador destino para fusionar', 'neutral');
             return;
@@ -2209,13 +2478,20 @@ function getActiveTablePlayerPool() {
   return merged;
 }
 
-function toggleFavoriteGame(gameId) {
+function toggleFavoriteGame(gameId, profileKey = null) {
   const g = games.find((x) => x.id === gameId);
   if (!g) return;
-  g.favorite = !g.favorite;
+  const prof = profileKey
+    ? (getShelfProfileCandidates().find((c) => c.key === normName(profileKey)) || getActiveShelfProfile())
+    : getActiveShelfProfile();
+  const next = !isGameFavoriteFor(g, prof.key);
+  setGameFavoriteFor(g, next, prof.key);
   saveGamesLocal();
   renderActiveTab();
-  showToast(g.favorite ? `★ ${g.name} añadido a favoritos` : `${g.name} quitado de favoritos`, 'neutral');
+  showToast(
+    next ? `★ ${g.name} añadido a favoritos (${prof.name})` : `${g.name} quitado de favoritos (${prof.name})`,
+    'neutral'
+  );
 }
 
 function getPendingSyncCount() {
@@ -2534,8 +2810,14 @@ function mergeRemoteCatalog(remoteCat) {
   const remoteUpdatedAt = Number(remoteCat.updatedAtMs) || 0;
   const localById = new Map(games.map((g) => [g.id, g]));
   const remoteGames = Array.isArray(remoteCat.games) ? remoteCat.games : [];
-  const localHasRatings = games.some((g) => normalizeStarRating(g.rating) > 0);
-  const remoteHasRatings = remoteGames.some((rg) => normalizeStarRating(rg?.rating) > 0);
+  migrateGameRatingsToProfiles(remoteGames);
+
+  const hasAnyRatingInList = (arr) => arr.some((g) =>
+    normalizeStarRating(g?.rating) > 0
+    || Object.values(g?.ratingsByPlayer || {}).some((v) => normalizeStarRating(v) > 0)
+  );
+  const localHasRatings = hasAnyRatingInList(games);
+  const remoteHasRatings = hasAnyRatingInList(remoteGames);
 
   // Si el catálogo local tiene cambios pendientes más recientes, rescata posibles valoraciones
   // que solo existieran en Sheets antes de subir el catálogo local (nunca las borra por accidente).
@@ -2544,10 +2826,11 @@ function mergeRemoteCatalog(remoteCat) {
       remoteGames.forEach((rg) => {
         if (!rg || !rg.id) return;
         const loc = localById.get(rg.id);
-        const rStar = normalizeStarRating(rg.rating);
-        if (loc && rStar > 0 && !loc.rating) loc.rating = rStar;
-        if (loc && rg.favorite && !loc.favorite) loc.favorite = true;
+        if (!loc) return;
+        loc.ratingsByPlayer = { ...(rg.ratingsByPlayer || {}), ...(loc.ratingsByPlayer || {}) };
+        loc.favoritesByPlayer = { ...(rg.favoritesByPlayer || {}), ...(loc.favoritesByPlayer || {}) };
       });
+      migrateGameRatingsToProfiles(games);
       saveGamesLocal(false);
     }
     return false;
@@ -2569,16 +2852,9 @@ function mergeRemoteCatalog(remoteCat) {
     remoteGames.forEach((rg) => {
       if (!rg || !rg.id) return;
       const loc = localById.get(rg.id);
-      if (rg.rating !== undefined && rg.rating !== null && rg.rating !== '') {
-        const normR = normalizeStarRating(rg.rating);
-        if (normR > 0) rg.rating = normR;
-        else delete rg.rating;
-      }
-      // Si Sheets venía sin notas (p. ej. tras sobrescritura desde otro dispositivo) y este móvil sí las tiene, consérvalas
       if (protectLocalRatings && loc) {
-        const locR = normalizeStarRating(loc.rating);
-        if (locR > 0 && !rg.rating) rg.rating = locR;
-        if (loc.favorite && !rg.favorite) rg.favorite = true;
+        rg.ratingsByPlayer = { ...(loc.ratingsByPlayer || {}), ...(rg.ratingsByPlayer || {}) };
+        rg.favoritesByPlayer = { ...(loc.favoritesByPlayer || {}), ...(rg.favoritesByPlayer || {}) };
       }
       mergedMap.set(rg.id, rg);
     });
@@ -2592,6 +2868,7 @@ function mergeRemoteCatalog(remoteCat) {
       }
     });
     games = Array.from(mergedMap.values());
+    migrateGameRatingsToProfiles(games);
     const remotePaletteMigrated = migrateGamePaletteColors(games);
     if (remotePaletteMigrated) needsRePush = true;
     saveGamesLocal(needsRePush);
@@ -2953,8 +3230,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v14 (PWA estática sin Tailwind CDN)
-const CACHE_NAME = 'ludoteca-offline-v14';
+  return `// Ludoteca — Service Worker Offline v15 (PWA estática sin Tailwind CDN)
+const CACHE_NAME = 'ludoteca-offline-v15';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -3631,7 +3908,8 @@ function renderLogTab() {
     }
   });
 
-  const favCount = games.filter((g) => g.favorite).length;
+  const activeShelfProf = getActiveShelfProfile();
+  const favCount = games.filter((g) => isGameFavoriteFor(g, activeShelfProf.key)).length;
   if (uiState.logGameMode === 'favorites' && favCount === 0) {
     uiState.logGameMode = 'recent';
   }
@@ -3641,7 +3919,7 @@ function renderLogTab() {
     if (logSearchTerm) {
       return g.name.toLowerCase().includes(logSearchTerm) || (g.tagline || '').toLowerCase().includes(logSearchTerm);
     }
-    if (uiState.logGameMode === 'favorites') return Boolean(g.favorite);
+    if (uiState.logGameMode === 'favorites') return isGameFavoriteFor(g, activeShelfProf.key);
     return true;
   });
 
@@ -3677,7 +3955,7 @@ function renderLogTab() {
             ${gameIconSvg(g.icon, 'w-4 h-4')}
           </div>
           <div class="flex items-center gap-1">
-            ${g.favorite ? `<span class="text-[11px] leading-none ${active ? 'text-amber-300' : 'text-goldBrand'}" title="Favorito">★</span>` : ''}
+            ${isGameFavoriteFor(g, activeShelfProf.key) ? `<span class="text-[11px] leading-none ${active ? 'text-amber-300' : 'text-goldBrand'}" title="Favorito (${esc(activeShelfProf.name)})">★</span>` : ''}
             ${pCount > 0 ? `
               <span class="text-[10px] font-extrabold tabular-nums px-1.5 py-0.5 rounded-md ${active ? 'bg-black/22 text-white' : 'bg-black/[0.045] dark:bg-white/[0.08] text-inkMuted dark:text-white/55'}">${pCount}</span>
             ` : ''}
@@ -3784,12 +4062,31 @@ function renderLogTab() {
         </div>
 
         ${showTfmCorp ? `
-          <div class="mt-2 flex items-center gap-2 pl-12">
-            <span class="text-[11px] font-bold text-inkMuted dark:text-white/50 shrink-0">Corp:</span>
-            <select data-player-tag="${idx}" class="flex-1 min-w-0 h-8 input-pro rounded-lg px-2 text-xs font-semibold text-ink dark:text-white outline-none">
-              <option value="">— Opcional —</option>
-              ${TFM_CORPS.map((c) => `<option value="${esc(c)}" ${pl.tag === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
-            </select>
+          <div class="mt-2 pl-12 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-bold text-inkMuted dark:text-white/50 shrink-0">Corp:</span>
+              <button type="button" data-action="toggle-corp-picker" data-idx="${idx}"
+                class="btn-tap flex-1 min-w-0 h-8 input-pro rounded-lg px-2.5 text-xs font-semibold flex items-center justify-between gap-2 ${pl.tag ? 'text-ink dark:text-white' : 'text-inkMuted dark:text-white/55'}">
+                <span class="truncate">${pl.tag ? esc(pl.tag) : 'Elegir corporación (opcional)'}</span>
+                <svg class="w-3.5 h-3.5 shrink-0 opacity-75" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${uiState.openCorpPickerIdx === idx ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'}"/></svg>
+              </button>
+              ${pl.tag ? `
+                <button type="button" data-action="pick-player-tag" data-idx="${idx}" data-val=""
+                  class="btn-tap px-2 h-8 rounded-lg text-[10.5px] font-bold text-inkMuted hover:text-coralBrand">✕</button>
+              ` : ''}
+            </div>
+            ${uiState.openCorpPickerIdx === idx ? `
+              <div class="flex flex-wrap gap-1.5 pt-0.5 anim-in">
+                ${TFM_CORPS.map((c) => `
+                  <button type="button" data-action="pick-player-tag" data-idx="${idx}" data-val="${esc(c)}"
+                    class="btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
+                      pl.tag === c
+                        ? 'bg-[#C84B31] text-white border-[#C84B31] shadow-2xs'
+                        : 'bg-white dark:bg-surfaceDark text-ink dark:text-white/80 border-black/[0.08] dark:border-white/12'
+                    }">${esc(c)}</button>
+                `).join('')}
+              </div>
+            ` : ''}
           </div>
         ` : ''}
       </div>
@@ -3886,9 +4183,9 @@ function renderLogTab() {
         </div>
         <div class="flex items-center gap-1.5 relative z-10 shrink-0">
           <button type="button" data-action="toggle-favorite-game" data-game-id="${esc(game.id)}"
-            class="btn-tap w-8 h-8 rounded-xl bg-black/18 hover:bg-black/30 border border-white/15 flex items-center justify-center ${game.favorite ? 'text-amber-300' : 'text-white/75'}"
-            title="${game.favorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}" aria-label="Favorito">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="${game.favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            class="btn-tap w-8 h-8 rounded-xl bg-black/18 hover:bg-black/30 border border-white/15 flex items-center justify-center ${isGameFavoriteFor(game, activeShelfProf.key) ? 'text-amber-300' : 'text-white/75'}"
+            title="${isGameFavoriteFor(game, activeShelfProf.key) ? `Quitar de favoritos (${esc(activeShelfProf.name)})` : `Añadir a favoritos (${esc(activeShelfProf.name)})`}" aria-label="Favorito">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="${isGameFavoriteFor(game, activeShelfProf.key) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </button>
           <button type="button" data-action="open-game-sheet" data-game-id="${esc(game.id)}"
             class="btn-tap w-8 h-8 rounded-xl bg-black/18 hover:bg-black/30 border border-white/15 flex items-center justify-center text-white/90"
@@ -4073,13 +4370,7 @@ function bindLogInputs() {
     });
   });
 
-  document.querySelectorAll('[data-player-tag]').forEach((sel) => {
-    sel.addEventListener('change', (e) => {
-      const idx = Number(e.target.dataset.playerTag);
-      draft.players[idx].tag = e.target.value;
-      saveDraftLocal();
-    });
-  });
+
 
   const dateEl = document.getElementById('draft-date');
   if (dateEl) {
@@ -6940,7 +7231,7 @@ function computeShelfDustRanking() {
     }
   });
   played.sort((a, b) => (b.days - a.days) || (a.plays - b.plays));
-  unplayed.sort((a, b) => ((Number(b.game.rating) || 0) - (Number(a.game.rating) || 0)) || a.game.name.localeCompare(b.game.name, 'es'));
+  unplayed.sort((a, b) => (getGameRatingFor(b.game) - getGameRatingFor(a.game)) || a.game.name.localeCompare(b.game.name, 'es'));
   return { played, unplayed };
 }
 
@@ -7675,6 +7966,7 @@ function openStatsPlayerFilterModal() {
   let tempA = uiState.statsPlayerA || allPlayers[0]?.name || '';
   let tempB = uiState.statsPlayerB || allPlayers[1]?.name || '';
   let tempScope = uiState.statsVsScope || 'together';
+  let activeVsSlot = null; // null | 'A' | 'B'
 
   if (tempMode === 'vs' && allPlayers.length < 2) tempMode = 'single';
   if (normName(tempA) === normName(tempB) && allPlayers.length >= 2) {
@@ -7684,6 +7976,8 @@ function openStatsPlayerFilterModal() {
 
   const renderModalContent = () => {
     const canCompare = allPlayers.length >= 2;
+    const statsA = allPlayers.find((p) => p.key === normName(tempA));
+    const statsB = allPlayers.find((p) => p.key === normName(tempB));
     let pickerBody = '';
 
     if (tempMode === 'all') {
@@ -7704,13 +7998,16 @@ function openStatsPlayerFilterModal() {
               const sel = normName(tempA) === p.key;
               return `
                 <button type="button" data-pf="pick-a" data-name="${esc(p.name)}"
-                  class="btn-tap p-3 rounded-2xl border text-left transition-all ${
+                  class="btn-tap p-3 rounded-2xl border text-left transition-all flex items-center gap-2.5 ${
                     sel
                       ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-sm'
                       : 'bg-white dark:bg-surfaceDarkAlt text-ink dark:text-white border-[#E2DACE] dark:border-white/12'
                   }">
-                  <div class="text-xs font-extrabold truncate">${esc(p.name)}</div>
-                  <div class="text-[10.5px] mt-0.5 tabular-nums ${sel ? 'text-white/80' : 'text-inkMuted dark:text-white/55'}">${p.wins}V / ${p.plays}P</div>
+                  ${renderPlayerAvatarHtml(p.name, 'w-8 h-8 text-[11px] ring-1 ring-white/25')}
+                  <div class="min-w-0">
+                    <div class="text-xs font-extrabold truncate">${esc(p.name)}</div>
+                    <div class="text-[10.5px] mt-0.5 tabular-nums ${sel ? 'text-white/80' : 'text-inkMuted dark:text-white/55'}">${p.wins}V / ${p.plays}P</div>
+                  </div>
                 </button>
               `;
             }).join('')}
@@ -7719,47 +8016,87 @@ function openStatsPlayerFilterModal() {
       `;
     } else {
       pickerBody = `
-        <div class="space-y-4">
-          <!-- Selectores Jugador A vs Jugador B -->
+        <div class="space-y-3.5">
+          <!-- Selectores táctiles propios Jugador 1 vs Jugador 2 -->
           <div class="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
-            <div>
-              <label for="pf-sel-a" class="block text-[10.5px] font-extrabold uppercase tracking-wider text-emeraldBrand dark:text-emerald-400 mb-1.5">Jugador 1</label>
-              <select id="pf-sel-a" class="w-full h-11 bg-white dark:bg-surfaceDarkAlt border-2 border-emeraldBrand/45 rounded-xl px-2.5 text-xs font-extrabold text-ink dark:text-white outline-none">
-                ${allPlayers.map((p) => `<option value="${esc(p.name)}" ${normName(tempA) === p.key ? 'selected' : ''}>${esc(p.name)} (${p.plays})</option>`).join('')}
-              </select>
+            <div class="min-w-0">
+              <div class="text-[10.5px] font-extrabold uppercase tracking-wider text-emeraldBrand dark:text-emerald-400 mb-1.5">Jugador 1</div>
+              <button type="button" data-pf="open-slot" data-slot="A"
+                class="picker-slot btn-tap ${activeVsSlot === 'A' ? 'is-open' : ''}">
+                <span class="flex items-center gap-2 min-w-0">
+                  ${renderPlayerAvatarHtml(tempA, 'w-7 h-7 text-[10px] ring-1 ring-white/25')}
+                  <span class="min-w-0">
+                    <span class="block text-xs font-extrabold text-ink dark:text-white truncate">${esc(tempA)}</span>
+                    <span class="block text-[10px] text-inkMuted dark:text-white/55 tabular-nums">${statsA ? `${statsA.plays}P` : ''}</span>
+                  </span>
+                </span>
+                <svg class="w-3.5 h-3.5 text-inkMuted shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${activeVsSlot === 'A' ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'}"/></svg>
+              </button>
             </div>
 
             <button type="button" data-pf="swap" title="Intercambiar" aria-label="Intercambiar jugadores"
-              class="btn-tap h-11 w-9 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.08] dark:border-white/12 flex items-center justify-center text-inkMuted dark:text-white/75 font-bold text-xs">
+              class="btn-tap h-11 w-9 rounded-xl bg-white dark:bg-surfaceDarkAlt border border-black/[0.08] dark:border-white/12 flex items-center justify-center text-inkMuted dark:text-white/75 font-bold text-xs">
               ⇄
             </button>
 
-            <div>
-              <label for="pf-sel-b" class="block text-[10.5px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1.5">Jugador 2</label>
-              <select id="pf-sel-b" class="w-full h-11 bg-white dark:bg-surfaceDarkAlt border-2 border-goldBrand/50 rounded-xl px-2.5 text-xs font-extrabold text-ink dark:text-white outline-none">
-                ${allPlayers.map((p) => `<option value="${esc(p.name)}" ${normName(tempB) === p.key ? 'selected' : ''}>${esc(p.name)} (${p.plays})</option>`).join('')}
-              </select>
+            <div class="min-w-0">
+              <div class="text-[10.5px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1.5">Jugador 2</div>
+              <button type="button" data-pf="open-slot" data-slot="B"
+                class="picker-slot btn-tap ${activeVsSlot === 'B' ? 'is-open-amber' : ''}">
+                <span class="flex items-center gap-2 min-w-0">
+                  ${renderPlayerAvatarHtml(tempB, 'w-7 h-7 text-[10px] ring-1 ring-white/25')}
+                  <span class="min-w-0">
+                    <span class="block text-xs font-extrabold text-ink dark:text-white truncate">${esc(tempB)}</span>
+                    <span class="block text-[10px] text-inkMuted dark:text-white/55 tabular-nums">${statsB ? `${statsB.plays}P` : ''}</span>
+                  </span>
+                </span>
+                <svg class="w-3.5 h-3.5 text-inkMuted shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${activeVsSlot === 'B' ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'}"/></svg>
+              </button>
             </div>
           </div>
+
+          ${activeVsSlot ? `
+            <div class="p-3 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2 anim-in">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10.5px] font-extrabold uppercase tracking-wider ${activeVsSlot === 'A' ? 'text-emeraldBrand dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}">
+                  Elige ${activeVsSlot === 'A' ? 'Jugador 1' : 'Jugador 2'}
+                </span>
+                <button type="button" data-pf="close-slot" class="btn-tap text-[11px] font-bold text-inkMuted">Listo</button>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5">
+                ${allPlayers.map((p) => {
+                  const isCurrent = normName(activeVsSlot === 'A' ? tempA : tempB) === p.key;
+                  const isOther = normName(activeVsSlot === 'A' ? tempB : tempA) === p.key;
+                  return `
+                    <button type="button" data-pf="assign-slot" data-name="${esc(p.name)}"
+                      class="btn-tap p-2 rounded-xl border text-left flex items-center gap-2 transition-all ${
+                        isCurrent
+                          ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent shadow-xs'
+                          : 'bg-canvas/70 dark:bg-surfaceDark text-ink dark:text-white border-black/[0.06] dark:border-white/10'
+                      }">
+                      ${renderPlayerAvatarHtml(p.name, 'w-6 h-6 text-[9.5px] ring-1 ring-white/25')}
+                      <span class="min-w-0 flex-1">
+                        <span class="block text-xs font-extrabold truncate">${esc(p.name)}</span>
+                        <span class="block text-[9.5px] ${isCurrent ? 'text-white/75' : 'text-inkMuted dark:text-white/50'} tabular-nums">${isOther ? 'Intercambiar ⇄' : `${p.plays}P`}</span>
+                      </span>
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
 
           <!-- Interruptor: Solo juntos vs Todas sus partidas -->
           <div class="p-3.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2">
             <div class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Qué partidas comparar</div>
-            <div class="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-canvas dark:bg-surfaceDark border border-black/[0.06] dark:border-white/10">
-              <button type="button" data-pf="scope" data-val="together"
-                class="btn-tap py-2 px-2 rounded-lg text-xs font-extrabold transition-all ${
-                  tempScope === 'together'
-                    ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs'
-                    : 'text-inkMuted dark:text-white/65'
-                }">
+            <div class="seg-control seg-grid grid-cols-2 bg-canvas dark:bg-surfaceDark border border-black/[0.06] dark:border-white/10" data-seg-id="pf-scope">
+              <span class="seg-thumb seg-thumb-pine"></span>
+              <button type="button" data-pf="scope" data-val="together" data-seg-active="${tempScope === 'together' ? 'true' : 'false'}"
+                class="seg-btn btn-tap py-2 px-2 rounded-lg text-xs font-extrabold ${tempScope === 'together' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
                 Solo juntos (Duelo)
               </button>
-              <button type="button" data-pf="scope" data-val="all"
-                class="btn-tap py-2 px-2 rounded-lg text-xs font-extrabold transition-all ${
-                  tempScope === 'all'
-                    ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs'
-                    : 'text-inkMuted dark:text-white/65'
-                }">
+              <button type="button" data-pf="scope" data-val="all" data-seg-active="${tempScope === 'all' ? 'true' : 'false'}"
+                class="seg-btn btn-tap py-2 px-2 rounded-lg text-xs font-extrabold ${tempScope === 'all' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
                 Todas sus partidas
               </button>
             </div>
@@ -7775,17 +8112,18 @@ function openStatsPlayerFilterModal() {
 
     const bodyHtml = `
       <div class="space-y-4">
-        <div class="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12">
-          <button type="button" data-pf="mode" data-val="all"
-            class="btn-tap py-2 rounded-xl text-xs font-extrabold ${tempMode === 'all' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+        <div class="seg-control seg-grid grid-cols-3 bg-white dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12" data-seg-id="pf-mode">
+          <span class="seg-thumb ${tempMode === 'vs' ? 'seg-thumb-vs' : 'seg-thumb-pine'}"></span>
+          <button type="button" data-pf="mode" data-val="all" data-seg-active="${tempMode === 'all' ? 'true' : 'false'}"
+            class="seg-btn btn-tap py-2 rounded-xl text-xs font-extrabold ${tempMode === 'all' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
             Todos
           </button>
-          <button type="button" data-pf="mode" data-val="single"
-            class="btn-tap py-2 rounded-xl text-xs font-extrabold ${tempMode === 'single' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+          <button type="button" data-pf="mode" data-val="single" data-seg-active="${tempMode === 'single' ? 'true' : 'false'}"
+            class="seg-btn btn-tap py-2 rounded-xl text-xs font-extrabold ${tempMode === 'single' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
             1 Jugador
           </button>
-          <button type="button" data-pf="mode" data-val="vs" ${!canCompare ? 'disabled' : ''}
-            class="btn-tap py-2 rounded-xl text-xs font-extrabold disabled:opacity-40 ${tempMode === 'vs' ? 'bg-gradient-to-r from-emeraldBrand to-goldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+          <button type="button" data-pf="mode" data-val="vs" ${!canCompare ? 'disabled' : ''} data-seg-active="${tempMode === 'vs' ? 'true' : 'false'}"
+            class="seg-btn btn-tap py-2 rounded-xl text-xs font-extrabold disabled:opacity-40 ${tempMode === 'vs' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
             Comparar VS
           </button>
         </div>
@@ -7826,6 +8164,7 @@ function openStatsPlayerFilterModal() {
       const act = el.dataset.pf;
       if (act === 'mode') {
         tempMode = el.dataset.val;
+        activeVsSlot = null;
         if (tempMode === 'vs' && normName(tempA) === normName(tempB) && allPlayers.length >= 2) {
           const alt = allPlayers.find((p) => p.key !== normName(tempA));
           if (alt) tempB = alt.name;
@@ -7833,6 +8172,28 @@ function openStatsPlayerFilterModal() {
         renderModalContent();
       } else if (act === 'pick-a') {
         tempA = el.dataset.name;
+        renderModalContent();
+      } else if (act === 'open-slot') {
+        const s = el.dataset.slot;
+        activeVsSlot = activeVsSlot === s ? null : s;
+        renderModalContent();
+      } else if (act === 'close-slot') {
+        activeVsSlot = null;
+        renderModalContent();
+      } else if (act === 'assign-slot') {
+        const picked = el.dataset.name;
+        if (activeVsSlot === 'A') {
+          if (normName(picked) === normName(tempB)) {
+            tempB = tempA;
+          }
+          tempA = picked;
+        } else if (activeVsSlot === 'B') {
+          if (normName(picked) === normName(tempA)) {
+            tempA = tempB;
+          }
+          tempB = picked;
+        }
+        activeVsSlot = null;
         renderModalContent();
       } else if (act === 'scope') {
         tempScope = el.dataset.val === 'all' ? 'all' : 'together';
@@ -7844,33 +8205,6 @@ function openStatsPlayerFilterModal() {
         renderModalContent();
       }
     };
-
-    const selA = document.getElementById('pf-sel-a');
-    if (selA) {
-      selA.addEventListener('change', (e) => {
-        tempA = e.target.value;
-        if (normName(tempA) === normName(tempB)) {
-          const alt = allPlayers.find((p) => p.key !== normName(tempA));
-          if (alt) {
-            tempB = alt.name;
-            renderModalContent();
-          }
-        }
-      });
-    }
-    const selB = document.getElementById('pf-sel-b');
-    if (selB) {
-      selB.addEventListener('change', (e) => {
-        tempB = e.target.value;
-        if (normName(tempB) === normName(tempA)) {
-          const alt = allPlayers.find((p) => p.key !== normName(tempB));
-          if (alt) {
-            tempA = alt.name;
-            renderModalContent();
-          }
-        }
-      });
-    }
   };
 
   renderModalContent();
@@ -8521,13 +8855,14 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
         </div>
 
         <!-- Interruptor rápido Solo juntos / Todas -->
-        <div class="inline-flex p-0.5 rounded-xl bg-black/25 border border-white/15">
-          <button type="button" data-action="set-stats-vs-scope" data-val="together"
-            class="btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-extrabold transition-all ${isTogether ? 'bg-white text-pine shadow-xs' : 'text-white/70 hover:text-white'}">
+        <div class="seg-control bg-black/25 border border-white/15" data-seg-id="vs-scope">
+          <span class="seg-thumb seg-thumb-white"></span>
+          <button type="button" data-action="set-stats-vs-scope" data-val="together" data-seg-active="${isTogether ? 'true' : 'false'}"
+            class="seg-btn btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-extrabold ${isTogether ? 'text-pine' : 'text-white/75 hover:text-white'}">
             Solo juntos
           </button>
-          <button type="button" data-action="set-stats-vs-scope" data-val="all"
-            class="btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-extrabold transition-all ${!isTogether ? 'bg-white text-pine shadow-xs' : 'text-white/70 hover:text-white'}">
+          <button type="button" data-action="set-stats-vs-scope" data-val="all" data-seg-active="${!isTogether ? 'true' : 'false'}"
+            class="seg-btn btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-extrabold ${!isTogether ? 'text-pine' : 'text-white/75 hover:text-white'}">
             Todas
           </button>
         </div>
@@ -8640,11 +8975,11 @@ function buildSelectedDayDetailHtml(iso, subset) {
         </span>
       </div>
 
-      <div class="space-y-1.5">
+      <div class="hairline-list">
         ${dayMatches.map((m) => {
           const g = getGameById(m.gameId);
           return `
-            <div class="p-2.5 rounded-xl bg-white dark:bg-surfaceDark border border-black/[0.05] dark:border-white/[0.07] flex flex-wrap items-center justify-between gap-2">
+            <div class="hairline-row flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center gap-2 min-w-0">
                 <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${g.color};"></span>
                 <span class="text-xs font-extrabold text-ink dark:text-white leading-tight">${esc(m.gameName)}</span>
@@ -8845,22 +9180,25 @@ function buildShelfDustInnerHtml() {
         <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Polvo en la estantería</h3>
         <p class="text-[11px] text-inkMuted dark:text-white/55">Juegos que llevan más tiempo esperando salir a mesa</p>
       </div>
-      <div class="inline-flex p-0.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12">
-        <button type="button" data-action="set-dusty-tab" data-val="dusty"
-          class="btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold ${showDustyTab === 'dusty' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+      <div class="seg-control bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12" data-seg-id="dusty-tab">
+        <span class="seg-thumb ${showDustyTab === 'unplayed' ? 'seg-thumb-amber' : 'seg-thumb-pine'}"></span>
+        <button type="button" data-action="set-dusty-tab" data-val="dusty" data-seg-active="${showDustyTab === 'dusty' ? 'true' : 'false'}"
+          class="seg-btn btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold ${showDustyTab === 'dusty' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
           Más días
         </button>
-        <button type="button" data-action="set-dusty-tab" data-val="unplayed" ${dustyData.unplayed.length === 0 ? 'disabled' : ''}
-          class="btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold disabled:opacity-40 ${showDustyTab === 'unplayed' ? 'bg-amber-600 text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+        <button type="button" data-action="set-dusty-tab" data-val="unplayed" ${dustyData.unplayed.length === 0 ? 'disabled' : ''} data-seg-active="${showDustyTab === 'unplayed' ? 'true' : 'false'}"
+          class="seg-btn btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold disabled:opacity-40 ${showDustyTab === 'unplayed' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
           Sin estrenar (${dustyData.unplayed.length})
         </button>
       </div>
     </div>
 
-    <div class="space-y-2 stagger-list">
+    <div class="hairline-list stagger-list">
       ${dustyRows.map((item) => {
+        const gRating = getGameRatingFor(item.game);
+        const gFav = isGameFavoriteFor(item.game);
         const pillTone = item.days === null
-          ? (item.game.favorite ? 'is-warm' : 'is-mild')
+          ? (gFav ? 'is-warm' : 'is-mild')
           : item.days === 0
             ? 'is-fresh'
             : item.days < 7
@@ -8869,12 +9207,12 @@ function buildShelfDustInnerHtml() {
                 ? 'is-warm'
                 : 'is-hot';
         const pillText = item.days === null
-          ? (item.game.rating ? `★ ${formatStarRating(item.game.rating)} · Estrenar` : 'Sin estrenar')
+          ? (gRating ? `★ ${formatStarRating(gRating)} · Estrenar` : 'Sin estrenar')
           : formatDustyLabel(item.days);
         return `
-        <div class="p-2.5 rounded-2xl bg-canvas/75 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between gap-2.5">
+        <div class="hairline-row flex items-center justify-between gap-2.5">
           <div class="flex items-center gap-2.5 min-w-0">
-            <span class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:${item.game.color}1A; color:${item.game.color}; box-shadow: inset 0 0 0 1px ${item.game.color}28;">
+            <span class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:${item.game.color}18; color:${item.game.color}; box-shadow: inset 0 0 0 1px ${item.game.color}24;">
               ${gameIconSvg(item.game.icon, 'w-4 h-4')}
             </span>
             <div class="min-w-0">
@@ -8886,7 +9224,7 @@ function buildShelfDustInnerHtml() {
             </div>
           </div>
           <button type="button" data-action="quick-log-game" data-game-id="${esc(item.game.id)}"
-            class="btn-tap shrink-0 px-2.5 py-1.5 rounded-xl bg-white dark:bg-surfaceDark border border-black/[0.08] dark:border-white/12 text-[11px] font-extrabold text-emeraldBrand dark:text-emerald-400">
+            class="btn-tap shrink-0 px-2.5 py-1.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt text-[11px] font-extrabold text-emeraldBrand dark:text-emerald-400">
             Sacar →
           </button>
         </div>
@@ -8900,6 +9238,7 @@ function updateStatsDustyPartial() {
   const card = document.getElementById('stats-dusty-card');
   if (!card) { renderStatsTab(); return; }
   card.innerHTML = buildShelfDustInnerHtml();
+  requestAnimationFrame(syncSegmentedControls);
 }
 
 function renderStatsTab() {
@@ -9508,13 +9847,14 @@ function renderStatsTab() {
           </h3>
           <p class="text-[11px] text-inkMuted dark:text-white/55">Toca cualquier segmento para ver el detalle</p>
         </div>
-        <div class="inline-flex p-0.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12">
-          <button type="button" data-action="set-stats-donut-mode" data-val="plays"
-            class="btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold ${uiState.statsDonutMode === 'plays' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+        <div class="seg-control bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12" data-seg-id="donut-mode">
+          <span class="seg-thumb seg-thumb-pine"></span>
+          <button type="button" data-action="set-stats-donut-mode" data-val="plays" data-seg-active="${uiState.statsDonutMode === 'plays' ? 'true' : 'false'}"
+            class="seg-btn btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold ${uiState.statsDonutMode === 'plays' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
             Partidas
           </button>
-          <button type="button" data-action="set-stats-donut-mode" data-val="hours"
-            class="btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold ${uiState.statsDonutMode === 'hours' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+          <button type="button" data-action="set-stats-donut-mode" data-val="hours" data-seg-active="${uiState.statsDonutMode === 'hours' ? 'true' : 'false'}"
+            class="seg-btn btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold ${uiState.statsDonutMode === 'hours' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
             Horas
           </button>
         </div>
@@ -9733,13 +10073,14 @@ function renderStatsTab() {
             ${uiState.statsRecentPointsMode === 'top' ? 'Comparativa de puntos en tus 3 juegos puntuables más jugados' : 'Evolución de puntos en los últimos 3 juegos puntuables jugados'}
           </p>
         </div>
-        <div class="inline-flex p-0.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12">
-          <button type="button" data-action="set-recent-points-mode" data-val="recent"
-            class="btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-bold ${uiState.statsRecentPointsMode !== 'top' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+        <div class="seg-control bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12" data-seg-id="recent-pts">
+          <span class="seg-thumb seg-thumb-pine"></span>
+          <button type="button" data-action="set-recent-points-mode" data-val="recent" data-seg-active="${uiState.statsRecentPointsMode !== 'top' ? 'true' : 'false'}"
+            class="seg-btn btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-bold ${uiState.statsRecentPointsMode !== 'top' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
             Recientes
           </button>
-          <button type="button" data-action="set-recent-points-mode" data-val="top"
-            class="btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-bold ${uiState.statsRecentPointsMode === 'top' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+          <button type="button" data-action="set-recent-points-mode" data-val="top" data-seg-active="${uiState.statsRecentPointsMode === 'top' ? 'true' : 'false'}"
+            class="seg-btn btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-bold ${uiState.statsRecentPointsMode === 'top' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
             Más jugados
           </button>
         </div>
@@ -10021,15 +10362,15 @@ function renderStatsTab() {
 
     <!-- Ranking Detallado de Jugadores -->
     <div class="card-pro rounded-[24px] p-5 anim-in">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center justify-between mb-3">
         <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">
           ${pCtx.mode === 'vs' ? 'Comparativa Detallada' : pCtx.mode === 'single' ? `Resumen de ${esc(pCtx.playerA)}` : 'Clasificación Detallada'}
         </h3>
         <span class="text-[11px] font-semibold text-inkMuted dark:text-white/55">${isDirectDuel ? 'Duelos y % éxito' : 'Victorias y % éxito'}</span>
       </div>
-      <div class="space-y-3">
+      <div class="hairline-list">
         ${leaderboard.map((st, idx) => `
-          <div class="p-3 rounded-2xl bg-canvas/75 dark:bg-surfaceDarkAlt border border-[#EAE3D7] dark:border-white/8">
+          <div class="hairline-row">
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2.5 min-w-0">
                 <span class="w-7 h-7 rounded-xl flex items-center justify-center font-display font-extrabold text-xs shrink-0 ${
@@ -10064,6 +10405,8 @@ function renderStatsTab() {
       </div>
     </div>
   `;
+
+  requestAnimationFrame(syncSegmentedControls);
 
   // Montar instancias de Chart.js
   mountStatsCharts({
@@ -10540,8 +10883,10 @@ function mountStatsCharts({ sortedGamesData, chronologicalScored, recentPointsGa
 // =========================================================================
 function renderShelfTab() {
   const container = document.getElementById('view-shelf');
+  const shelfProfiles = getShelfProfileCandidates();
+  const activeProfile = getActiveShelfProfile();
 
-  // Precalcula métricas por juego para ordenar y mostrar
+  // Precalcula métricas por juego para el perfil activo
   const enriched = games.map((g, origIdx) => {
     const gMatches = matchHistory.filter((m) => m.gameId === g.id);
     const playCount = gMatches.length;
@@ -10552,13 +10897,15 @@ function renderShelfTab() {
         highScore = m.topScore;
       }
     });
-    return { g, origIdx, playCount, lastMatch, highScore };
+    const rating = getGameRatingFor(g, activeProfile.key);
+    const favorite = isGameFavoriteFor(g, activeProfile.key);
+    return { g, origIdx, playCount, lastMatch, highScore, rating, favorite };
   });
 
   const q = (uiState.shelfSearch || '').trim().toLowerCase();
-  let list = enriched.filter(({ g }) => {
+  let list = enriched.filter(({ g, favorite }) => {
     if (uiState.shelfSort === 'calc' && !g.quickCalc) return false;
-    if (uiState.shelfSort === 'favorites' && !g.favorite) return false;
+    if (uiState.shelfSort === 'favorites' && !favorite) return false;
     if (!q) return true;
     return g.name.toLowerCase().includes(q)
       || (g.tagline || '').toLowerCase().includes(q)
@@ -10570,12 +10917,12 @@ function renderShelfTab() {
   } else if (uiState.shelfSort === 'az') {
     list.sort((a, b) => a.g.name.localeCompare(b.g.name, 'es'));
   } else if (uiState.shelfSort === 'rating') {
-    list.sort((a, b) => ((Number(b.g.rating) || 0) - (Number(a.g.rating) || 0)) || (b.playCount - a.playCount));
+    list.sort((a, b) => (b.rating - a.rating) || (b.playCount - a.playCount));
   } else if (uiState.shelfSort === 'favorites') {
-    list.sort((a, b) => ((Number(b.g.rating) || 0) - (Number(a.g.rating) || 0)) || (b.playCount - a.playCount));
+    list.sort((a, b) => (b.rating - a.rating) || (b.playCount - a.playCount));
   }
 
-  const cards = list.length > 0 ? list.map(({ g, playCount, lastMatch, highScore }) => `
+  const cards = list.length > 0 ? list.map(({ g, playCount, lastMatch, highScore, rating, favorite }) => `
       <article class="card-pro rounded-[24px] overflow-hidden flex flex-col anim-in">
         <div class="cover-sheen p-4 text-white" style="background: linear-gradient(135deg, ${g.color}, ${g.color2 || g.color});">
           <div class="cover-watermark">${gameIconSvg(g.icon, 'w-24 h-24')}</div>
@@ -10584,18 +10931,18 @@ function renderShelfTab() {
               ${gameIconSvg(g.icon, 'w-6 h-6')}
             </div>
             <div class="flex items-center gap-1">
-              ${g.rating ? `
+              ${rating ? `
                 <span class="px-2 py-1 rounded-full bg-amber-400/24 border border-amber-300/35 text-[10.5px] font-extrabold text-amber-100 tabular-nums">
-                  ★ ${formatStarRating(g.rating)}
+                  ★ ${formatStarRating(rating)}
                 </span>
               ` : ''}
               <span class="px-2.5 py-1 rounded-full bg-black/24 border border-white/15 text-[11px] font-extrabold tabular-nums">
-                ${playCount} ${playCount === 1 ? 'p.' : 'p.'}
+                ${playCount} p.
               </span>
               <button type="button" data-action="toggle-favorite-game" data-game-id="${esc(g.id)}"
-                class="btn-tap w-7 h-7 rounded-full bg-black/24 hover:bg-black/40 border border-white/15 flex items-center justify-center ${g.favorite ? 'text-amber-300' : 'text-white/75'}"
-                title="${g.favorite ? 'Quitar de favoritos' : 'Marcar favorito'}" aria-label="Favorito ${esc(g.name)}">
-                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="${g.favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                class="btn-tap w-7 h-7 rounded-full bg-black/24 hover:bg-black/40 border border-white/15 flex items-center justify-center ${favorite ? 'text-amber-300' : 'text-white/75'}"
+                title="${favorite ? `Quitar de favoritos (${esc(activeProfile.name)})` : `Marcar favorito (${esc(activeProfile.name)})`}" aria-label="Favorito ${esc(g.name)}">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="${favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
               </button>
               <button type="button" data-action="open-edit-game" data-game-id="${esc(g.id)}"
                 class="btn-tap w-7 h-7 rounded-full bg-black/24 hover:bg-black/40 border border-white/15 text-white flex items-center justify-center"
@@ -10619,7 +10966,7 @@ function renderShelfTab() {
 
         <div class="p-3.5 flex-1 flex flex-col justify-between gap-3">
           ${lastMatch ? `
-            <div class="grid grid-cols-2 gap-2 p-2.5 rounded-2xl bg-canvas/75 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.06]">
+            <div class="shelf-stat-strip">
               <div class="min-w-0">
                 <div class="text-[10px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/45">Última</div>
                 <div class="text-xs font-extrabold text-ink dark:text-white truncate mt-0.5">${esc(formatDisplayDate(lastMatch.date, lastMatch.createdAtMs))}</div>
@@ -10630,7 +10977,7 @@ function renderShelfTab() {
               </div>
             </div>
           ` : `
-            <div class="px-3 py-2.5 rounded-2xl bg-canvas/60 dark:bg-surfaceDarkAlt/60 border border-dashed border-black/10 dark:border-white/10 text-xs text-inkMuted dark:text-white/50 italic">
+            <div class="py-2 text-xs text-inkMuted dark:text-white/50 italic">
               Sin partidas registradas todavía
             </div>
           `}
@@ -10642,7 +10989,7 @@ function renderShelfTab() {
             </button>
             <button type="button" data-action="open-game-sheet" data-game-id="${esc(g.id)}"
               class="btn-tap py-2 px-2.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt hover:border-emeraldBrand text-ink dark:text-white text-xs font-bold border border-black/[0.07] dark:border-white/10 inline-flex items-center gap-1"
-              title="Chuleta de reglas y nota personal">
+              title="Chuleta de reglas y valoración">
               <svg class="w-3.5 h-3.5 text-emeraldBrand dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
               <span>Reglas</span>
             </button>
@@ -10658,13 +11005,13 @@ function renderShelfTab() {
     `).join('') : `
       <div class="col-span-full card-pro rounded-[24px] border-dashed p-8 text-center">
         <p class="text-xs font-semibold text-inkMuted dark:text-white/60">
-          ${uiState.shelfSort === 'favorites' && !q ? 'Aún no has marcado juegos con estrella ★' : `No hay juegos que coincidan con "${esc(uiState.shelfSearch)}"`}
+          ${uiState.shelfSort === 'favorites' && !q ? `${esc(activeProfile.name)} aún no ha marcado favoritos ★` : `No hay juegos que coincidan con "${esc(uiState.shelfSearch)}"`}
         </p>
       </div>
     `;
 
   const deletedDefaultsCount = DEFAULT_GAMES.filter((d) => deletedGameIds.includes(d.id) && !games.some((g) => g.id === d.id)).length;
-  const favTotal = games.filter((g) => g.favorite).length;
+  const favTotal = games.filter((g) => isGameFavoriteFor(g, activeProfile.key)).length;
   const sortOpts = [
     { val: 'default', label: 'Colección' },
     { val: 'favorites', label: `★ Favoritos${favTotal ? ` (${favTotal})` : ''}` },
@@ -10678,7 +11025,7 @@ function renderShelfTab() {
     <div class="flex items-center justify-between gap-2 px-0.5">
       <div class="min-w-0">
         <h2 class="font-display text-base font-extrabold text-ink dark:text-white">Tu Ludoteca (${games.length})</h2>
-        <p class="text-xs text-inkMuted dark:text-white/55 truncate">Reglas rápidas, notas y colección</p>
+        <p class="text-xs text-inkMuted dark:text-white/55 truncate">Notas y favoritos de <strong class="text-ink dark:text-white">${esc(activeProfile.name)}</strong></p>
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
         <button type="button" data-action="open-table-tools-tab" data-tab="picker"
@@ -10690,6 +11037,27 @@ function renderShelfTab() {
           + Nuevo
         </button>
       </div>
+    </div>
+
+    <!-- Selector de perfil de Ludoteca (estrellas y favoritos independientes por persona) -->
+    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+      ${shelfProfiles.map((prof) => {
+        const isAct = prof.key === activeProfile.key;
+        const countTag = prof.ratedCount > 0 ? `★${prof.ratedCount}` : (prof.favCount > 0 ? `♥${prof.favCount}` : '');
+        return `
+          <button type="button" data-action="set-shelf-profile" data-key="${esc(prof.key)}"
+            class="profile-chip btn-tap shrink-0 ${isAct ? 'is-active' : ''}">
+            ${renderPlayerAvatarHtml(prof.name, 'w-5 h-5 text-[9px] ring-1 ring-white/25')}
+            <span>${esc(prof.name)}</span>
+            ${countTag ? `<span class="text-[10px] font-extrabold tabular-nums ${isAct ? 'text-amber-300' : 'text-inkMuted dark:text-white/50'}">${countTag}</span>` : ''}
+          </button>
+        `;
+      }).join('')}
+      <button type="button" data-action="open-player-profiles"
+        class="btn-tap shrink-0 w-8 h-8 rounded-full card-pro inline-flex items-center justify-center text-inkMuted dark:text-white/70 hover:text-emeraldBrand"
+        title="Añadir o editar perfiles" aria-label="Gestionar perfiles">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
     </div>
 
     <div class="space-y-2.5">
@@ -10709,7 +11077,7 @@ function renderShelfTab() {
       </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 stagger-list">
       ${cards}
     </div>
 
@@ -10767,15 +11135,29 @@ function openGameSheetModal(gameId) {
   const g = games.find((x) => x.id === gameId);
   if (!g) return;
 
-  let tempRating = normalizeStarRating(g.rating);
+  const candidates = getShelfProfileCandidates();
+  let activeKey = getActiveShelfProfile().key;
+  const draftRatings = {};
+  const draftFavs = {};
+  candidates.forEach((c) => {
+    draftRatings[c.key] = getGameRatingFor(g, c.key);
+    draftFavs[c.key] = isGameFavoriteFor(g, c.key);
+  });
+
   let tempNotes = g.rulesNotes !== undefined ? String(g.rulesNotes) : (DEFAULT_RULES_NOTES[g.id] || '');
-  let tempFav = Boolean(g.favorite);
   let editingRules = !tempNotes.trim();
 
   const gMatches = matchHistory.filter((m) => m.gameId === g.id);
   const daysSince = getDaysSinceLastPlay(g.id);
 
   const renderSheet = () => {
+    const curProf = candidates.find((c) => c.key === activeKey) || candidates[0];
+    const tempRating = draftRatings[curProf.key] || 0;
+    const tempFav = Boolean(draftFavs[curProf.key]);
+    const otherRatings = candidates
+      .filter((c) => c.key !== curProf.key && (draftRatings[c.key] > 0 || draftFavs[c.key]))
+      .map((c) => ({ ...c, rating: draftRatings[c.key] || 0, favorite: Boolean(draftFavs[c.key]) }));
+
     const bodyHtml = `
       <div class="space-y-4">
         <!-- Portada compacta -->
@@ -10828,10 +11210,27 @@ function openGameSheetModal(gameId) {
           `}
         </div>
 
-        <!-- Valoración personal (1–5 estrellas con medias estrellas) -->
+        <!-- Valoración personal por perfil (1–5 estrellas con medias estrellas) -->
         <div class="p-3.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2.5">
+          ${candidates.length > 1 ? `
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1.5 border-b border-black/[0.05] dark:border-white/[0.07]">
+              ${candidates.map((c) => {
+                const isSel = c.key === curProf.key;
+                const cRat = draftRatings[c.key] || 0;
+                return `
+                  <button type="button" data-gs="switch-profile" data-key="${esc(c.key)}"
+                    class="profile-chip btn-tap shrink-0 ${isSel ? 'is-active' : ''}">
+                    ${renderPlayerAvatarHtml(c.name, 'w-5 h-5 text-[9px] ring-1 ring-white/25')}
+                    <span>${esc(c.name)}</span>
+                    ${cRat > 0 ? `<span class="text-[10px] font-extrabold tabular-nums ${isSel ? 'text-amber-300' : 'text-goldBrand'}">★${formatStarRating(cRat)}</span>` : ''}
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          ` : ''}
+
           <div class="flex items-center justify-between gap-2">
-            <span class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Tu valoración personal</span>
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Valoración de ${esc(curProf.name)}</span>
             <div class="flex items-center gap-2">
               <span class="font-display text-sm font-extrabold tabular-nums ${tempRating ? 'text-goldBrand' : 'text-inkMuted'}">${tempRating ? `★ ${formatStarRating(tempRating)} / 5` : 'Sin nota'}</span>
               ${tempRating ? `<button type="button" data-gs="set-rating" data-val="0" class="btn-tap text-[11px] font-bold text-coralBrand">Quitar</button>` : ''}
@@ -10850,7 +11249,7 @@ function openGameSheetModal(gameId) {
                   <button type="button" data-gs="tap-star" data-star="${n}"
                     class="btn-tap w-10 h-10 rounded-xl flex items-center justify-center"
                     aria-label="${n} ${n === 1 ? 'estrella' : 'estrellas'}">
-                    ${renderStarSvg(st, `${g.id}_${n}`)}
+                    ${renderStarSvg(st, `${g.id}_${curProf.key}_${n}`)}
                   </button>
                 `;
               }).join('')}
@@ -10864,6 +11263,18 @@ function openGameSheetModal(gameId) {
           <p class="text-[10.5px] text-center text-inkMuted dark:text-white/50">
             Toca una estrella (repítela para media ★) o ajusta con −½ / +½
           </p>
+
+          ${otherRatings.length > 0 ? `
+            <div class="pt-2 border-t border-black/[0.05] dark:border-white/[0.07] flex flex-wrap items-center justify-center gap-2 text-[11px] text-inkMuted dark:text-white/60">
+              ${otherRatings.map((o) => `
+                <span class="inline-flex items-center gap-1 font-semibold tabular-nums">
+                  <span class="w-2 h-2 rounded-full" style="background:${o.color};"></span>
+                  <span>${esc(o.name)}</span>
+                  ${o.rating > 0 ? `<strong class="text-goldBrand">★ ${formatStarRating(o.rating)}</strong>` : '<strong class="text-goldBrand">★ Fav</strong>'}
+                </span>
+              `).join('')}
+            </div>
+          ` : ''}
         </div>
       </div>
     `;
@@ -10880,10 +11291,12 @@ function openGameSheetModal(gameId) {
           onClick: () => {
             const ta = document.getElementById('gs-rules-textarea');
             if (ta) tempNotes = ta.value;
-            g.favorite = tempFav;
-            if (tempRating > 0) g.rating = tempRating;
-            else delete g.rating;
+            candidates.forEach((c) => {
+              setGameRatingFor(g, draftRatings[c.key] || 0, c.key);
+              setGameFavoriteFor(g, Boolean(draftFavs[c.key]), c.key);
+            });
             g.rulesNotes = tempNotes.trim();
+            setActiveShelfProfile(activeKey);
             saveGamesLocal();
             renderActiveTab();
             showToast(`Ficha de ${g.name} guardada`, 'success');
@@ -10901,26 +11314,33 @@ function openGameSheetModal(gameId) {
       const el = e.target.closest('[data-gs]');
       if (!el) return;
       const act = el.dataset.gs;
-      if (act === 'toggle-fav') {
-        tempFav = !tempFav;
+      if (act === 'switch-profile') {
+        const ta = document.getElementById('gs-rules-textarea');
+        if (ta) tempNotes = ta.value;
+        activeKey = el.dataset.key || activeKey;
+        renderSheet();
+      } else if (act === 'toggle-fav') {
+        draftFavs[activeKey] = !draftFavs[activeKey];
         renderSheet();
       } else if (act === 'set-rating') {
-        tempRating = Number(el.dataset.val) || 0;
+        draftRatings[activeKey] = Number(el.dataset.val) || 0;
         renderSheet();
       } else if (act === 'tap-star') {
         const star = Number(el.dataset.star) || 1;
+        const curR = draftRatings[activeKey] || 0;
         if (star === 1) {
-          tempRating = 1;
+          draftRatings[activeKey] = 1;
         } else {
-          tempRating = tempRating === star ? (star - 0.5) : star;
+          draftRatings[activeKey] = curR === star ? (star - 0.5) : star;
         }
         renderSheet();
       } else if (act === 'step-rating') {
         const delta = Number(el.dataset.delta) || 0;
-        if (tempRating === 0) {
-          tempRating = delta > 0 ? 1 : 0;
+        const curR = draftRatings[activeKey] || 0;
+        if (curR === 0) {
+          draftRatings[activeKey] = delta > 0 ? 1 : 0;
         } else {
-          tempRating = Math.min(5, Math.max(1, Math.round((tempRating + delta) * 2) / 2));
+          draftRatings[activeKey] = Math.min(5, Math.max(1, Math.round((curR + delta) * 2) / 2));
         }
         renderSheet();
       } else if (act === 'toggle-edit-rules') {
@@ -10992,7 +11412,7 @@ function getPickerCandidates() {
   const pType = tableToolsState.pickType;
 
   let list = games.filter((g) => {
-    if (tableToolsState.pickOnlyFavs && !g.favorite) return false;
+    if (tableToolsState.pickOnlyFavs && !isGameFavoriteFor(g)) return false;
     if (pCount > 0) {
       const minP = Number(g.minPlayers) || 1;
       const maxP = Number(g.maxPlayers) || 8;
@@ -11151,7 +11571,7 @@ function renderTableToolsModal() {
                   ${gameIconSvg(c.icon, 'w-4 h-4')}
                 </span>
                 <div class="min-w-0 flex-1">
-                  <div class="text-xs font-extrabold text-ink dark:text-white truncate">${c.favorite ? '★ ' : ''}${esc(c.name)}</div>
+                  <div class="text-xs font-extrabold text-ink dark:text-white truncate">${isGameFavoriteFor(c) ? '★ ' : ''}${esc(c.name)}</div>
                   <div class="text-[10px] text-inkMuted dark:text-white/55 truncate">${c.defaultDuration || 30} min · ${formatDustyLabel(getDaysSinceLastPlay(c.id))}</div>
                 </div>
               </button>
@@ -11506,7 +11926,6 @@ function openGameModal(existingGame = null) {
   const syncFieldsFromDom = () => {
     const n = document.getElementById('new-game-name');
     const t = document.getElementById('new-game-tagline');
-    const m = document.getElementById('new-game-mode');
     const d = document.getElementById('new-game-dur');
     const minEl = document.getElementById('new-game-minp');
     const maxEl = document.getElementById('new-game-maxp');
@@ -11515,7 +11934,6 @@ function openGameModal(existingGame = null) {
     const s = document.getElementById('new-game-solo');
     if (n) currentName = n.value;
     if (t) currentTagline = t.value;
-    if (m) currentMode = m.value;
     if (d) currentDur = d.value;
     if (minEl) currentMinP = minEl.value;
     if (maxEl) currentMaxP = maxEl.value;
@@ -11539,14 +11957,24 @@ function openGameModal(existingGame = null) {
             class="w-full bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 focus:border-emeraldBrand rounded-xl px-3 py-2 text-xs outline-none" />
         </div>
 
-        <div class="grid grid-cols-2 gap-2.5">
+        <div class="space-y-2.5">
           <div>
-            <label for="new-game-mode" class="block text-xs font-bold mb-1.5">Tipo de puntuación</label>
-            <select id="new-game-mode" class="w-full h-10 bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 rounded-xl px-2.5 text-xs font-bold outline-none">
-              <option value="points" ${currentMode === 'points' ? 'selected' : ''}>Por puntos</option>
-              <option value="winner_only" ${currentMode === 'winner_only' ? 'selected' : ''}>Solo ganador</option>
-              <option value="coop" ${currentMode === 'coop' ? 'selected' : ''}>Cooperativo (Victoria/Derrota)</option>
-            </select>
+            <div class="block text-xs font-bold mb-1.5">Tipo de puntuación</div>
+            <div class="seg-control seg-grid grid-cols-3 bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15" data-seg-id="new-game-mode">
+              <span class="seg-thumb seg-thumb-pine"></span>
+              <button type="button" data-pick-mode="points" data-seg-active="${currentMode === 'points' ? 'true' : 'false'}"
+                class="seg-btn btn-tap py-2 rounded-lg text-xs font-extrabold ${currentMode === 'points' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
+                Por puntos
+              </button>
+              <button type="button" data-pick-mode="winner_only" data-seg-active="${currentMode === 'winner_only' ? 'true' : 'false'}"
+                class="seg-btn btn-tap py-2 rounded-lg text-xs font-extrabold ${currentMode === 'winner_only' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
+                Solo ganador
+              </button>
+              <button type="button" data-pick-mode="coop" data-seg-active="${currentMode === 'coop' ? 'true' : 'false'}"
+                class="seg-btn btn-tap py-2 rounded-lg text-xs font-extrabold ${currentMode === 'coop' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
+                Cooperativo
+              </button>
+            </div>
           </div>
           <div>
             <label for="new-game-dur" class="block text-xs font-bold mb-1.5">Duración media (min)</label>
@@ -11711,6 +12139,13 @@ function openGameModal(existingGame = null) {
     });
 
     document.getElementById('modal-body').onclick = (e) => {
+      const mBtn = e.target.closest('[data-pick-mode]');
+      if (mBtn) {
+        syncFieldsFromDom();
+        currentMode = mBtn.dataset.pickMode || 'points';
+        renderForm();
+        return;
+      }
       const cBtn = e.target.closest('[data-pick-color]');
       if (cBtn) {
         syncFieldsFromDom();
@@ -11938,7 +12373,14 @@ function switchTab(tabName) {
   uiState.activeTab = tabName;
   const sections = ['log', 'history', 'stats', 'shelf'];
   sections.forEach((s) => {
-    document.getElementById(`view-${s}`).classList.toggle('hidden', s !== tabName);
+    const secEl = document.getElementById(`view-${s}`);
+    const isTarget = s === tabName;
+    secEl.classList.toggle('hidden', !isTarget);
+    if (isTarget) {
+      secEl.classList.remove('view-fade');
+      void secEl.offsetWidth;
+      secEl.classList.add('view-fade');
+    }
   });
 
   document.querySelectorAll('.nav-btn').forEach((btn) => {
@@ -11988,6 +12430,93 @@ function bindGlobalEvents() {
   document.getElementById('modal-close-x').addEventListener('click', closeModal);
   document.getElementById('modal-backdrop').addEventListener('click', (e) => {
     if (e.target.id === 'modal-backdrop') closeModal();
+  });
+
+  // Gesto nativo de cierre arrastrando hacia abajo (swipe-to-dismiss) en modales móvil
+  (() => {
+    const backdrop = document.getElementById('modal-backdrop');
+    const card = document.getElementById('modal-card');
+    const modalBody = document.getElementById('modal-body');
+    if (!backdrop || !card || !modalBody) return;
+
+    let startY = 0;
+    let startX = 0;
+    let startTime = 0;
+    let currentDy = 0;
+    let dragging = false;
+    let eligible = false;
+
+    card.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      if (backdrop.classList.contains('hidden')) return;
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      const inBody = modalBody.contains(e.target);
+      if (inBody && modalBody.scrollTop > 2) return;
+      startY = e.touches[0].clientY;
+      startX = e.touches[0].clientX;
+      startTime = Date.now();
+      currentDy = 0;
+      dragging = false;
+      eligible = true;
+    }, { passive: true });
+
+    card.addEventListener('touchmove', (e) => {
+      if (!eligible || e.touches.length !== 1) return;
+      const dy = e.touches[0].clientY - startY;
+      const dx = Math.abs(e.touches[0].clientX - startX);
+      if (!dragging) {
+        if (dy < 8 || dx > dy) {
+          if (dy < -8 || dx > 14) eligible = false;
+          return;
+        }
+        if (modalBody.contains(e.target) && modalBody.scrollTop > 2) {
+          eligible = false;
+          return;
+        }
+        dragging = true;
+        card.classList.remove('is-snapping');
+        card.classList.add('is-dragging');
+      }
+      if (dy > 0) {
+        currentDy = dy;
+        card.style.transform = `translate3d(0, ${dy}px, 0)`;
+        const fade = Math.max(0.12, 0.55 * (1 - Math.min(1, dy / 340)));
+        backdrop.style.backgroundColor = `rgba(0, 0, 0, ${fade.toFixed(3)})`;
+      }
+    }, { passive: true });
+
+    const finishDrag = () => {
+      if (!dragging) {
+        eligible = false;
+        return;
+      }
+      const dt = Math.max(1, Date.now() - startTime);
+      const velocity = currentDy / dt;
+      dragging = false;
+      eligible = false;
+      card.classList.remove('is-dragging');
+      card.classList.add('is-snapping');
+
+      if (currentDy > 95 || (currentDy > 42 && velocity > 0.45)) {
+        card.style.transform = `translate3d(0, 100%, 0)`;
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        setTimeout(() => closeModal(), 200);
+      } else {
+        card.style.transform = 'translate3d(0, 0, 0)';
+        backdrop.style.backgroundColor = '';
+        setTimeout(() => {
+          card.classList.remove('is-snapping');
+          card.style.transform = '';
+        }, 280);
+      }
+    };
+    card.addEventListener('touchend', finishDrag, { passive: true });
+    card.addEventListener('touchcancel', finishDrag, { passive: true });
+  })();
+
+  window.addEventListener('resize', () => {
+    requestAnimationFrame(syncSegmentedControls);
   });
 
   document.addEventListener('keydown', (e) => {
@@ -12319,6 +12848,27 @@ function bindGlobalEvents() {
       case 'set-shelf-sort': {
         uiState.shelfSort = el.dataset.val || 'default';
         renderShelfTab();
+        break;
+      }
+      case 'set-shelf-profile': {
+        setActiveShelfProfile(el.dataset.key || DEFAULT_OWNER_KEY);
+        renderShelfTab();
+        break;
+      }
+      case 'toggle-corp-picker': {
+        const idx = Number(el.dataset.idx);
+        uiState.openCorpPickerIdx = uiState.openCorpPickerIdx === idx ? -1 : idx;
+        renderLogTab();
+        break;
+      }
+      case 'pick-player-tag': {
+        const idx = Number(el.dataset.idx);
+        if (draft.players[idx]) {
+          draft.players[idx].tag = el.dataset.val || '';
+          saveDraftLocal();
+        }
+        uiState.openCorpPickerIdx = -1;
+        renderLogTab();
         break;
       }
       case 'edit-match': {

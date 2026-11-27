@@ -570,6 +570,160 @@ img, svg, video, canvas {
     }
 
 
+
+    /* === Pulido Nativo y Perfiles de Ludoteca (v15) === */
+    /* Listas limpias sin tarjetas anidadas (solo separadores hairline) */
+    .hairline-list > .hairline-row {
+      padding: 0.72rem 0.15rem;
+      border-bottom: 1px solid rgba(20, 36, 30, 0.065);
+    }
+    .hairline-list > .hairline-row:first-child {
+      padding-top: 0.25rem;
+    }
+    .hairline-list > .hairline-row:last-child {
+      padding-bottom: 0.1rem;
+      border-bottom-width: 0;
+    }
+    html.dark .hairline-list > .hairline-row {
+      border-bottom-color: rgba(255, 255, 255, 0.07);
+    }
+
+    /* Tira limpia de métricas dentro de tarjetas de Ludoteca (sin doble caja) */
+    .shelf-stat-strip {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+      padding: 0.55rem 0.1rem;
+      border-top: 1px solid rgba(20, 36, 30, 0.06);
+      border-bottom: 1px solid rgba(20, 36, 30, 0.06);
+    }
+    html.dark .shelf-stat-strip {
+      border-top-color: rgba(255, 255, 255, 0.07);
+      border-bottom-color: rgba(255, 255, 255, 0.07);
+    }
+
+    /* Controles segmentados con píldora deslizante animada */
+    .seg-control {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      padding: 2px;
+      border-radius: 0.8rem;
+      isolation: isolate;
+    }
+    .seg-control.seg-grid {
+      display: grid;
+      width: 100%;
+    }
+    .seg-control > .seg-thumb {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      left: 2px;
+      border-radius: 0.65rem;
+      z-index: 0;
+      pointer-events: none;
+      transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), width 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 1px 3px rgba(16, 37, 30, 0.14);
+    }
+    .seg-control > .seg-btn {
+      position: relative;
+      z-index: 1;
+      transition: color 0.18s ease;
+    }
+    .seg-thumb-pine {
+      background-color: #12241E;
+    }
+    html.dark .seg-thumb-pine {
+      background-color: #227554;
+    }
+    .seg-thumb-white {
+      background-color: #FFFFFF;
+    }
+    .seg-thumb-amber {
+      background-color: #D97706;
+    }
+    .seg-thumb-vs {
+      background: linear-gradient(90deg, #227554, #D48A17);
+    }
+
+    /* Transición suave al cambiar de pestaña */
+    @keyframes viewFadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .view-fade {
+      animation: viewFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Física de cierre por arrastre en modales */
+    #modal-card.is-dragging {
+      animation: none !important;
+      transition: none !important;
+    }
+    #modal-card.is-snapping {
+      animation: none !important;
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Selector de perfil en Ludoteca y Ficha de juego */
+    .profile-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.32rem 0.65rem 0.32rem 0.36rem;
+      border-radius: 999px;
+      border: 1px solid rgba(20, 36, 30, 0.08);
+      background-color: #FFFFFF;
+      color: #181715;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 1px 2px rgba(18, 36, 30, 0.04);
+      transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    html.dark .profile-chip {
+      background-color: #131C19;
+      border-color: rgba(255, 255, 255, 0.09);
+      color: rgba(255, 255, 255, 0.85);
+    }
+    .profile-chip.is-active {
+      background-color: #12241E;
+      border-color: transparent;
+      color: #FFFFFF;
+      box-shadow: 0 8px 18px -10px rgba(18, 36, 30, 0.55);
+    }
+    html.dark .profile-chip.is-active {
+      background-color: #227554;
+      color: #FFFFFF;
+    }
+
+    /* Selectores táctiles propios (sustituyen <select> nativos) */
+    .picker-slot {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.55rem 0.7rem;
+      border-radius: 0.9rem;
+      background-color: #FFFFFF;
+      border: 1.5px solid rgba(20, 36, 30, 0.10);
+      text-align: left;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+    }
+    html.dark .picker-slot {
+      background-color: #1A2622;
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .picker-slot.is-open {
+      border-color: #227554;
+      box-shadow: 0 0 0 3px rgba(34, 117, 84, 0.14);
+    }
+    .picker-slot.is-open-amber {
+      border-color: #D48A17;
+      box-shadow: 0 0 0 3px rgba(212, 138, 23, 0.15);
+    }
+
     input[type="number"]::-webkit-inner-spin-button,
     input[type="number"]::-webkit-outer-spin-button {
       -webkit-appearance: none;

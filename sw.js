@@ -1,5 +1,5 @@
-// Ludoteca — Service Worker Offline v14 (PWA estática sin Tailwind CDN)
-const CACHE_NAME = 'ludoteca-offline-v14';
+// Ludoteca — Service Worker Offline v15 (PWA estática sin Tailwind CDN)
+const CACHE_NAME = 'ludoteca-offline-v15';
 const PRECACHE_URLS = [
   './',
   './index.html',
