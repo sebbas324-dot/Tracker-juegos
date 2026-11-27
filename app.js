@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v1.8';
+const APP_VERSION = 'v2.0';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -697,7 +697,8 @@ let uiState = {
   logGameMode: 'recent', // 'recent' | 'favorites' | 'all'
   shelfSearch: '',
   shelfSort: 'default', // 'default' | 'favorites' | 'rating' | 'most_played' | 'az' | 'calc'
-  shelfProfileKey: 'sebas',
+  shelfProfileKey: 'all',
+  lastPersonProfileKey: 'sebas',
   openCorpPickerIdx: -1,
   timerOpen: false,
   expandedMatchId: null,
@@ -1265,6 +1266,45 @@ function normalizeStarRating(raw) {
 
 const DEFAULT_OWNER_KEY = 'sebas';
 const DEFAULT_OWNER_NAME = 'Sebas';
+const SHELF_HOME_KEY = 'all';
+
+function isFourMermaidsMatch(match) {
+  if (!match || match.gameId !== 'oceanos_de_papel') return false;
+  const wt = String(match.meta?.winType || '');
+  const ex = String(match.extraLabel || '');
+  return /4\s*sirenas/i.test(wt) || /4\s*sirenas/i.test(ex);
+}
+
+function getGameAverageRating(g) {
+  if (!g) return { avg: 0, count: 0 };
+  const map = (g.ratingsByPlayer && typeof g.ratingsByPlayer === 'object') ? g.ratingsByPlayer : {};
+  const vals = Object.values(map)
+    .map((v) => normalizeStarRating(v))
+    .filter((v) => v > 0);
+  if (vals.length === 0) {
+    const leg = normalizeStarRating(g.rating);
+    return leg > 0 ? { avg: leg, count: 1 } : { avg: 0, count: 0 };
+  }
+  const sum = vals.reduce((a, b) => a + b, 0);
+  return { avg: sum / vals.length, count: vals.length };
+}
+
+function formatAverageRating(avg) {
+  if (!avg || avg <= 0) return '';
+  return Number(avg.toFixed(1)).toString();
+}
+
+function isGameFavoriteByAny(g) {
+  if (!g) return false;
+  if (g.favoritesByPlayer && typeof g.favoritesByPlayer === 'object') {
+    if (Object.values(g.favoritesByPlayer).some(Boolean)) return true;
+  }
+  return Boolean(g.favorite);
+}
+
+function isShelfHomeMode() {
+  return normName(uiState.shelfProfileKey) === SHELF_HOME_KEY;
+}
 
 function migrateGameRatingsToProfiles(gameList) {
   if (!Array.isArray(gameList)) return false;
@@ -1542,10 +1582,16 @@ function getShelfProfileCandidates() {
 
 function getActiveShelfProfile() {
   const candidates = getShelfProfileCandidates();
-  const wanted = normName(uiState.shelfProfileKey) || DEFAULT_OWNER_KEY;
+  const rawKey = normName(uiState.shelfProfileKey);
+  const wanted = (rawKey && rawKey !== SHELF_HOME_KEY)
+    ? rawKey
+    : (normName(uiState.lastPersonProfileKey) || DEFAULT_OWNER_KEY);
   const found = candidates.find((c) => c.key === wanted) || candidates[0];
-  if (found && uiState.shelfProfileKey !== found.key) {
-    uiState.shelfProfileKey = found.key;
+  if (found) {
+    uiState.lastPersonProfileKey = found.key;
+    if (rawKey && rawKey !== SHELF_HOME_KEY && rawKey !== found.key) {
+      uiState.shelfProfileKey = found.key;
+    }
   }
   return found || {
     key: DEFAULT_OWNER_KEY,
@@ -1558,9 +1604,12 @@ function getActiveShelfProfile() {
 }
 
 function setActiveShelfProfile(key) {
-  const cleanKey = normName(key) || DEFAULT_OWNER_KEY;
+  const cleanKey = normName(key) || SHELF_HOME_KEY;
   uiState.shelfProfileKey = cleanKey;
-  try { localStorage.setItem(KEYS.SHELF_PROFILE, cleanKey); } catch (e) {}
+  if (cleanKey !== SHELF_HOME_KEY) {
+    uiState.lastPersonProfileKey = cleanKey;
+    try { localStorage.setItem(KEYS.SHELF_PROFILE, cleanKey); } catch (e) {}
+  }
 }
 
 // Motor FLIP ligero para píldora deslizante en controles segmentados
@@ -1924,10 +1973,11 @@ function loadLocalData() {
 
   try {
     const savedShelfProf = localStorage.getItem(KEYS.SHELF_PROFILE);
-    if (savedShelfProf && savedShelfProf.trim()) {
-      uiState.shelfProfileKey = savedShelfProf.trim().toLowerCase();
+    if (savedShelfProf && savedShelfProf.trim() && savedShelfProf.trim().toLowerCase() !== SHELF_HOME_KEY) {
+      uiState.lastPersonProfileKey = savedShelfProf.trim().toLowerCase();
     }
   } catch (e) {}
+  uiState.shelfProfileKey = SHELF_HOME_KEY;
 
   // Migra valoraciones/favoritos a perfiles por persona (tus notas actuales pasan a Sebas)
   if (migrateGameRatingsToProfiles(games)) gamesChanged = true;
@@ -3493,8 +3543,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v18 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v18';
+  return `// Ludoteca — Service Worker Offline v20 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v20';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -10006,6 +10056,7 @@ function renderStatsTab() {
         playerMap[name] = {
           name, plays: 0, compPlays: 0, compWins: 0, coopPlays: 0, coopWins: 0,
           scores: [], bestScore: isLowestWinsFilter ? Infinity : -Infinity,
+          specialRecord: '', fourMermaidsCount: 0,
           byGame: {}, winsByGame: {},
         };
       }
@@ -10033,6 +10084,10 @@ function renderStatsTab() {
         }
       }
 
+      if (isFourMermaidsMatch(m) && Boolean(p.winner)) {
+        st.fourMermaidsCount += 1;
+        st.specialRecord = '4 Sirenas';
+      }
       if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
         const sc = Number(p.score);
         st.scores.push(sc);
@@ -10055,21 +10110,38 @@ function renderStatsTab() {
     return { ...st, effectivePlays, wins, winRate, avg, favGame, topWonGame, topWonCount, coopOnly: useCoopOnly };
   }).sort((a, b) => (b.wins - a.wins) || (b.winRate - a.winRate) || (b.effectivePlays - a.effectivePlays));
 
-  // Récord de puntuación del filtro
+  // Récord de puntuación del filtro (en Sea Salt & Paper, 4 Sirenas cuenta como récord máximo)
   let recordEntry = null;
+  const mermaidWinners = [];
   subset.forEach((m) => {
     const mg = getGameById(m.gameId);
     if (uiState.statsFilterGame === 'all' && mg.lowestWins) return;
+    const isMermaidWinMatch = uiState.statsFilterGame === 'oceanos_de_papel' && isFourMermaidsMatch(m);
     (m.players || []).forEach((p) => {
       if (pCtx.allowedKeys && !pCtx.allowedKeys.has(normName(p.name))) return;
+      if (isMermaidWinMatch && p.winner && p.name) {
+        mermaidWinners.push(p.name);
+      }
       if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
         const sc = Number(p.score);
         if (!recordEntry || (isLowestWinsFilter ? sc < recordEntry.score : sc > recordEntry.score)) {
-          recordEntry = { score: sc, player: p.name, game: m.gameName };
+          recordEntry = { score: sc, player: p.name, game: m.gameName, isSpecial: false };
         }
       }
     });
   });
+  if (uiState.statsFilterGame === 'oceanos_de_papel' && mermaidWinners.length > 0) {
+    const uniqueMermaids = [...new Set(mermaidWinners)];
+    const prevNumeric = recordEntry;
+    recordEntry = {
+      isSpecial: true,
+      display: '4 Sirenas',
+      score: prevNumeric ? prevNumeric.score : null,
+      player: uniqueMermaids.join(' · '),
+      game: selectedGameObj ? selectedGameObj.name : 'Sea Salt & Paper',
+      subNote: prevNumeric ? `Máx. pts: ${prevNumeric.score} (${prevNumeric.player})` : 'Victoria especial',
+    };
+  }
 
   // Donut de juegos (solo vista global)
   let sortedGamesData = [];
@@ -10685,13 +10757,29 @@ function renderStatsTab() {
         </div>
         <div class="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between gap-2 text-[11px] text-white/75 relative z-10">
           <span class="truncate">${esc(topGameText)}</span>
-          ${recordEntry ? `<span class="shrink-0 tabular-nums font-bold text-amber-200">Récord: ${recordEntry.score} pts</span>` : `<span class="shrink-0 tabular-nums font-bold text-emerald-200">${totalHours}h en mesa</span>`}
+          ${recordEntry ? `<span class="shrink-0 tabular-nums font-bold text-amber-200">Récord: ${recordEntry.isSpecial ? esc(recordEntry.display) : `${recordEntry.score} pts`}</span>` : `<span class="shrink-0 tabular-nums font-bold text-emerald-200">${totalHours}h en mesa</span>`}
         </div>
       </div>
     `;
   })() : (() => {
     const leader = leaderboard[0] || null;
     const topPlayed = sortedGamesData[0] || null;
+    const leaderOwnRecord = (() => {
+      if (!selectedGameObj || !leader) return '';
+      if (selectedGameObj.id === 'oceanos_de_papel' && leader.specialRecord) {
+        return `Su récord: ${leader.specialRecord}`;
+      }
+      if (Number.isFinite(leader.bestScore)) {
+        return `Su récord: ${leader.bestScore} pts`;
+      }
+      return '';
+    })();
+    const leftFooterText = selectedGameObj
+      ? (subset[0] ? `Última: ${esc(formatDisplayDate(subset[0].date, subset[0].createdAtMs))}` : `${leaderboard.length} ${leaderboard.length === 1 ? 'jugador' : 'jugadores'}`)
+      : (topPlayed ? `Top: <strong class="text-white">${esc(topPlayed.game.name)}</strong> (${topPlayed.count})` : `${playedGameIds.length} ${playedGameIds.length === 1 ? 'juego jugado' : 'juegos jugados'}`);
+    const rightFooterText = selectedGameObj
+      ? leaderOwnRecord
+      : (recordEntry ? (recordEntry.isSpecial ? `Récord: ${recordEntry.display}` : `Récord: ${recordEntry.score} pts`) : '');
     return `
       <div class="stats-hero-dark cover-sheen rounded-[26px] p-4 sm:p-5 text-white anim-in border border-white/10">
         <div class="flex items-center justify-between gap-2 mb-3 relative z-10">
@@ -10730,8 +10818,8 @@ function renderStatsTab() {
           </div>
         </div>
         <div class="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between gap-2 text-[11px] text-white/75 relative z-10">
-          <span class="truncate">${topPlayed ? `Top: <strong class="text-white">${esc(topPlayed.game.name)}</strong> (${topPlayed.count})` : `${playedGameIds.length} ${playedGameIds.length === 1 ? 'juego jugado' : 'juegos jugados'}`}</span>
-          ${recordEntry ? `<span class="shrink-0 tabular-nums font-bold text-amber-200">Récord: ${recordEntry.score} pts</span>` : ''}
+          <span class="truncate">${leftFooterText}</span>
+          ${rightFooterText ? `<span class="shrink-0 tabular-nums font-bold text-amber-200">${esc(rightFooterText)}</span>` : ''}
         </div>
       </div>
     `;
@@ -10754,7 +10842,7 @@ function renderStatsTab() {
           </span>
         </div>
         <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${totalPlays}</div>
-        <div class="text-[11px] text-emeraldBrand dark:text-emerald-400 font-semibold mt-1">${playedGameIds.length} ${playedGameIds.length === 1 ? 'juego' : 'juegos'}</div>
+        <div class="text-[11px] text-emeraldBrand dark:text-emerald-400 font-semibold mt-1 truncate">${selectedGameObj ? `Media ${Math.round(totalMins / Math.max(1, totalPlays))} min` : `${playedGameIds.length} ${playedGameIds.length === 1 ? 'juego' : 'juegos'}`}</div>
       </div>
 
       <div class="card-pro kpi-card-blue p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
@@ -10777,9 +10865,11 @@ function renderStatsTab() {
             ${gameIconSvg('crown', 'w-3.5 h-3.5')}
           </span>
         </div>
-        <div class="font-display text-2xl font-extrabold text-goldBrand tabular-nums mt-1.5 leading-none">${recordEntry ? recordEntry.score : '—'}</div>
+        <div class="font-display ${recordEntry?.isSpecial ? 'text-xl' : 'text-2xl'} font-extrabold text-goldBrand tabular-nums mt-1.5 leading-none truncate">${recordEntry ? (recordEntry.isSpecial ? esc(recordEntry.display) : recordEntry.score) : '—'}</div>
         <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${recordEntry ? esc(recordEntry.player) : 'Sin puntos'}</div>
-        ${recordEntry && uiState.statsFilterGame === 'all' ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5">${esc(recordEntry.game)}</div>` : ''}
+        ${recordEntry && uiState.statsFilterGame === 'all'
+          ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5">${esc(recordEntry.game)}</div>`
+          : (recordEntry?.subNote ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5">${esc(recordEntry.subNote)}</div>` : '')}
       </div>
     </div>
 
@@ -10833,7 +10923,11 @@ function renderStatsTab() {
               </div>
               <div class="text-right shrink-0">
                 <div class="font-display text-base font-extrabold text-emeraldBrand dark:text-emerald-400 tabular-nums">${st.winRate}%</div>
-                ${Number.isFinite(st.bestScore) && uiState.statsFilterGame !== 'all' ? `<div class="text-[10px] text-inkMuted dark:text-white/55">${isLowestWinsFilter ? 'Mín' : 'Máx'} ${st.bestScore}</div>` : ''}
+                ${uiState.statsFilterGame !== 'all' ? (
+                  selectedGameObj?.id === 'oceanos_de_papel' && st.specialRecord
+                    ? `<div class="text-[10px] font-bold text-goldBrand">★ ${esc(st.specialRecord)}${Number.isFinite(st.bestScore) ? ` · ${st.bestScore}` : ''}</div>`
+                    : (Number.isFinite(st.bestScore) ? `<div class="text-[10px] text-inkMuted dark:text-white/55">${isLowestWinsFilter ? 'Mín' : 'Máx'} ${st.bestScore}</div>` : '')
+                ) : ''}
               </div>
             </div>
             <div class="mt-2 h-1.5 w-full rounded-full bg-black/8 dark:bg-white/10 overflow-hidden">
@@ -11328,22 +11422,57 @@ function mountStatsCharts({ sortedGamesData, chronologicalScored, recentPointsGa
 function renderShelfTab() {
   const container = document.getElementById('view-shelf');
   const shelfProfiles = getShelfProfileCandidates();
+  const isHome = isShelfHomeMode();
   const activeProfile = getActiveShelfProfile();
 
-  // Precalcula métricas por juego para el perfil activo
+  // Precalcula métricas por juego (Home = resumen general con nota promedio; Perfil = filtrado por persona)
   const enriched = games.map((g, origIdx) => {
-    const gMatches = matchHistory.filter((m) => m.gameId === g.id);
+    const gMatches = isHome
+      ? matchHistory.filter((m) => m.gameId === g.id)
+      : matchHistory.filter((m) =>
+          m.gameId === g.id
+          && (m.players || []).some((p) => normName(p.name) === activeProfile.key)
+        );
     const playCount = gMatches.length;
     const lastMatch = gMatches[0] || null;
     let highScore = null;
+    let hasFourMermaids = false;
     gMatches.forEach((m) => {
-      if (m.topScore !== null && (highScore === null || (g.lowestWins ? m.topScore < highScore : m.topScore > highScore))) {
-        highScore = m.topScore;
+      if (g.id === 'oceanos_de_papel' && isFourMermaidsMatch(m)) {
+        if (isHome) {
+          if ((m.players || []).some((p) => p.winner)) hasFourMermaids = true;
+        } else {
+          const me = (m.players || []).find((p) => normName(p.name) === activeProfile.key);
+          if (me && me.winner) hasFourMermaids = true;
+        }
+      }
+      if (isHome) {
+        if (m.topScore !== null && m.topScore !== undefined && !isNaN(m.topScore)) {
+          const sc = Number(m.topScore);
+          if (highScore === null || (g.lowestWins ? sc < highScore : sc > highScore)) {
+            highScore = sc;
+          }
+        }
+      } else {
+        const me = (m.players || []).find((p) => normName(p.name) === activeProfile.key);
+        if (me && me.score !== null && me.score !== undefined && !isNaN(me.score)) {
+          const sc = Number(me.score);
+          if (highScore === null || (g.lowestWins ? sc < highScore : sc > highScore)) {
+            highScore = sc;
+          }
+        }
       }
     });
-    const rating = getGameRatingFor(g, activeProfile.key);
-    const favorite = isGameFavoriteFor(g, activeProfile.key);
-    return { g, origIdx, playCount, lastMatch, highScore, rating, favorite };
+    const avgInfo = isHome ? getGameAverageRating(g) : null;
+    const rating = isHome ? avgInfo.avg : getGameRatingFor(g, activeProfile.key);
+    const ratingLabel = isHome
+      ? (avgInfo.count > 0 ? formatAverageRating(avgInfo.avg) : '')
+      : (rating ? formatStarRating(rating) : '');
+    const ratingTitle = isHome && avgInfo.count > 0
+      ? `Promedio de ${avgInfo.count} ${avgInfo.count === 1 ? 'valoración' : 'valoraciones'}`
+      : '';
+    const favorite = isHome ? isGameFavoriteByAny(g) : isGameFavoriteFor(g, activeProfile.key);
+    return { g, origIdx, playCount, lastMatch, highScore, hasFourMermaids, rating, ratingLabel, ratingTitle, favorite };
   });
 
   const q = (uiState.shelfSearch || '').trim().toLowerCase();
@@ -11366,7 +11495,7 @@ function renderShelfTab() {
     list.sort((a, b) => (b.rating - a.rating) || (b.playCount - a.playCount));
   }
 
-  const cards = list.length > 0 ? list.map(({ g, playCount, lastMatch, highScore, rating, favorite }) => `
+  const cards = list.length > 0 ? list.map(({ g, playCount, lastMatch, highScore, hasFourMermaids, ratingLabel, ratingTitle, favorite }) => `
       <article class="card-pro rounded-[24px] overflow-hidden flex flex-col anim-in">
         <div class="cover-sheen p-4 text-white" style="background: linear-gradient(135deg, ${g.color}, ${g.color2 || g.color});">
           <div class="cover-watermark">${gameIconSvg(g.icon, 'w-24 h-24')}</div>
@@ -11375,17 +11504,17 @@ function renderShelfTab() {
               ${gameIconSvg(g.icon, 'w-6 h-6')}
             </div>
             <div class="flex items-center gap-1">
-              ${rating ? `
-                <span class="px-2 py-1 rounded-full bg-amber-400/24 border border-amber-300/35 text-[10.5px] font-extrabold text-amber-100 tabular-nums">
-                  ★ ${formatStarRating(rating)}
+              ${ratingLabel ? `
+                <span class="px-2 py-1 rounded-full bg-amber-400/24 border border-amber-300/35 text-[10.5px] font-extrabold text-amber-100 tabular-nums" ${ratingTitle ? `title="${esc(ratingTitle)}"` : ''}>
+                  ★ ${ratingLabel}
                 </span>
               ` : ''}
               <span class="px-2.5 py-1 rounded-full bg-black/24 border border-white/15 text-[11px] font-extrabold tabular-nums">
                 ${playCount} p.
               </span>
-              <button type="button" data-action="toggle-favorite-game" data-game-id="${esc(g.id)}"
+              <button type="button" data-action="${isHome ? 'open-game-sheet' : 'toggle-favorite-game'}" data-game-id="${esc(g.id)}"
                 class="btn-tap w-7 h-7 rounded-full bg-black/24 hover:bg-black/40 border border-white/15 flex items-center justify-center ${favorite ? 'text-amber-300' : 'text-white/75'}"
-                title="${favorite ? `Quitar de favoritos (${esc(activeProfile.name)})` : `Marcar favorito (${esc(activeProfile.name)})`}" aria-label="Favorito ${esc(g.name)}">
+                title="${isHome ? 'Ver o editar favoritos y valoraciones por perfil' : (favorite ? `Quitar de favoritos (${esc(activeProfile.name)})` : `Marcar favorito (${esc(activeProfile.name)})`)}" aria-label="Favorito ${esc(g.name)}">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="${favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
               </button>
               <button type="button" data-action="open-edit-game" data-game-id="${esc(g.id)}"
@@ -11416,13 +11545,13 @@ function renderShelfTab() {
                 <div class="text-xs font-extrabold text-ink dark:text-white truncate mt-0.5">${esc(formatDisplayDate(lastMatch.date, lastMatch.createdAtMs))}</div>
               </div>
               <div class="min-w-0">
-                <div class="text-[10px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/45">${highScore !== null ? 'Récord' : 'Últ. ganador'}</div>
-                <div class="text-xs font-extrabold ${highScore !== null ? 'text-goldBrand tabular-nums' : 'text-ink dark:text-white'} truncate mt-0.5">${highScore !== null ? `${highScore} pts` : esc(lastMatch.winnerLabel)}</div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/45">${hasFourMermaids || highScore !== null ? 'Récord' : 'Últ. ganador'}</div>
+                <div class="text-xs font-extrabold ${hasFourMermaids || highScore !== null ? 'text-goldBrand tabular-nums' : 'text-ink dark:text-white'} truncate mt-0.5">${hasFourMermaids ? '4 Sirenas' : (highScore !== null ? `${highScore} pts` : esc(lastMatch.winnerLabel))}</div>
               </div>
             </div>
           ` : `
             <div class="py-2 text-xs text-inkMuted dark:text-white/50 italic">
-              Sin partidas registradas todavía
+              ${isHome ? 'Sin partidas registradas todavía' : `Sin partidas de ${esc(activeProfile.name)} todavía`}
             </div>
           `}
 
@@ -11449,13 +11578,13 @@ function renderShelfTab() {
     `).join('') : `
       <div class="col-span-full card-pro rounded-[24px] border-dashed p-8 text-center">
         <p class="text-xs font-semibold text-inkMuted dark:text-white/60">
-          ${uiState.shelfSort === 'favorites' && !q ? `${esc(activeProfile.name)} aún no ha marcado favoritos ★` : `No hay juegos que coincidan con "${esc(uiState.shelfSearch)}"`}
+          ${uiState.shelfSort === 'favorites' && !q ? (isHome ? 'Nadie ha marcado favoritos ★ todavía' : `${esc(activeProfile.name)} aún no ha marcado favoritos ★`) : `No hay juegos que coincidan con "${esc(uiState.shelfSearch)}"`}
         </p>
       </div>
     `;
 
   const deletedDefaultsCount = DEFAULT_GAMES.filter((d) => deletedGameIds.includes(d.id) && !games.some((g) => g.id === d.id)).length;
-  const favTotal = games.filter((g) => isGameFavoriteFor(g, activeProfile.key)).length;
+  const favTotal = games.filter((g) => (isHome ? isGameFavoriteByAny(g) : isGameFavoriteFor(g, activeProfile.key))).length;
   const sortOpts = [
     { val: 'default', label: 'Colección' },
     { val: 'favorites', label: `★ Favoritos${favTotal ? ` (${favTotal})` : ''}` },
@@ -11469,7 +11598,7 @@ function renderShelfTab() {
     <div class="flex items-center justify-between gap-2 px-0.5">
       <div class="min-w-0">
         <h2 class="font-display text-base font-extrabold text-ink dark:text-white">Tu Ludoteca (${games.length})</h2>
-        <p class="text-xs text-inkMuted dark:text-white/55 truncate">Notas y favoritos de <strong class="text-ink dark:text-white">${esc(activeProfile.name)}</strong></p>
+        <p class="text-xs text-inkMuted dark:text-white/55 truncate">${isHome ? 'Vista general · <strong class="text-ink dark:text-white">promedio de todos</strong>' : `Perfil de <strong class="text-ink dark:text-white">${esc(activeProfile.name)}</strong> · notas, favoritos y partidas`}</p>
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
         <button type="button" data-action="open-table-tools-tab" data-tab="picker"
@@ -11483,10 +11612,18 @@ function renderShelfTab() {
       </div>
     </div>
 
-    <!-- Selector de perfil de Ludoteca (estrellas y favoritos independientes por persona) -->
+    <!-- Selector de vista de Ludoteca (Inicio promedio general + perfiles individuales) -->
     <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+      <button type="button" data-action="set-shelf-profile" data-key="${SHELF_HOME_KEY}"
+        class="profile-chip btn-tap shrink-0 ${isHome ? 'is-active' : ''}"
+        style="padding: 0.38rem 0.68rem;"
+        title="Vista general (promedio de todos)" aria-label="Inicio general de Ludoteca">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V9.5"/>
+        </svg>
+      </button>
       ${shelfProfiles.map((prof) => {
-        const isAct = prof.key === activeProfile.key;
+        const isAct = !isHome && prof.key === activeProfile.key;
         const countTag = prof.ratedCount > 0 ? `★${prof.ratedCount}` : (prof.favCount > 0 ? `♥${prof.favCount}` : '');
         return `
           <button type="button" data-action="set-shelf-profile" data-key="${esc(prof.key)}"
@@ -11591,11 +11728,29 @@ function openGameSheetModal(gameId) {
   let tempNotes = g.rulesNotes !== undefined ? String(g.rulesNotes) : (DEFAULT_RULES_NOTES[g.id] || '');
   let editingRules = !tempNotes.trim();
 
-  const gMatches = matchHistory.filter((m) => m.gameId === g.id);
-  const daysSince = getDaysSinceLastPlay(g.id);
-
   const renderSheet = () => {
     const curProf = candidates.find((c) => c.key === activeKey) || candidates[0];
+    const gMatches = matchHistory.filter((m) =>
+      m.gameId === g.id
+      && (m.players || []).some((p) => normName(p.name) === curProf.key)
+    );
+    let daysSince = null;
+    if (gMatches.length > 0) {
+      let latestIso = '';
+      gMatches.forEach((m) => {
+        const iso = normalizeDateToISO(m.date, m.createdAtMs);
+        if (iso && (!latestIso || iso > latestIso)) latestIso = iso;
+      });
+      const parts = latestIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (parts) {
+        const matchMidnight = new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])).getTime();
+        const now = new Date();
+        const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        daysSince = Math.max(0, Math.round((todayMidnight - matchMidnight) / 86400000));
+      } else {
+        daysSince = 0;
+      }
+    }
     const tempRating = draftRatings[curProf.key] || 0;
     const tempFav = Boolean(draftFavs[curProf.key]);
     const otherRatings = candidates
@@ -11673,13 +11828,22 @@ function openGameSheetModal(gameId) {
             </div>
           ` : ''}
 
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Valoración de ${esc(curProf.name)}</span>
-            <div class="flex items-center gap-2">
-              <span class="font-display text-sm font-extrabold tabular-nums ${tempRating ? 'text-goldBrand' : 'text-inkMuted'}">${tempRating ? `★ ${formatStarRating(tempRating)} / 5` : 'Sin nota'}</span>
-              ${tempRating ? `<button type="button" data-gs="set-rating" data-val="0" class="btn-tap text-[11px] font-bold text-coralBrand">Quitar</button>` : ''}
-            </div>
-          </div>
+          ${(() => {
+            const ratedVals = Object.values(draftRatings).filter((v) => v > 0);
+            const liveAvg = ratedVals.length > 0 ? ratedVals.reduce((a, b) => a + b, 0) / ratedVals.length : 0;
+            return `
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55 truncate">Valoración de ${esc(curProf.name)}</span>
+                  ${ratedVals.length > 1 ? `<span class="px-1.5 py-0.5 rounded-md bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-extrabold tabular-nums shrink-0">Media ★ ${formatAverageRating(liveAvg)}</span>` : ''}
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span class="font-display text-sm font-extrabold tabular-nums ${tempRating ? 'text-goldBrand' : 'text-inkMuted'}">${tempRating ? `★ ${formatStarRating(tempRating)} / 5` : 'Sin nota'}</span>
+                  ${tempRating ? `<button type="button" data-gs="set-rating" data-val="0" class="btn-tap text-[11px] font-bold text-coralBrand">Quitar</button>` : ''}
+                </div>
+              </div>
+            `;
+          })()}
 
           <div class="flex items-center justify-between gap-1.5 py-1">
             <button type="button" data-gs="step-rating" data-delta="-0.5" ${tempRating <= 1 ? 'disabled' : ''}
@@ -12850,6 +13014,9 @@ function switchTab(tabName) {
   document.getElementById('header-subtitle').textContent = subMap[tabName] || 'Diario de Partidas';
 
   if (tabName === 'log') syncDraftDateToToday();
+  if (tabName === 'shelf') {
+    uiState.shelfProfileKey = SHELF_HOME_KEY;
+  }
   if (tabName === 'stats') {
     const today = todayISO();
     uiState.heatmapSelectedDate = today;
@@ -13312,7 +13479,7 @@ function bindGlobalEvents() {
         break;
       }
       case 'set-shelf-profile': {
-        setActiveShelfProfile(el.dataset.key || DEFAULT_OWNER_KEY);
+        setActiveShelfProfile(el.dataset.key || SHELF_HOME_KEY);
         renderShelfTab();
         break;
       }
