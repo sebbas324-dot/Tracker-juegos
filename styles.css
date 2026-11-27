@@ -109,6 +109,20 @@ img, svg, video, canvas {
         radial-gradient(ellipse 58% 36% at 96% 4%, rgba(212, 138, 23, 0.10) 0%, transparent 62%),
         radial-gradient(ellipse 70% 45% at 50% 100%, rgba(18, 36, 30, 0.05) 0%, transparent 70%);
     }
+    /* Grano editorial tipo papel / tapete (SVG inline ligero sin peticiones externas) */
+    #app-bg::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.028;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 160px 160px;
+    }
+    html.dark #app-bg::before {
+      opacity: 0.036;
+    }
 
     html.dark #app-bg {
       background-color: #080E0C;
@@ -243,7 +257,7 @@ img, svg, video, canvas {
         0 14px 32px -12px rgba(0, 0, 0, 0.62);
     }
 
-    /* Portadas de juego con luz especular + trama sutil de mesa */
+    /* Portadas de juego con luz especular + velo de contraste editorial para colores vivos */
     .cover-sheen {
       position: relative;
       overflow: hidden;
@@ -253,19 +267,23 @@ img, svg, video, canvas {
       position: absolute;
       inset: 0;
       background-image:
-        radial-gradient(circle at 86% 10%, rgba(255, 255, 255, 0.28) 0%, transparent 46%),
-        radial-gradient(circle at 8% 96%, rgba(0, 0, 0, 0.24) 0%, transparent 48%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 36%);
+        radial-gradient(circle at 88% 8%, rgba(255, 255, 255, 0.24) 0%, transparent 44%),
+        linear-gradient(195deg, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.36) 100%);
       pointer-events: none;
     }
     .cover-sheen::after {
       content: "";
       position: absolute;
       inset: 0;
-      opacity: 0.075;
+      opacity: 0.068;
       background-image: radial-gradient(rgba(255, 255, 255, 0.95) 0.9px, transparent 0.9px);
       background-size: 13px 13px;
       pointer-events: none;
+    }
+    .cover-sheen .font-display,
+    .cover-sheen h3,
+    .cover-sheen p {
+      text-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.24);
     }
 
     /* Marca de agua sutil del icono del juego en portadas */
@@ -360,6 +378,197 @@ img, svg, video, canvas {
     .spin-fast {
       animation: spin 0.75s linear infinite;
     }
+
+    /* === Paquete Visual Premium (v14) === */
+    /* Tarjeta oscura editorial de resumen (hereda presencia de la tarjeta VS) */
+    .stats-hero-dark {
+      background: linear-gradient(130deg, #0E231C 0%, #163329 52%, #33240F 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        0 18px 36px -16px rgba(10, 26, 20, 0.55);
+    }
+    html.dark .stats-hero-dark {
+      background: linear-gradient(130deg, #0A1813 0%, #122921 52%, #291D0C 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.10),
+        0 20px 40px -16px rgba(0, 0, 0, 0.72);
+    }
+
+    /* Sutiles baños de acento en KPIs clave */
+    .kpi-card-gold {
+      background-image: linear-gradient(145deg, rgba(212, 138, 23, 0.085) 0%, rgba(255, 255, 255, 0) 58%);
+      border-color: rgba(212, 138, 23, 0.22);
+    }
+    html.dark .kpi-card-gold {
+      background-image: linear-gradient(145deg, rgba(251, 191, 36, 0.11) 0%, rgba(17, 26, 23, 0) 60%);
+      border-color: rgba(251, 191, 36, 0.20);
+    }
+    .kpi-card-emerald {
+      background-image: linear-gradient(145deg, rgba(34, 117, 84, 0.08) 0%, rgba(255, 255, 255, 0) 58%);
+      border-color: rgba(34, 117, 84, 0.18);
+    }
+    html.dark .kpi-card-emerald {
+      background-image: linear-gradient(145deg, rgba(52, 211, 153, 0.10) 0%, rgba(17, 26, 23, 0) 60%);
+      border-color: rgba(52, 211, 153, 0.18);
+    }
+
+    /* Pie ligero sin cajas en tarjetas del Historial */
+    .history-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      padding: 0.42rem 0.35rem;
+      border-radius: 0.75rem;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6B665D;
+      background-color: transparent;
+      transition: background-color 0.16s ease, color 0.16s ease, transform 0.13s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .history-action-btn:hover {
+      background-color: rgba(20, 36, 30, 0.055);
+      color: #161513;
+    }
+    html.dark .history-action-btn {
+      color: rgba(255, 255, 255, 0.62);
+    }
+    html.dark .history-action-btn:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: #FFFFFF;
+    }
+    .history-action-btn.is-blue:hover { color: #2563EB; background-color: rgba(37, 99, 235, 0.09); }
+    .history-action-btn.is-amber:hover { color: #B45309; background-color: rgba(217, 119, 6, 0.10); }
+    .history-action-btn.is-emerald:hover { color: #227554; background-color: rgba(34, 117, 84, 0.10); }
+    .history-action-btn.is-danger { color: rgba(208, 78, 54, 0.78); }
+    .history-action-btn.is-danger:hover { color: #D04E36; background-color: rgba(208, 78, 54, 0.11); }
+    html.dark .history-action-btn.is-blue:hover { color: #60A5FA; background-color: rgba(59, 130, 246, 0.14); }
+    html.dark .history-action-btn.is-amber:hover { color: #FBBF24; background-color: rgba(245, 158, 11, 0.14); }
+    html.dark .history-action-btn.is-emerald:hover { color: #34D399; background-color: rgba(16, 185, 129, 0.14); }
+    html.dark .history-action-btn.is-danger { color: rgba(251, 113, 133, 0.78); }
+    html.dark .history-action-btn.is-danger:hover { color: #FB7185; background-color: rgba(244, 63, 94, 0.15); }
+
+    /* Filas interactivas con barra de color en leyenda del Donut */
+    .donut-legend-row {
+      width: 100%;
+      text-align: left;
+      padding: 0.38rem 0.55rem;
+      border-radius: 0.85rem;
+      border: 1px solid transparent;
+      transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.14s ease;
+    }
+    .donut-legend-row:hover {
+      background-color: rgba(20, 36, 30, 0.035);
+    }
+    html.dark .donut-legend-row:hover {
+      background-color: rgba(255, 255, 255, 0.045);
+    }
+    .donut-legend-row.is-highlighted {
+      background-color: rgba(212, 138, 23, 0.10);
+      border-color: rgba(212, 138, 23, 0.30);
+      transform: translateX(2px);
+    }
+    html.dark .donut-legend-row.is-highlighted {
+      background-color: rgba(251, 191, 36, 0.12);
+      border-color: rgba(251, 191, 36, 0.28);
+    }
+    .donut-bar-track {
+      height: 3px;
+      width: 100%;
+      border-radius: 999px;
+      background-color: rgba(20, 36, 30, 0.07);
+      overflow: hidden;
+      margin-top: 0.3rem;
+    }
+    html.dark .donut-bar-track {
+      background-color: rgba(255, 255, 255, 0.09);
+    }
+    .donut-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Indicadores de antigüedad en Polvo en la estantería */
+    .dust-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.12rem 0.48rem;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+    }
+    .dust-pill.is-fresh {
+      background-color: rgba(34, 117, 84, 0.12);
+      color: #227554;
+    }
+    html.dark .dust-pill.is-fresh {
+      background-color: rgba(52, 211, 153, 0.16);
+      color: #6EE7B7;
+    }
+    .dust-pill.is-mild {
+      background-color: rgba(20, 36, 30, 0.065);
+      color: #6B665D;
+    }
+    html.dark .dust-pill.is-mild {
+      background-color: rgba(255, 255, 255, 0.09);
+      color: rgba(255, 255, 255, 0.68);
+    }
+    .dust-pill.is-warm {
+      background-color: rgba(217, 119, 6, 0.14);
+      color: #B45309;
+    }
+    html.dark .dust-pill.is-warm {
+      background-color: rgba(245, 158, 11, 0.18);
+      color: #FCD34D;
+    }
+    .dust-pill.is-hot {
+      background-color: rgba(208, 78, 54, 0.14);
+      color: #C2412D;
+    }
+    html.dark .dust-pill.is-hot {
+      background-color: rgba(244, 63, 94, 0.20);
+      color: #FDA4AF;
+    }
+
+    /* Entrada escalonada fluida en grillas y listas */
+    .stagger-list > * {
+      animation: fadeUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .stagger-list > *:nth-child(2) { animation-delay: 28ms; }
+    .stagger-list > *:nth-child(3) { animation-delay: 56ms; }
+    .stagger-list > *:nth-child(4) { animation-delay: 84ms; }
+    .stagger-list > *:nth-child(5) { animation-delay: 112ms; }
+    .stagger-list > *:nth-child(6) { animation-delay: 140ms; }
+    .stagger-list > *:nth-child(7) { animation-delay: 168ms; }
+    .stagger-list > *:nth-child(8) { animation-delay: 196ms; }
+
+    /* Celebración elegante (récord o nuevo nivel de Índice H) */
+    .toast-milestone {
+      background: linear-gradient(135deg, #10251E 0%, #1F4E3D 55%, #8A5A10 100%);
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      color: #FEF3C7;
+      box-shadow: 0 16px 34px -10px rgba(16, 37, 30, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+    }
+    @keyframes ludoSparkleFly {
+      0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.4) rotate(0deg); }
+      18% { opacity: 1; }
+      100% { opacity: 0; transform: translate3d(var(--sx), var(--sy), 0) scale(0.95) rotate(var(--sr)); }
+    }
+    .ludo-sparkle {
+      position: fixed;
+      top: 84px;
+      left: 50%;
+      width: 7px;
+      height: 7px;
+      border-radius: 2px;
+      pointer-events: none;
+      z-index: 65;
+      animation: ludoSparkleFly 1.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
 
     input[type="number"]::-webkit-inner-spin-button,
     input[type="number"]::-webkit-outer-spin-button {
