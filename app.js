@@ -650,6 +650,8 @@ let uiState = {
   shelfSort: 'default', // 'default' | 'favorites' | 'rating' | 'most_played' | 'az' | 'calc'
   timerOpen: false,
   expandedMatchId: null,
+  heatmapView: 'month', // 'month' | 'year'
+  heatmapMonthKey: '', // 'YYYY-MM'
   heatmapScope: '12m', // '12m' | 'YYYY'
   heatmapSelectedDate: '',
   dustyTab: 'dusty', // 'dusty' | 'unplayed'
@@ -2150,18 +2152,31 @@ function rebuildFrequentPlayersFromHistory() {
 // =========================================================================
 // 8. CONEXIÓN A GOOGLE SHEETS (APPS SCRIPT CON PIN OPCIONAL)
 // =========================================================================
+function normalizeExecUrl(url) {
+  if (typeof url !== 'string') return '';
+  let t = url.trim();
+  if (!t) return '';
+  // Corrige enlaces multi-cuenta de Google (/macros/u/0/s/... -> /macros/s/...) que fallan por CORS en Safari/iOS
+  t = t.replace(/\/macros\/u\/\d+\/s\//, '/macros/s/');
+  // Quita query params sobrantes si el usuario pegó una URL de prueba
+  const execIdx = t.indexOf('/exec');
+  if (execIdx !== -1) {
+    t = t.slice(0, execIdx + 5);
+  }
+  return t;
+}
+
 function isValidExecUrl(url) {
-  if (typeof url !== 'string') return false;
-  const t = url.trim();
-  return t.startsWith('https://script.google.com/') && !t.includes('PEGA_AQUI') && t.includes('/exec');
+  const t = normalizeExecUrl(url);
+  return t.startsWith('https://script.google.com/') && !t.includes('PEGA_AQUI') && t.endsWith('/exec');
 }
 
 function getSavedSheetsUrl() {
   try {
     const s = localStorage.getItem(KEYS.SHEETS_URL);
-    if (isValidExecUrl(s)) return s.trim();
+    if (isValidExecUrl(s)) return normalizeExecUrl(s);
   } catch (e) {}
-  if (isValidExecUrl(GOOGLE_SHEETS_API_URL)) return GOOGLE_SHEETS_API_URL.trim();
+  if (isValidExecUrl(GOOGLE_SHEETS_API_URL)) return normalizeExecUrl(GOOGLE_SHEETS_API_URL);
   return '';
 }
 
@@ -2170,13 +2185,22 @@ function getSavedPin() {
 }
 
 async function fetchSheetsJson(url, options = {}) {
-  const res = await fetch(url, { redirect: 'follow', ...options });
+  let res;
+  try {
+    res = await fetch(url, { redirect: 'follow', ...options });
+  } catch (netErr) {
+    const raw = String(netErr?.message || '');
+    if (/load failed|failed to fetch|networkerror/i.test(raw)) {
+      throw new Error('Google bloqueó la conexión (Load failed). En Apps Script ve a Gestionar implementaciones → Editar y asegúrate de tener "Ejecutar como: Yo" y "Quién tiene acceso: Cualquier usuario".');
+    }
+    throw netErr;
+  }
   const text = await res.text();
   let data;
   try {
     data = JSON.parse(text);
   } catch (e) {
-    throw new Error('Google no devolvió JSON. Verifica que Apps Script esté en "Cualquier usuario".');
+    throw new Error('Google no devolvió JSON (posible pantalla de inicio de sesión o error en Apps Script). Verifica que esté en "Cualquier usuario".');
   }
   if (!res.ok || data.ok === false) {
     throw new Error(data.error || `Error HTTP ${res.status}`);
@@ -2321,13 +2345,6 @@ async function flushOfflineQueue() {
     delete m.pendingReplaceId;
     saveHistoryLocal();
     uploaded++;
-  }
-
-  // 3) Si hay cambios locales en el catálogo de juegos o perfiles, intenta subirlos sin romper v1
-  if (syncState.catalogDirty && syncState.catalogSupported !== false) {
-    try {
-      await pushCatalogToSheets({ silent: true });
-    } catch (e) {}
   }
 
   return { uploaded, deleted, remaining: getPendingSyncCount() };
@@ -2525,29 +2542,35 @@ pVals.forEach(function(r) {
 }
 
 function doGet(e) {
-  const pin = (e && e.parameter && e.parameter.pin) || "";
-  if (!checkPin(pin)) return jsonOut({ ok: false, error: "PIN incorrecto" });
+  try {
+    const pin = (e && e.parameter && e.parameter.pin) || "";
+    if (!checkPin(pin)) return jsonOut({ ok: false, error: "PIN incorrecto" });
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ensureSheet(ss, SHEET_MATCHES, MATCH_HEADERS);
-  const lastRow = sh.getLastRow();
-  const rows = [];
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sh = ensureSheet(ss, SHEET_MATCHES, MATCH_HEADERS);
+    const lastRow = sh.getLastRow();
+    const rows = [];
 
-  if (lastRow > 1) {
-const vals = sh.getRange(2, 1, lastRow - 1, MATCH_HEADERS.length).getValues();
-vals.forEach(function(r) {
-  if (!r[0]) return;
-  var obj = {};
-  MATCH_HEADERS.forEach(function(h, idx) {
-    obj[h] = (h === "fecha" && r[idx] instanceof Date)
-      ? Utilities.formatDate(r[idx], Session.getScriptTimeZone(), "yyyy-MM-dd")
-      : r[idx];
-  });
-  rows.push(obj);
-});
+    if (lastRow > 1) {
+      const colCount = Math.max(1, Math.min(sh.getLastColumn() || MATCH_HEADERS.length, MATCH_HEADERS.length));
+      const vals = sh.getRange(2, 1, lastRow - 1, colCount).getValues();
+      vals.forEach(function(r) {
+        if (!r[0]) return;
+        var obj = {};
+        MATCH_HEADERS.forEach(function(h, idx) {
+          var v = idx < r.length ? r[idx] : "";
+          obj[h] = (h === "fecha" && v instanceof Date)
+            ? Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd")
+            : v;
+        });
+        rows.push(obj);
+      });
+    }
+
+    return jsonOut({ ok: true, version: 2, rows: rows, catalog: readCatalog(ss) });
+  } catch (err) {
+    return jsonOut({ ok: false, error: "Error leyendo Sheets: " + (err && err.message ? err.message : String(err)) });
   }
-
-  return jsonOut({ ok: true, version: 2, rows: rows, catalog: readCatalog(ss) });
 }
 
 function doPost(e) {
@@ -2641,6 +2664,8 @@ return [
     rebuildStatsSheet(ss, sh);
   }
   return jsonOut({ ok: true, partidaId: partidaId });
+  } catch (err) {
+    return jsonOut({ ok: false, error: "Error guardando en Sheets: " + (err && err.message ? err.message : String(err)) });
   } finally {
     lock.releaseLock();
   }
@@ -2684,8 +2709,8 @@ return [
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v6 (PWA estática sin Tailwind CDN)
-const CACHE_NAME = 'ludoteca-offline-v6';
+  return `// Ludoteca — Service Worker Offline v7 (PWA estática sin Tailwind CDN)
+const CACHE_NAME = 'ludoteca-offline-v7';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -2954,7 +2979,12 @@ function openSyncSettingsModal() {
     ${banner}
     <div class="space-y-3.5">
       <div>
-        <label for="cfg-sheets-url" class="block text-xs font-bold text-ink dark:text-white mb-1.5">URL de Google Apps Script (/exec)</label>
+        <div class="flex items-center justify-between gap-2 mb-1.5">
+          <label for="cfg-sheets-url" class="text-xs font-bold text-ink dark:text-white">URL de Google Apps Script (/exec)</label>
+          <button type="button" id="btn-test-sheets-url" class="btn-tap text-[11px] font-bold text-emeraldBrand dark:text-emerald-400 hover:underline">
+            Probar enlace ↗
+          </button>
+        </div>
         <input id="cfg-sheets-url" type="url" value="${esc(currentUrl)}" placeholder="https://script.google.com/macros/s/.../exec"
           class="w-full bg-white dark:bg-surfaceDarkAlt border border-[#DFD8CB] dark:border-white/15 focus:border-emeraldBrand rounded-xl px-3 py-2.5 text-xs font-mono text-ink dark:text-white outline-none" />
       </div>
@@ -3032,7 +3062,7 @@ function openSyncSettingsModal() {
         className: 'btn-tap px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-pine dark:bg-emeraldBrand text-white',
         keepOpen: true,
         onClick: async () => {
-          const urlVal = (document.getElementById('cfg-sheets-url')?.value || '').trim();
+          const urlVal = normalizeExecUrl(document.getElementById('cfg-sheets-url')?.value || '');
           const pinVal = (document.getElementById('cfg-sheets-pin')?.value || '').trim();
           try { localStorage.setItem(KEYS.SHEETS_PIN, pinVal); } catch (e) {}
           syncState.pin = pinVal;
@@ -3060,6 +3090,19 @@ function openSyncSettingsModal() {
   });
 
   setTimeout(() => {
+    const testUrlBtn = document.getElementById('btn-test-sheets-url');
+    if (testUrlBtn) {
+      testUrlBtn.addEventListener('click', () => {
+        const raw = normalizeExecUrl(document.getElementById('cfg-sheets-url')?.value || '');
+        const p = (document.getElementById('cfg-sheets-pin')?.value || '').trim();
+        if (!isValidExecUrl(raw)) {
+          showToast('Pega primero una URL válida terminada en /exec', 'danger');
+          return;
+        }
+        const testTarget = `${raw}?t=${Date.now()}${p ? `&pin=${encodeURIComponent(p)}` : ''}`;
+        window.open(testTarget, '_blank', 'noopener,noreferrer');
+      });
+    }
     const flushBtn = document.getElementById('btn-flush-pending-modal');
     if (flushBtn) {
       flushBtn.addEventListener('click', async () => {
@@ -6486,15 +6529,33 @@ function computeHIndex(matches) {
   }
 
   const nextH = h + 1;
-  const topNext = list.slice(0, nextH);
+  const ladderSlots = [];
   let playsNeeded = 0;
   for (let i = 0; i < nextH; i++) {
-    const cur = topNext[i] ? topNext[i].count : 0;
-    if (cur < nextH) playsNeeded += (nextH - cur);
+    const item = list[i] || null;
+    const count = item ? item.count : 0;
+    const missing = Math.max(0, nextH - count);
+    playsNeeded += missing;
+    ladderSlots.push({
+      slotNum: i + 1,
+      game: item ? item.game : null,
+      count,
+      target: nextH,
+      ready: count >= nextH,
+      missing,
+    });
   }
-  const gamesAtNextH = list.filter((x) => x.count >= nextH).length;
+  const gamesAtNextH = ladderSlots.filter((s) => s.ready).length;
   const contributors = list.slice(0, h);
-  return { h, nextH, playsNeeded, gamesAtNextH, contributors, totalUnique: list.length };
+
+  let levelLabel = 'Primer paso';
+  if (h >= 10) levelLabel = 'Leyenda de mesa';
+  else if (h >= 8) levelLabel = 'Veterano';
+  else if (h >= 5) levelLabel = 'Estratega';
+  else if (h >= 3) levelLabel = 'Jugón habitual';
+  else if (h >= 1) levelLabel = 'Explorador';
+
+  return { h, nextH, playsNeeded, gamesAtNextH, contributors, ladderSlots, levelLabel, totalUnique: list.length };
 }
 
 function computeActivityHeatmap(matches, scope = '12m') {
@@ -8206,15 +8267,240 @@ function getCurrentStatsSubset() {
     : pCtx.scopedMatches.filter((m) => m.gameId === uiState.statsFilterGame);
 }
 
+function formatFullWeekdayDate(iso) {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso || '';
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  const raw = dt.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function buildSelectedDayDetailHtml(iso, subset) {
+  if (!iso) {
+    return `
+      <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.07] text-xs text-inkMuted dark:text-white/60 text-center">
+        Toca cualquier día con color para ver todas las partidas jugadas.
+      </div>
+    `;
+  }
+  const dayMatches = (subset || []).filter((m) => String(m.date || '').slice(0, 10) === iso);
+  const dateLabel = formatFullWeekdayDate(iso);
+
+  if (dayMatches.length === 0) {
+    return `
+      <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.07] flex flex-wrap items-center justify-between gap-2">
+        <span class="text-xs font-extrabold text-ink dark:text-white">${esc(dateLabel)}</span>
+        <span class="text-[11px] font-medium text-inkMuted dark:text-white/55">Sin partidas registradas</span>
+      </div>
+    `;
+  }
+
+  const totalMins = dayMatches.reduce((s, m) => s + (Number(m.duration) || 0), 0);
+  const durLabel = totalMins >= 60
+    ? `${Math.floor(totalMins / 60)}h ${totalMins % 60 > 0 ? `${totalMins % 60}m` : ''}`.trim()
+    : (totalMins > 0 ? `${totalMins} min` : '');
+
+  return `
+    <div class="p-3.5 rounded-2xl bg-canvas/85 dark:bg-surfaceDarkAlt border border-black/[0.06] dark:border-white/[0.08] space-y-2.5">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <span class="text-xs font-extrabold text-ink dark:text-white">${esc(dateLabel)}</span>
+        <span class="px-2 py-0.5 rounded-lg bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-300 text-[11px] font-extrabold tabular-nums">
+          ${dayMatches.length} ${dayMatches.length === 1 ? 'partida' : 'partidas'}${durLabel ? ` · ${durLabel}` : ''}
+        </span>
+      </div>
+
+      <div class="space-y-1.5">
+        ${dayMatches.map((m) => {
+          const g = getGameById(m.gameId);
+          return `
+            <div class="p-2.5 rounded-xl bg-white dark:bg-surfaceDark border border-black/[0.05] dark:border-white/[0.07] flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${g.color};"></span>
+                <span class="text-xs font-extrabold text-ink dark:text-white leading-tight">${esc(m.gameName)}</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-[11px] text-inkMuted dark:text-white/65 tabular-nums">
+                ${m.winnerLabel ? `<span class="font-bold text-ink dark:text-white/85">★ ${esc(m.winnerLabel)}</span>` : ''}
+                ${m.topScore !== null && m.topScore !== undefined ? `<span class="px-1.5 py-0.5 rounded-md bg-amber-500/14 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">${m.topScore} pts</span>` : ''}
+                ${m.duration ? `<span class="text-[10.5px] opacity-75">${m.duration}m</span>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function buildMonthlyCalendarGrid(subset, monthKey) {
+  const byDay = {};
+  const availableMonthsSet = new Set();
+  (subset || []).forEach((m) => {
+    const iso = String(m.date || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+    if (!byDay[iso]) byDay[iso] = [];
+    byDay[iso].push(m);
+    availableMonthsSet.add(iso.slice(0, 7));
+  });
+
+  const now = new Date();
+  const curMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const sortedMonths = Array.from(availableMonthsSet).sort((a, b) => b.localeCompare(a));
+
+  let activeMonth = monthKey;
+  if (!/^\d{4}-\d{2}$/.test(activeMonth)) {
+    activeMonth = sortedMonths[0] || curMonthKey;
+  }
+
+  const [yearNum, monthNum] = activeMonth.split('-').map(Number);
+  const firstDay = new Date(yearNum, monthNum - 1, 1);
+  const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
+  const startOffset = (firstDay.getDay() + 6) % 7; // 0 = Lunes
+
+  const prevDt = new Date(yearNum, monthNum - 2, 1);
+  const nextDt = new Date(yearNum, monthNum, 1);
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const prevKey = `${prevDt.getFullYear()}-${pad2(prevDt.getMonth() + 1)}`;
+  const nextKey = `${nextDt.getFullYear()}-${pad2(nextDt.getMonth() + 1)}`;
+
+  const monthTitleRaw = firstDay.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+  const monthTitle = monthTitleRaw.charAt(0).toUpperCase() + monthTitleRaw.slice(1);
+
+  const cells = [];
+  for (let i = 0; i < startOffset; i++) cells.push({ empty: true });
+
+  let monthPlays = 0;
+  let monthActiveDays = 0;
+  let latestActiveIso = '';
+  const todayStr = todayISO();
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${yearNum}-${pad2(monthNum)}-${pad2(d)}`;
+    const list = byDay[iso] || [];
+    const count = list.length;
+    if (count > 0) {
+      monthPlays += count;
+      monthActiveDays += 1;
+      latestActiveIso = iso;
+    }
+    cells.push({ empty: false, day: d, iso, count, isToday: iso === todayStr });
+  }
+
+  return {
+    activeMonth, monthTitle, prevKey, nextKey, canGoNext: activeMonth < curMonthKey,
+    cells, monthPlays, monthActiveDays, latestActiveIso, byDay,
+  };
+}
+
 function buildHeatmapCardInnerHtml(subset) {
+  const viewMode = uiState.heatmapView === 'year' ? 'year' : 'month';
   const hm = computeActivityHeatmap(subset, uiState.heatmapScope);
   if (uiState.heatmapScope !== '12m' && !hm.availableYears.includes(uiState.heatmapScope)) {
     uiState.heatmapScope = '12m';
   }
+
+  // Selector superior Mes / Año
+  const headerControlsHtml = `
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Calendario de Actividad</h3>
+        <p class="text-[11px] text-inkMuted dark:text-white/55 tabular-nums">
+          ${hm.totalInRange} ${hm.totalInRange === 1 ? 'partida' : 'partidas'} en ${hm.activeDays} ${hm.activeDays === 1 ? 'día activo' : 'días activos'}${hm.maxWeekStreak >= 2 ? ` · Racha: ${hm.maxWeekStreak} sem.` : ''}
+        </p>
+      </div>
+      <div class="inline-flex items-center gap-0.5 p-0.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12">
+        <button type="button" data-action="set-heatmap-view" data-val="month"
+          class="btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold ${viewMode === 'month' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+          Mes
+        </button>
+        <button type="button" data-action="set-heatmap-view" data-val="year"
+          class="btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold ${viewMode === 'year' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+          Año
+        </button>
+      </div>
+    </div>
+  `;
+
+  if (viewMode === 'month') {
+    const mc = buildMonthlyCalendarGrid(subset, uiState.heatmapMonthKey);
+    uiState.heatmapMonthKey = mc.activeMonth;
+
+    // Si el día seleccionado pertenece a este mes lo conservamos; si no, elegimos el último día activo del mes
+    const selBelongsToMonth = uiState.heatmapSelectedDate && uiState.heatmapSelectedDate.startsWith(mc.activeMonth);
+    const selDate = selBelongsToMonth ? uiState.heatmapSelectedDate : mc.latestActiveIso;
+
+    const dayBtnClass = (count, isSelected, isToday) => {
+      const ring = isSelected
+        ? ' ring-2 ring-goldBrand ring-offset-1 ring-offset-white dark:ring-offset-surfaceDark'
+        : (isToday ? ' border-emeraldBrand/60' : '');
+      if (count === 0) return 'bg-canvas/70 dark:bg-surfaceDarkAlt/70 text-inkMuted dark:text-white/55 border border-black/[0.05] dark:border-white/[0.06]' + ring;
+      if (count === 1) return 'bg-emeraldBrand/15 dark:bg-emerald-500/35 text-emeraldBrand dark:text-emerald-200 border border-emeraldBrand/30 font-extrabold' + ring;
+      if (count === 2) return 'bg-emeraldBrand/65 dark:bg-emerald-500/60 text-white border border-transparent font-extrabold' + ring;
+      if (count === 3) return 'bg-emeraldBrand dark:bg-emerald-400 text-white dark:text-pine border border-transparent font-extrabold' + ring;
+      return 'bg-goldBrand dark:bg-amber-400 text-white dark:text-pine border border-transparent font-extrabold' + ring;
+    };
+
+    return `
+      ${headerControlsHtml}
+
+      <!-- Navegación mensual limpia -->
+      <div class="flex items-center justify-between gap-2 px-1">
+        <button type="button" data-action="step-heatmap-month" data-val="${mc.prevKey}"
+          class="btn-tap w-8 h-8 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.07] dark:border-white/12 flex items-center justify-center text-ink dark:text-white" aria-label="Mes anterior">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div class="text-center min-w-0">
+          <div class="font-display text-sm font-extrabold text-ink dark:text-white">${esc(mc.monthTitle)}</div>
+          <div class="text-[10.5px] font-semibold text-inkMuted dark:text-white/55 tabular-nums">
+            ${mc.monthPlays > 0 ? `${mc.monthPlays} ${mc.monthPlays === 1 ? 'partida' : 'partidas'} · ${mc.monthActiveDays} ${mc.monthActiveDays === 1 ? 'día' : 'días'}` : 'Sin partidas este mes'}
+          </div>
+        </div>
+        <button type="button" data-action="step-heatmap-month" data-val="${mc.nextKey}" ${!mc.canGoNext ? 'disabled' : ''}
+          class="btn-tap w-8 h-8 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.07] dark:border-white/12 flex items-center justify-center text-ink dark:text-white disabled:opacity-35" aria-label="Mes siguiente">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+
+      <!-- Cabecera días de la semana -->
+      <div class="grid grid-cols-7 gap-1.5 text-center text-[10px] font-extrabold uppercase tracking-wider text-inkMuted/80 dark:text-white/45 select-none">
+        <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+      </div>
+
+      <!-- Cuadrícula mensual espaciosa -->
+      <div class="grid grid-cols-7 gap-1.5">
+        ${mc.cells.map((c) => {
+          if (c.empty) return '<div class="h-10"></div>';
+          return `
+            <button type="button" data-action="select-heatmap-day" data-iso="${c.iso}"
+              class="btn-tap h-10 rounded-xl flex flex-col items-center justify-center tabular-nums leading-none ${dayBtnClass(c.count, c.iso === selDate, c.isToday)}">
+              <span class="text-xs font-bold">${c.day}</span>
+              ${c.count > 0 ? `<span class="text-[9px] font-extrabold opacity-85 mt-0.5">${c.count === 1 ? '•' : `×${c.count}`}</span>` : ''}
+            </button>
+          `;
+        }).join('')}
+      </div>
+
+      <!-- Detalle completo del día seleccionado (sin recortes) -->
+      <div id="stats-heatmap-detail">
+        ${buildSelectedDayDetailHtml(selDate, subset)}
+      </div>
+
+      <!-- Leyenda compacta -->
+      <div class="flex items-center justify-end gap-1.5 text-[10px] text-inkMuted dark:text-white/50">
+        <span>Actividad:</span>
+        <span class="w-2.5 h-2.5 rounded-[2px] bg-black/[0.06] dark:bg-white/[0.08]"></span>
+        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand/35"></span>
+        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand/65"></span>
+        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand"></span>
+        <span class="w-2.5 h-2.5 rounded-[2px] bg-goldBrand"></span>
+        <span>Más</span>
+      </div>
+    `;
+  }
+
+  // Vista Anual (mapa de calor con etiquetas sin solapamiento + detalle completo debajo)
   const selDate = uiState.heatmapSelectedDate && hm.byDay[uiState.heatmapSelectedDate]
     ? uiState.heatmapSelectedDate
     : (hm.bestDay ? hm.bestDay.iso : '');
-  const selMatches = selDate ? (hm.byDay[selDate] || []) : [];
 
   const hmCellClass = (count, inTarget, isSelected) => {
     const ring = isSelected ? ' ring-2 ring-goldBrand ring-offset-1 ring-offset-white dark:ring-offset-surfaceDark' : '';
@@ -8226,18 +8512,23 @@ function buildHeatmapCardInnerHtml(subset) {
     return 'bg-goldBrand dark:bg-amber-400' + ring;
   };
 
+  // Filtra etiquetas de mes demasiado juntas (< 3 semanas) para evitar solapamientos
+  const spacedMonthMarkers = [];
+  hm.monthMarkers.forEach((mk) => {
+    const prev = spacedMonthMarkers[spacedMonthMarkers.length - 1];
+    if (!prev || mk.weekIdx - prev.weekIdx >= 3) {
+      spacedMonthMarkers.push(mk);
+    }
+  });
+
   return `
+    ${headerControlsHtml}
+
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <div>
-        <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Calendario de Actividad</h3>
-        <p class="text-[11px] text-inkMuted dark:text-white/55 tabular-nums">
-          ${hm.totalInRange} ${hm.totalInRange === 1 ? 'partida' : 'partidas'} en ${hm.activeDays} ${hm.activeDays === 1 ? 'día activo' : 'días activos'}${hm.maxWeekStreak >= 2 ? ` · Racha: ${hm.maxWeekStreak} sem.` : ''}
-        </p>
-      </div>
       <div class="inline-flex items-center gap-1 p-0.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12">
         <button type="button" data-action="set-heatmap-scope" data-val="12m"
           class="btn-tap px-2 py-1 rounded-lg text-[10.5px] font-bold ${uiState.heatmapScope === '12m' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
-          12 meses
+          Últimos 12m
         </button>
         ${hm.availableYears.slice(0, 3).map((yr) => `
           <button type="button" data-action="set-heatmap-scope" data-val="${yr}"
@@ -8246,16 +8537,23 @@ function buildHeatmapCardInnerHtml(subset) {
           </button>
         `).join('')}
       </div>
+      <div class="inline-flex items-center gap-1 text-[10px] text-inkMuted dark:text-white/50">
+        <span>Menos</span>
+        <span class="w-2.5 h-2.5 rounded-[2px] bg-black/[0.06] dark:bg-white/[0.08]"></span>
+        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand/35"></span>
+        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand/65"></span>
+        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand"></span>
+        <span class="w-2.5 h-2.5 rounded-[2px] bg-goldBrand"></span>
+        <span>Más</span>
+      </div>
     </div>
 
     <div id="stats-heatmap-scroll" class="overflow-x-auto no-scrollbar pb-1">
       <div class="inline-block min-w-max">
-        <!-- Etiquetas de meses -->
         <div class="relative h-4 ml-5 mb-1 text-[9.5px] font-bold text-inkMuted dark:text-white/50">
-          ${hm.monthMarkers.map((mk) => `<span class="absolute top-0" style="left:${mk.weekIdx * 14}px;">${esc(mk.label)}</span>`).join('')}
+          ${spacedMonthMarkers.map((mk) => `<span class="absolute top-0" style="left:${mk.weekIdx * 14}px;">${esc(mk.label)}</span>`).join('')}
         </div>
         <div class="flex items-start gap-1.5">
-          <!-- Días de la semana -->
           <div class="grid grid-rows-7 gap-[3px] text-[9px] font-bold text-inkMuted/70 dark:text-white/40 pt-[1px] select-none w-3.5 text-right">
             <span class="h-[11px] leading-[11px]">L</span>
             <span class="h-[11px] leading-[11px]"></span>
@@ -8265,7 +8563,6 @@ function buildHeatmapCardInnerHtml(subset) {
             <span class="h-[11px] leading-[11px]"></span>
             <span class="h-[11px] leading-[11px]">D</span>
           </div>
-          <!-- Cuadrícula de semanas -->
           <div class="flex gap-[3px]">
             ${hm.weeks.map((wk) => `
               <div class="grid grid-rows-7 gap-[3px]">
@@ -8281,22 +8578,9 @@ function buildHeatmapCardInnerHtml(subset) {
       </div>
     </div>
 
-    <!-- Leyenda + Detalle del día tocado -->
-    <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-black/[0.05] dark:border-white/[0.07] text-[11px]">
-      <div id="stats-heatmap-detail" class="min-w-0 flex-1 text-inkMuted dark:text-white/70 truncate">
-        ${selMatches.length > 0
-          ? `<strong class="text-ink dark:text-white">${esc(formatDisplayDate(selDate))}</strong> · ${selMatches.length} ${selMatches.length === 1 ? 'partida' : 'partidas'} (${esc([...new Set(selMatches.map((x) => x.gameName))].slice(0, 3).join(', '))})`
-          : 'Toca cualquier cuadro con color para ver qué jugaste ese día'}
-      </div>
-      <div class="inline-flex items-center gap-1 shrink-0 text-[10px] text-inkMuted dark:text-white/50">
-        <span>Menos</span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-black/[0.06] dark:bg-white/[0.08]"></span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand/35"></span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand/65"></span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand"></span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-goldBrand"></span>
-        <span>Más</span>
-      </div>
+    <!-- Detalle completo del día seleccionado (sin recortes) -->
+    <div id="stats-heatmap-detail">
+      ${buildSelectedDayDetailHtml(selDate, subset)}
     </div>
   `;
 }
@@ -8325,16 +8609,7 @@ function selectHeatmapDayPartial(iso) {
     ringClasses.forEach((cls) => btn.classList.toggle(cls, isSel));
   });
 
-  const subset = getCurrentStatsSubset();
-  const dayMatches = subset.filter((m) => String(m.date || '').slice(0, 10) === iso);
-  if (dayMatches.length > 0) {
-    const names = [...new Set(dayMatches.map((x) => x.gameName))].slice(0, 3).join(', ');
-    detailEl.innerHTML = `<strong class="text-ink dark:text-white">${esc(formatDisplayDate(iso))}</strong> · ${dayMatches.length} ${dayMatches.length === 1 ? 'partida' : 'partidas'} (${esc(names)})`;
-  } else if (iso) {
-    detailEl.innerHTML = `<strong class="text-ink dark:text-white">${esc(formatDisplayDate(iso))}</strong> · Sin partidas registradas`;
-  } else {
-    detailEl.textContent = 'Toca cualquier cuadro con color para ver qué jugaste ese día';
-  }
+  detailEl.innerHTML = buildSelectedDayDetailHtml(iso, getCurrentStatsSubset());
 }
 
 function buildShelfDustInnerHtml() {
@@ -8998,51 +9273,111 @@ function renderStatsTab() {
     </div>
   ` : '';
 
-  // Índice H (solo cuando vemos toda la ludoteca)
+  // Índice H didáctico (solo cuando vemos toda la ludoteca)
   const hIndexData = uiState.statsFilterGame === 'all' ? computeHIndex(subset) : null;
-  const hIndexCardHtml = hIndexData ? `
-    <div class="card-pro rounded-[24px] p-5 anim-in">
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <div class="text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-inkMuted dark:text-white/55">Métrica de Jugón · Índice H</div>
-          <div class="mt-1 flex items-baseline gap-2.5">
-            <span class="font-display text-3xl font-extrabold text-ink dark:text-white tabular-nums">H = ${hIndexData.h}</span>
-            <span class="text-xs font-bold text-emeraldBrand dark:text-emerald-400">
-              ${hIndexData.h > 0 ? `${hIndexData.h} ${hIndexData.h === 1 ? 'juego' : 'juegos'} con ≥${hIndexData.h} partidas` : 'Registra tu primera partida'}
-            </span>
+  const hIndexCardHtml = (() => {
+    if (!hIndexData) return '';
+    const { h, nextH, playsNeeded, gamesAtNextH, ladderSlots, levelLabel } = hIndexData;
+    const totalTargetPlays = nextH * nextH;
+    const currentProgressPlays = ladderSlots.reduce((sum, s) => sum + Math.min(s.count, nextH), 0);
+    const progressPct = Math.min(100, Math.round((currentProgressPlays / Math.max(1, totalTargetPlays)) * 100));
+
+    // Si la escalera es muy larga (>6), resumimos los completados y mostramos los pendientes clave
+    const readySlots = ladderSlots.filter((s) => s.ready);
+    const pendingSlots = ladderSlots.filter((s) => !s.ready);
+    const compactReadySummary = ladderSlots.length > 6 && readySlots.length > 2;
+    const visibleSlots = compactReadySummary ? pendingSlots.slice(0, 5) : ladderSlots;
+
+    return `
+      <div class="card-pro rounded-[24px] p-5 anim-in space-y-3.5">
+        <!-- Cabecera + Nivel -->
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-inkMuted dark:text-white/55">Equilibrio de Ludoteca · Índice H</div>
+            <div class="mt-1 flex items-center gap-2.5 flex-wrap">
+              <span class="font-display text-3xl font-extrabold text-ink dark:text-white tabular-nums leading-none">H = ${h}</span>
+              <span class="px-2.5 py-1 rounded-xl bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-300 text-[11px] font-extrabold">
+                ${esc(levelLabel)}
+              </span>
+            </div>
           </div>
-        </div>
-        <span class="shrink-0 px-2.5 py-1 rounded-xl bg-violet-500/12 border border-violet-500/20 text-violet-700 dark:text-violet-300 text-[11px] font-extrabold tabular-nums">
-          Meta H=${hIndexData.nextH}
-        </span>
-      </div>
-
-      <div class="mt-3 p-3 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.07] space-y-2">
-        <div class="flex items-center justify-between gap-2 text-[11px]">
-          <span class="font-semibold text-inkMuted dark:text-white/65">
-            Progreso a <strong>H = ${hIndexData.nextH}</strong> (${hIndexData.gamesAtNextH}/${hIndexData.nextH} juegos listos)
+          <span class="shrink-0 px-2.5 py-1 rounded-xl bg-violet-500/12 border border-violet-500/20 text-violet-700 dark:text-violet-300 text-[11px] font-extrabold tabular-nums">
+            Meta H = ${nextH}
           </span>
-          <span class="font-extrabold text-ink dark:text-white tabular-nums">Faltan ${hIndexData.playsNeeded} ${hIndexData.playsNeeded === 1 ? 'partida' : 'partidas'}</span>
         </div>
-        <div class="h-1.5 w-full rounded-full bg-black/[0.07] dark:bg-white/10 overflow-hidden">
-          <div class="h-full rounded-full bg-gradient-to-r from-emeraldBrand to-violet-500 transition-all duration-500"
-            style="width:${Math.min(100, Math.round((hIndexData.gamesAtNextH / Math.max(1, hIndexData.nextH)) * 100))}%"></div>
+
+        <!-- Explicación clara en 1 frase -->
+        <p class="text-xs leading-relaxed text-inkMuted dark:text-white/70">
+          ${h > 0
+            ? `Significa que tienes <strong class="text-ink dark:text-white">${h} ${h === 1 ? 'juego distinto' : 'juegos distintos'}</strong> a los que has jugado al menos <strong class="text-ink dark:text-white">${h} ${h === 1 ? 'vez' : 'veces'}</strong> cada uno. Premia jugar variado y repetir tus juegos.`
+            : `Mide tu equilibrio entre <strong class="text-ink dark:text-white">variedad y constancia</strong>: registra tu primera partida para subir a <strong class="text-ink dark:text-white">H = 1</strong>.`}
+        </p>
+
+        <!-- Escalera visual hacia el siguiente nivel -->
+        <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.07] space-y-3">
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between gap-2 text-[11px]">
+              <span class="font-bold text-ink dark:text-white">
+                Para subir a H = ${nextH}: <span class="font-medium text-inkMuted dark:text-white/65">${nextH} juegos × ${nextH} partidas</span>
+              </span>
+              <span class="shrink-0 font-extrabold text-violet-700 dark:text-violet-300 tabular-nums">
+                ${playsNeeded === 1 ? 'Falta 1 partida' : `Faltan ${playsNeeded} partidas`}
+              </span>
+            </div>
+            <div class="h-1.5 w-full rounded-full bg-black/[0.07] dark:bg-white/10 overflow-hidden">
+              <div class="h-full rounded-full bg-gradient-to-r from-emeraldBrand to-violet-500 transition-all duration-500"
+                style="width:${progressPct}%"></div>
+            </div>
+          </div>
+
+          ${compactReadySummary ? `
+            <div class="px-2.5 py-2 rounded-xl bg-emeraldBrand/10 border border-emeraldBrand/20 text-[11px] font-bold text-emeraldBrand dark:text-emerald-300 flex items-center justify-between gap-2">
+              <span>✓ ${readySlots.length} de ${nextH} juegos ya tienen ≥${nextH} partidas</span>
+              <span class="tabular-nums opacity-85">Listos</span>
+            </div>
+          ` : ''}
+
+          <div class="space-y-2">
+            ${visibleSlots.map((slot) => {
+              const slotPct = Math.min(100, Math.round((slot.count / Math.max(1, slot.target)) * 100));
+              const dotColor = slot.game ? slot.game.color : '#94A3B8';
+              return `
+                <div class="p-2.5 rounded-xl bg-white dark:bg-surfaceDark border border-black/[0.05] dark:border-white/[0.07] space-y-1.5">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${dotColor};"></span>
+                      <span class="text-xs font-bold ${slot.game ? 'text-ink dark:text-white' : 'text-inkMuted dark:text-white/55 italic'} truncate">
+                        ${slot.game ? esc(slot.game.name) : `Juego #${slot.slotNum} (elige cualquiera de tu estantería)`}
+                      </span>
+                    </div>
+                    ${slot.ready ? `
+                      <span class="shrink-0 px-2 py-0.5 rounded-lg bg-emeraldBrand/14 text-emeraldBrand dark:text-emerald-300 text-[10.5px] font-extrabold tabular-nums">
+                        ✓ ${slot.count} partidas
+                      </span>
+                    ` : `
+                      <span class="shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/14 text-amber-800 dark:text-amber-300 text-[10.5px] font-extrabold tabular-nums">
+                        ${slot.count}/${slot.target} · ${slot.missing === 1 ? 'Falta 1' : `Faltan ${slot.missing}`}
+                      </span>
+                    `}
+                  </div>
+                  <div class="h-1 w-full rounded-full bg-black/[0.06] dark:bg-white/10 overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500"
+                      style="width:${slotPct}%; background:${slot.ready ? '#227554' : dotColor};"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <p class="text-[10.5px] leading-relaxed text-inkMuted dark:text-white/55">
+            ${gamesAtNextH > 0
+              ? `Solo cuentan las partidas que sumes en los juegos pendientes; jugar más a los que ya tienen <strong class="text-emeraldBrand dark:text-emerald-300">✓</strong> no sube el índice.`
+              : `Juega a los juegos de arriba hasta llegar a ${nextH} partidas en cada uno para subir de nivel.`}
+          </p>
         </div>
       </div>
-
-      ${hIndexData.contributors.length > 0 ? `
-        <div class="mt-3 flex flex-wrap gap-1.5">
-          ${hIndexData.contributors.map((c) => `
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.06] dark:border-white/[0.08] text-[11px] font-bold text-ink dark:text-white/90">
-              <span class="w-2 h-2 rounded-full shrink-0" style="background:${c.game.color};"></span>
-              <span class="truncate max-w-[130px]">${esc(c.game.name)}</span>
-              <span class="text-inkMuted dark:text-white/55 tabular-nums">${c.count}</span>
-            </span>
-          `).join('')}
-        </div>
-      ` : ''}
-    </div>
-  ` : '';
+    `;
+  })();
 
   // Calendario Heatmap anual (actualización parcial sin reconstruir gráficas)
   const heatmapCardHtml = `
@@ -11319,6 +11654,17 @@ function bindGlobalEvents() {
       }
       case 'open-recap-png': {
         openRecapPngModal();
+        break;
+      }
+      case 'set-heatmap-view': {
+        uiState.heatmapView = el.dataset.val === 'year' ? 'year' : 'month';
+        updateStatsHeatmapPartial({ preserveScroll: false });
+        break;
+      }
+      case 'step-heatmap-month': {
+        uiState.heatmapMonthKey = el.dataset.val || '';
+        uiState.heatmapSelectedDate = '';
+        updateStatsHeatmapPartial({ preserveScroll: false });
         break;
       }
       case 'set-heatmap-scope': {
