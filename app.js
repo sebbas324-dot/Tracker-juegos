@@ -1245,7 +1245,8 @@ function formatDisplayDate(isoStr, createdAtMs) {
 }
 
 function normalizeStarRating(raw) {
-  const n = Number(raw);
+  const cleaned = typeof raw === 'string' ? raw.trim().replace(',', '.') : raw;
+  const n = Number(cleaned);
   if (!n || isNaN(n) || n <= 0) return 0;
   // Migración suave de notas antiguas en escala 5–10 a 1–5 en pasos de 0.5
   let val = n > 5 ? (Math.round(n) / 2) : n;
@@ -1571,7 +1572,9 @@ function loadLocalData() {
       gamesChanged = true;
     }
   });
-  if (gamesChanged) saveGamesLocal(paletteMigrated);
+  // Nunca marcar catalogDirty en una migración automática al arrancar,
+  // para que un dispositivo sin puntuaciones jamás sobrescriba tu catálogo real en Sheets.
+  if (gamesChanged) saveGamesLocal(false);
 
   // Asegura que el borrador apunte a un juego existente
   if (games.length > 0 && !games.some((g) => g.id === draft.gameId)) {
@@ -2505,9 +2508,24 @@ function mergeRemoteCatalog(remoteCat) {
   if (!remoteCat || typeof remoteCat !== 'object') return false;
   syncState.catalogSupported = true;
   const remoteUpdatedAt = Number(remoteCat.updatedAtMs) || 0;
+  const localById = new Map(games.map((g) => [g.id, g]));
+  const remoteGames = Array.isArray(remoteCat.games) ? remoteCat.games : [];
+  const localHasRatings = games.some((g) => normalizeStarRating(g.rating) > 0);
+  const remoteHasRatings = remoteGames.some((rg) => normalizeStarRating(rg?.rating) > 0);
 
-  // Si el catálogo local tiene cambios pendientes más recientes, no sobrescribimos: lo subiremos
+  // Si el catálogo local tiene cambios pendientes más recientes, rescata posibles valoraciones
+  // que solo existieran en Sheets antes de subir el catálogo local (nunca las borra por accidente).
   if (syncState.catalogDirty && syncState.catalogUpdatedAtMs > remoteUpdatedAt) {
+    if (remoteHasRatings && !localHasRatings) {
+      remoteGames.forEach((rg) => {
+        if (!rg || !rg.id) return;
+        const loc = localById.get(rg.id);
+        const rStar = normalizeStarRating(rg.rating);
+        if (loc && rStar > 0 && !loc.rating) loc.rating = rStar;
+        if (loc && rg.favorite && !loc.favorite) loc.favorite = true;
+      });
+      saveGamesLocal(false);
+    }
     return false;
   }
 
@@ -2519,28 +2537,40 @@ function mergeRemoteCatalog(remoteCat) {
     changed = true;
   }
 
-  if (Array.isArray(remoteCat.games) && remoteCat.games.length > 0) {
+  if (remoteGames.length > 0) {
     const mergedMap = new Map();
-    remoteCat.games.forEach((rg) => {
+    const protectLocalRatings = localHasRatings && !remoteHasRatings;
+    let needsRePush = protectLocalRatings;
+
+    remoteGames.forEach((rg) => {
       if (!rg || !rg.id) return;
+      const loc = localById.get(rg.id);
       if (rg.rating !== undefined && rg.rating !== null && rg.rating !== '') {
         const normR = normalizeStarRating(rg.rating);
         if (normR > 0) rg.rating = normR;
         else delete rg.rating;
+      }
+      // Si Sheets venía sin notas (p. ej. tras sobrescritura desde otro dispositivo) y este móvil sí las tiene, consérvalas
+      if (protectLocalRatings && loc) {
+        const locR = normalizeStarRating(loc.rating);
+        if (locR > 0 && !rg.rating) rg.rating = locR;
+        if (loc.favorite && !rg.favorite) rg.favorite = true;
       }
       mergedMap.set(rg.id, rg);
     });
     // Conserva juegos de catálogo base si no fueron explícitamente borrados ni estaban en remoto
     DEFAULT_GAMES.forEach((def) => {
       if (!mergedMap.has(def.id) && !deletedGameIds.includes(def.id)) {
-        const copy = JSON.parse(JSON.stringify(def));
-        if (DEFAULT_RULES_NOTES[def.id]) copy.rulesNotes = DEFAULT_RULES_NOTES[def.id];
+        const loc = localById.get(def.id);
+        const copy = loc ? JSON.parse(JSON.stringify(loc)) : JSON.parse(JSON.stringify(def));
+        if (!copy.rulesNotes && DEFAULT_RULES_NOTES[def.id]) copy.rulesNotes = DEFAULT_RULES_NOTES[def.id];
         mergedMap.set(def.id, copy);
       }
     });
     games = Array.from(mergedMap.values());
     const remotePaletteMigrated = migrateGamePaletteColors(games);
-    saveGamesLocal(remotePaletteMigrated);
+    if (remotePaletteMigrated) needsRePush = true;
+    saveGamesLocal(needsRePush);
     changed = true;
   }
 
@@ -2694,7 +2724,7 @@ function readCatalog(ss) {
           scoringType: String(r[5] || "points"), minPlayers: Number(r[6]) || 1,
           maxPlayers: Number(r[7]) || 6, defaultDuration: Number(r[8]) || 30,
           favorite: r[9] === true || String(r[9]) === "Sí",
-          rating: r[10] ? Number(r[10]) : undefined,
+          rating: r[10] ? Number(String(r[10]).replace(',', '.')) : undefined,
           tagline: String(r[11] || ""), rulesNotes: String(r[12] || "")
         };
       }
@@ -2899,8 +2929,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v12 (PWA estática sin Tailwind CDN)
-const CACHE_NAME = 'ludoteca-offline-v12';
+  return `// Ludoteca — Service Worker Offline v13 (PWA estática sin Tailwind CDN)
+const CACHE_NAME = 'ludoteca-offline-v13';
 const PRECACHE_URLS = [
   './',
   './index.html',
