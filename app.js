@@ -31,8 +31,8 @@ const DEFAULT_GAMES = [
   {
     id: 'wyrmspan',
     name: 'Wyrmspan',
-    color: '#9B2C4E',
-    color2: '#6B1A33',
+    color: '#831843',
+    color2: '#500724',
     icon: 'dragon',
     scoringType: 'points',
     minPlayers: 1,
@@ -61,8 +61,8 @@ const DEFAULT_GAMES = [
   {
     id: 'terraforming_mars',
     name: 'Terraforming Mars',
-    color: '#C84B31',
-    color2: '#8B2C18',
+    color: '#B4451F',
+    color2: '#7A2A10',
     icon: 'planet',
     scoringType: 'points',
     minPlayers: 1,
@@ -76,8 +76,8 @@ const DEFAULT_GAMES = [
   {
     id: 'harmonies',
     name: 'Harmonies',
-    color: '#2E7D4F',
-    color2: '#1B5E3A',
+    color: '#1F6E43',
+    color2: '#12462A',
     icon: 'hex',
     scoringType: 'points',
     minPlayers: 1,
@@ -91,8 +91,8 @@ const DEFAULT_GAMES = [
   {
     id: 'lotr_duel',
     name: 'Lord of the Rings: Duel',
-    color: '#B45309',
-    color2: '#78350F',
+    color: '#8A7336',
+    color2: '#54451E',
     icon: 'ring',
     scoringType: 'winner_only',
     minPlayers: 2,
@@ -106,8 +106,8 @@ const DEFAULT_GAMES = [
   {
     id: 'lotr_battle',
     name: 'Lord of the Rings: Battle for Middle-earth',
-    color: '#3F6212',
-    color2: '#1A2E05',
+    color: '#4D6B1E',
+    color2: '#2A3D0E',
     icon: 'sword',
     scoringType: 'points',
     minPlayers: 2,
@@ -119,8 +119,8 @@ const DEFAULT_GAMES = [
   {
     id: 'jaipur',
     name: 'Jaipur',
-    color: '#D97706',
-    color2: '#92400E',
+    color: '#EAB308',
+    color2: '#9A6E00',
     icon: 'camel',
     scoringType: 'points',
     minPlayers: 2,
@@ -135,8 +135,8 @@ const DEFAULT_GAMES = [
   {
     id: 'unstable_unicorns',
     name: 'Unstable Unicorns',
-    color: '#A21CAF',
-    color2: '#581C87',
+    color: '#D946EF',
+    color2: '#86198F',
     icon: 'unicorn',
     scoringType: 'winner_only',
     minPlayers: 2,
@@ -151,8 +151,8 @@ const DEFAULT_GAMES = [
   {
     id: 'oceanos_de_papel',
     name: 'Sea Salt & Paper',
-    color: '#0369A1',
-    color2: '#0C4A6E',
+    color: '#035388',
+    color2: '#083354',
     icon: 'origami',
     scoringType: 'points',
     minPlayers: 2,
@@ -167,8 +167,8 @@ const DEFAULT_GAMES = [
   {
     id: 'last_bullet',
     name: 'Last Bullet',
-    color: '#991B1B',
-    color2: '#450A0A',
+    color: '#5C3317',
+    color2: '#331A0B',
     icon: 'target',
     scoringType: 'winner_only',
     minPlayers: 1,
@@ -181,8 +181,8 @@ const DEFAULT_GAMES = [
   {
     id: 'splendor_marvel',
     name: 'Splendor Marvel',
-    color: '#B91C1C',
-    color2: '#1D4ED8',
+    color: '#DC2626',
+    color2: '#991B1B',
     icon: 'gauntlet',
     scoringType: 'points',
     minPlayers: 2,
@@ -197,8 +197,8 @@ const DEFAULT_GAMES = [
   {
     id: 'azul_duel',
     name: 'Azul Duel',
-    color: '#1D4ED8',
-    color2: '#1E3A8A',
+    color: '#1D2F6F',
+    color2: '#111C45',
     icon: 'tile',
     scoringType: 'points',
     minPlayers: 2,
@@ -213,8 +213,8 @@ const DEFAULT_GAMES = [
   {
     id: 'ttr_europa',
     name: 'Ticket to Ride: Europa',
-    color: '#D97706',
-    color2: '#9A4A06',
+    color: '#C27803',
+    color2: '#7D4B00',
     icon: 'train',
     scoringType: 'points',
     minPlayers: 2,
@@ -227,8 +227,8 @@ const DEFAULT_GAMES = [
   {
     id: 'monopoly_deal',
     name: 'Monopoly Deal',
-    color: '#15803D',
-    color2: '#14532D',
+    color: '#10B981',
+    color2: '#047857',
     icon: 'bank',
     scoringType: 'winner_only',
     minPlayers: 2,
@@ -243,7 +243,7 @@ const DEFAULT_GAMES = [
   {
     id: 'skull_king',
     name: 'Skull King',
-    color: '#1E293B',
+    color: '#334155',
     color2: '#0F172A',
     icon: 'skull',
     scoringType: 'points',
@@ -257,8 +257,8 @@ const DEFAULT_GAMES = [
   {
     id: 'faraway',
     name: 'Faraway',
-    color: '#0284C7',
-    color2: '#075985',
+    color: '#5EA2F5',
+    color2: '#2563EB',
     icon: 'compass',
     scoringType: 'points',
     minPlayers: 2,
@@ -271,8 +271,8 @@ const DEFAULT_GAMES = [
   {
     id: 'trio',
     name: 'Trío',
-    color: '#0891B2',
-    color2: '#155E75',
+    color: '#06B6D4',
+    color2: '#0E7490',
     icon: 'trio',
     scoringType: 'winner_only',
     minPlayers: 3,
@@ -287,8 +287,8 @@ const DEFAULT_GAMES = [
   {
     id: 'virus',
     name: 'Virus!',
-    color: '#16A34A',
-    color2: '#166534',
+    color: '#84CC16',
+    color2: '#4D7C0F',
     icon: 'virus',
     scoringType: 'winner_only',
     minPlayers: 2,
@@ -303,8 +303,8 @@ const DEFAULT_GAMES = [
   {
     id: 'odin',
     name: 'Odín',
-    color: '#4F46E5',
-    color2: '#312E81',
+    color: '#4338CA',
+    color2: '#281F85',
     icon: 'helmet',
     scoringType: 'points',
     lowestWins: true,
@@ -331,7 +331,7 @@ const DEFAULT_GAMES = [
   {
     id: 'the_mind',
     name: 'The Mind',
-    color: '#0D9488',
+    color: '#0F766E',
     color2: '#115E59',
     icon: 'mind',
     scoringType: 'coop',
@@ -344,8 +344,8 @@ const DEFAULT_GAMES = [
   {
     id: 'flip_7',
     name: 'Flip 7',
-    color: '#7C3AED',
-    color2: '#4C1D95',
+    color: '#9333EA',
+    color2: '#581C87',
     icon: 'cards',
     scoringType: 'points',
     minPlayers: 2,
@@ -361,8 +361,8 @@ const DEFAULT_GAMES = [
   {
     id: 'sleeping_queens',
     name: 'Sleeping Queens',
-    color: '#EC4899',
-    color2: '#9D174D',
+    color: '#F472B6',
+    color2: '#BE185D',
     icon: 'crown',
     scoringType: 'points',
     minPlayers: 2,
@@ -377,8 +377,8 @@ const DEFAULT_GAMES = [
   {
     id: 'exploding_kittens',
     name: 'Exploding Kittens',
-    color: '#EA580C',
-    color2: '#9A3412',
+    color: '#F97316',
+    color2: '#C2410C',
     icon: 'cat',
     scoringType: 'winner_only',
     minPlayers: 2,
@@ -390,8 +390,8 @@ const DEFAULT_GAMES = [
   {
     id: 'sushi_go',
     name: 'Sushi Go!',
-    color: '#E11D48',
-    color2: '#9F1239',
+    color: '#FB7185',
+    color2: '#BE123C',
     icon: 'sushi',
     scoringType: 'points',
     minPlayers: 2,
@@ -402,6 +402,52 @@ const DEFAULT_GAMES = [
     tagline: 'Draft de 3 rondas',
   },
 ];
+
+const LEGACY_GAME_COLORS_V1 = {
+  wyrmspan: '#9B2C4E',
+  terraforming_mars: '#C84B31',
+  harmonies: '#2E7D4F',
+  lotr_duel: '#B45309',
+  lotr_battle: '#3F6212',
+  jaipur: '#D97706',
+  unstable_unicorns: '#A21CAF',
+  oceanos_de_papel: '#0369A1',
+  last_bullet: '#991B1B',
+  splendor_marvel: '#B91C1C',
+  azul_duel: '#1D4ED8',
+  ttr_europa: '#D97706',
+  monopoly_deal: '#15803D',
+  skull_king: '#1E293B',
+  faraway: '#0284C7',
+  trio: '#0891B2',
+  virus: '#16A34A',
+  odin: '#4F46E5',
+  the_mind: '#0D9488',
+  flip_7: '#7C3AED',
+  sleeping_queens: '#EC4899',
+  exploding_kittens: '#EA580C',
+  sushi_go: '#E11D48',
+};
+
+function migrateGamePaletteColors(gameList) {
+  if (!Array.isArray(gameList)) return false;
+  let changed = false;
+  gameList.forEach((g) => {
+    if (!g || !g.id) return;
+    const def = DEFAULT_GAMES.find((d) => d.id === g.id);
+    if (!def) return;
+    const legacyHex = LEGACY_GAME_COLORS_V1[g.id];
+    const curColor = String(g.color || '').trim().toLowerCase();
+    if (!curColor || (legacyHex && curColor === legacyHex.toLowerCase())) {
+      if (curColor !== def.color.toLowerCase() || String(g.color2 || '').trim().toLowerCase() !== (def.color2 || '').toLowerCase()) {
+        g.color = def.color;
+        g.color2 = def.color2;
+        changed = true;
+      }
+    }
+  });
+  return changed;
+}
 
 const LEGACY_RULES_NOTES_V1 = {
   wyrmspan: '• Setup: 3 monedas, 1 huevo, 3 cartas de dragón y 3 de cueva (conserva 4 en total pagando el resto en recursos/cartas).\n• 4 rondas; al pasar ya no actúas hasta la siguiente ronda.\n• Desempate: más monedas > más recursos > más cartas en mano.',
@@ -1511,6 +1557,10 @@ function loadLocalData() {
     }
   });
 
+  // Migra paleta de colores v1 -> v2 (25 tonos únicos respetando colores personalizados)
+  const paletteMigrated = migrateGamePaletteColors(games);
+  if (paletteMigrated) gamesChanged = true;
+
   // Inyecta o actualiza chuletas base de reglas (respeta cualquier nota editada por el usuario)
   games.forEach((g) => {
     if (!DEFAULT_RULES_NOTES[g.id]) return;
@@ -1521,7 +1571,7 @@ function loadLocalData() {
       gamesChanged = true;
     }
   });
-  if (gamesChanged) saveGamesLocal(false);
+  if (gamesChanged) saveGamesLocal(paletteMigrated);
 
   // Asegura que el borrador apunte a un juego existente
   if (games.length > 0 && !games.some((g) => g.id === draft.gameId)) {
@@ -2078,16 +2128,30 @@ function playTurnDoneAlert() {
   } catch (e) {}
 }
 
+function matchChronoKey(m) {
+  const iso = normalizeDateToISO(m?.date, m?.createdAtMs);
+  return `${iso}|${String(Number(m?.createdAtMs) || 0).padStart(15, '0')}`;
+}
+
+function getLatestPlayDateISO(gameId) {
+  let latestIso = '';
+  matchHistory.forEach((m) => {
+    if (m.gameId !== gameId) return;
+    const iso = normalizeDateToISO(m.date, m.createdAtMs);
+    if (iso && (!latestIso || iso > latestIso)) latestIso = iso;
+  });
+  return latestIso || null;
+}
+
 function getDaysSinceLastPlay(gameId) {
-  const m = matchHistory.find((x) => x.gameId === gameId);
-  if (!m) return null;
-  let ts = Number(m.createdAtMs) || 0;
-  if (!ts && m.date && /^\d{4}-\d{2}-\d{2}$/.test(m.date)) {
-    const [y, mo, d] = m.date.split('-').map(Number);
-    ts = new Date(y, mo - 1, d).getTime();
-  }
-  if (!ts) return 0;
-  return Math.max(0, Math.floor((Date.now() - ts) / 86400000));
+  const latestIso = getLatestPlayDateISO(gameId);
+  if (!latestIso) return null;
+  const parts = latestIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!parts) return 0;
+  const matchMidnight = new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])).getTime();
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return Math.max(0, Math.round((todayMidnight - matchMidnight) / 86400000));
 }
 
 function formatDustyLabel(days) {
@@ -2357,7 +2421,7 @@ function groupSheetRows(rows) {
     }
   });
 
-  list.sort((a, b) => b.createdAtMs - a.createdAtMs);
+  list.sort((a, b) => matchChronoKey(b).localeCompare(matchChronoKey(a)));
   return list;
 }
 
@@ -2475,7 +2539,8 @@ function mergeRemoteCatalog(remoteCat) {
       }
     });
     games = Array.from(mergedMap.values());
-    saveGamesLocal(false);
+    const remotePaletteMigrated = migrateGamePaletteColors(games);
+    saveGamesLocal(remotePaletteMigrated);
     changed = true;
   }
 
@@ -2485,7 +2550,7 @@ function mergeRemoteCatalog(remoteCat) {
     changed = true;
   }
 
-  if (remoteUpdatedAt > 0) {
+  if (remoteUpdatedAt > 0 && !syncState.catalogDirty) {
     syncState.catalogUpdatedAtMs = remoteUpdatedAt;
     syncState.catalogSyncedAtMs = Date.now();
     syncState.catalogDirty = false;
@@ -2834,8 +2899,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v11 (PWA estática sin Tailwind CDN)
-const CACHE_NAME = 'ludoteca-offline-v11';
+  return `// Ludoteca — Service Worker Offline v12 (PWA estática sin Tailwind CDN)
+const CACHE_NAME = 'ludoteca-offline-v12';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -3016,7 +3081,7 @@ async function syncFromSheets({ silent = false } = {}) {
     // Paso 3: Fusión segura (conserva cualquier partida aún pendiente en local sin duplicar)
     const remoteIds = new Set(remoteMatches.map((rm) => rm.id));
     const stillLocalPending = matchHistory.filter((lm) => lm.pendingSync && !remoteIds.has(lm.id));
-    matchHistory = [...stillLocalPending, ...remoteMatches].sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+    matchHistory = [...stillLocalPending, ...remoteMatches].sort((a, b) => matchChronoKey(b).localeCompare(matchChronoKey(a)));
 
     saveHistoryLocal();
     rebuildFrequentPlayersFromHistory();
@@ -4204,7 +4269,7 @@ async function saveDraftMatch() {
     } else {
       matchHistory.unshift(rec);
     }
-    matchHistory.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+    matchHistory.sort((a, b) => matchChronoKey(b).localeCompare(matchChronoKey(a)));
     saveHistoryLocal();
     rebuildFrequentPlayersFromHistory();
   };
@@ -6789,7 +6854,8 @@ function computeShelfDustRanking() {
       unplayed.push({ game: g, plays: 0, days: null, lastDate: null });
     } else {
       const days = getDaysSinceLastPlay(g.id);
-      played.push({ game: g, plays: gMatches.length, days: days ?? 0, lastDate: gMatches[0].date });
+      const lastDate = getLatestPlayDateISO(g.id) || gMatches[0].date;
+      played.push({ game: g, plays: gMatches.length, days: days ?? 0, lastDate });
     }
   });
   played.sort((a, b) => (b.days - a.days) || (a.plays - b.plays));
@@ -7824,7 +7890,7 @@ function computeAllBadges(sourceMatches = matchHistory, playerCtx = null) {
 
   // 1) Estadísticas globales por jugador
   const gPlayers = {};
-  const chronologicalAll = [...sourceMatches].sort((a, b) => (a.createdAtMs || 0) - (b.createdAtMs || 0));
+  const chronologicalAll = [...sourceMatches].sort((a, b) => matchChronoKey(a).localeCompare(matchChronoKey(b)));
 
   let bestSingleScore = null;
 
@@ -8346,14 +8412,21 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
   const subRight = onlyCoop
     ? `${vs.coopSharedWins} ${vs.coopSharedWins === 1 ? 'superada' : 'superadas'}`
     : isTogether
-      ? `${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo' : 'duelos'}${vs.avgB !== null && gameObj ? ` · Media ${vs.avgB}` : ''}`
-      : `${vs.playsB}P · ${vs.winRateB}% éxito${vs.avgB !== null && gameObj ? ` · Media ${vs.avgB}` : ''}`;
+      ? `${vs.avgB !== null && gameObj ? `Media ${vs.avgB} · ` : ''}${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo' : 'duelos'}`
+      : `${vs.avgB !== null && gameObj ? `Media ${vs.avgB} · ` : ''}${vs.winRateB}% éxito · ${vs.playsB}P`;
+
+  const togetherParts = [];
+  if (vs.topSharedGame && !gameObj) togetherParts.push(`Top juntos: ${esc(vs.topSharedGame)}`);
+  else if (gameObj) togetherParts.push(`Duelo en ${esc(gameObj.name)}`);
+  else togetherParts.push('Cara a cara en mesa');
+  if (vs.ties > 0) togetherParts.push(`${vs.ties} ${vs.ties === 1 ? 'empate' : 'empates'}`);
+  if (vs.coopShared > 0) togetherParts.push(`+${vs.coopShared} coop`);
 
   const footerNote = onlyCoop
     ? 'Partidas cooperativas · no cuentan como duelo'
     : isTogether
-      ? `${vs.ties > 0 ? `${vs.ties} ${vs.ties === 1 ? 'empate' : 'empates'} · ` : ''}${vs.coopShared > 0 ? `${vs.coopShared} coop aparte · ` : ''}${vs.topSharedGame && !gameObj ? `Top juntos: ${esc(vs.topSharedGame)}` : (gameObj ? `Duelo en ${esc(gameObj.name)}` : 'Cara a cara en mesa')}`
-      : `${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo juntos' : 'duelos juntos'} (${vs.winsA}–${vs.winsB})${vs.coopShared > 0 ? ` · ${vs.coopShared} coop aparte` : ''}`;
+      ? togetherParts.join(' · ')
+      : `${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo juntos' : 'duelos juntos'} (${vs.winsA}–${vs.winsB})${vs.coopShared > 0 ? ` · +${vs.coopShared} coop` : ''}`;
 
   return `
     <div class="cover-sheen rounded-[26px] p-4 sm:p-5 text-white shadow-elevated anim-in border border-white/10"
@@ -8569,14 +8642,35 @@ function buildMonthlyCalendarGrid(subset, monthKey) {
 }
 
 function buildHeatmapCardInnerHtml(subset) {
-  const viewMode = uiState.heatmapView === 'year' ? 'year' : 'month';
-  const hm = computeActivityHeatmap(subset, uiState.heatmapScope);
-  if (uiState.heatmapScope !== '12m' && !hm.availableYears.includes(uiState.heatmapScope)) {
-    uiState.heatmapScope = '12m';
-  }
+  const hm = computeActivityHeatmap(subset, '12m');
+  const todayStr = todayISO();
+  const todayMonthKey = todayStr.slice(0, 7);
+  const mc = buildMonthlyCalendarGrid(subset, uiState.heatmapMonthKey);
+  uiState.heatmapMonthKey = mc.activeMonth;
 
-  // Selector superior Mes / Año
-  const headerControlsHtml = `
+  // Si estamos en el mes actual y no hay selección manual en este mes, marca hoy por defecto
+  const selBelongsToMonth = uiState.heatmapSelectedDate && uiState.heatmapSelectedDate.startsWith(mc.activeMonth);
+  const selDate = selBelongsToMonth
+    ? uiState.heatmapSelectedDate
+    : (mc.activeMonth === todayMonthKey ? todayStr : mc.latestActiveIso);
+  const showBackToToday = mc.activeMonth !== todayMonthKey || selDate !== todayStr;
+
+  const dayBtnClass = (count, isSelected, isToday) => {
+    const ring = isSelected
+      ? ' ring-2 ring-goldBrand ring-offset-1 ring-offset-white dark:ring-offset-surfaceDark'
+      : '';
+    const todayBorder = isToday && !isSelected ? ' border-2 border-emeraldBrand font-extrabold text-emeraldBrand dark:text-emerald-300' : '';
+    if (count === 0) {
+      if (isToday && !isSelected) return 'bg-emeraldBrand/10 dark:bg-emeraldBrand/25 border-2 border-emeraldBrand text-emeraldBrand dark:text-emerald-300 font-extrabold';
+      return 'bg-canvas/70 dark:bg-surfaceDarkAlt/70 text-inkMuted dark:text-white/55 border border-black/[0.05] dark:border-white/[0.06]' + ring;
+    }
+    if (count === 1) return 'bg-emeraldBrand/15 dark:bg-emerald-500/35 text-emeraldBrand dark:text-emerald-200 border border-emeraldBrand/30 font-extrabold' + todayBorder + ring;
+    if (count === 2) return 'bg-emeraldBrand/65 dark:bg-emerald-500/60 text-white border border-transparent font-extrabold' + todayBorder + ring;
+    if (count === 3) return 'bg-emeraldBrand dark:bg-emerald-400 text-white dark:text-pine border border-transparent font-extrabold' + todayBorder + ring;
+    return 'bg-goldBrand dark:bg-amber-400 text-white dark:text-pine border border-transparent font-extrabold' + todayBorder + ring;
+  };
+
+  return `
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div>
         <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Calendario de Actividad</h3>
@@ -8584,215 +8678,78 @@ function buildHeatmapCardInnerHtml(subset) {
           ${hm.totalInRange} ${hm.totalInRange === 1 ? 'partida' : 'partidas'} en ${hm.activeDays} ${hm.activeDays === 1 ? 'día activo' : 'días activos'}${hm.maxWeekStreak >= 2 ? ` · Racha: ${hm.maxWeekStreak} sem.` : ''}
         </p>
       </div>
-      <div class="inline-flex items-center gap-0.5 p-0.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12">
-        <button type="button" data-action="set-heatmap-view" data-val="month"
-          class="btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold ${viewMode === 'month' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
-          Mes
+      ${showBackToToday ? `
+        <button type="button" data-action="reset-heatmap-today"
+          class="btn-tap px-2.5 py-1 rounded-xl bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-300 text-[11px] font-extrabold">
+          Volver a hoy
         </button>
-        <button type="button" data-action="set-heatmap-view" data-val="year"
-          class="btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold ${viewMode === 'year' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
-          Año
-        </button>
-      </div>
+      ` : ''}
     </div>
-  `;
 
-  const todayStr = todayISO();
-  const todayMonthKey = todayStr.slice(0, 7);
-
-  if (viewMode === 'month') {
-    const mc = buildMonthlyCalendarGrid(subset, uiState.heatmapMonthKey);
-    uiState.heatmapMonthKey = mc.activeMonth;
-
-    // Si estamos en el mes actual y no hay selección manual en este mes, marca hoy por defecto
-    const selBelongsToMonth = uiState.heatmapSelectedDate && uiState.heatmapSelectedDate.startsWith(mc.activeMonth);
-    const selDate = selBelongsToMonth
-      ? uiState.heatmapSelectedDate
-      : (mc.activeMonth === todayMonthKey ? todayStr : mc.latestActiveIso);
-    const showBackToToday = mc.activeMonth !== todayMonthKey || selDate !== todayStr;
-
-    const dayBtnClass = (count, isSelected, isToday) => {
-      const ring = isSelected
-        ? ' ring-2 ring-goldBrand ring-offset-1 ring-offset-white dark:ring-offset-surfaceDark'
-        : '';
-      const todayBorder = isToday && !isSelected ? ' border-2 border-emeraldBrand font-extrabold text-emeraldBrand dark:text-emerald-300' : '';
-      if (count === 0) {
-        if (isToday && !isSelected) return 'bg-emeraldBrand/10 dark:bg-emeraldBrand/25 border-2 border-emeraldBrand text-emeraldBrand dark:text-emerald-300 font-extrabold';
-        return 'bg-canvas/70 dark:bg-surfaceDarkAlt/70 text-inkMuted dark:text-white/55 border border-black/[0.05] dark:border-white/[0.06]' + ring;
-      }
-      if (count === 1) return 'bg-emeraldBrand/15 dark:bg-emerald-500/35 text-emeraldBrand dark:text-emerald-200 border border-emeraldBrand/30 font-extrabold' + todayBorder + ring;
-      if (count === 2) return 'bg-emeraldBrand/65 dark:bg-emerald-500/60 text-white border border-transparent font-extrabold' + todayBorder + ring;
-      if (count === 3) return 'bg-emeraldBrand dark:bg-emerald-400 text-white dark:text-pine border border-transparent font-extrabold' + todayBorder + ring;
-      return 'bg-goldBrand dark:bg-amber-400 text-white dark:text-pine border border-transparent font-extrabold' + todayBorder + ring;
-    };
-
-    return `
-      ${headerControlsHtml}
-
-      <!-- Navegación mensual limpia -->
-      <div class="flex items-center justify-between gap-2 px-1">
-        <button type="button" data-action="step-heatmap-month" data-val="${mc.prevKey}"
-          class="btn-tap w-8 h-8 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.07] dark:border-white/12 flex items-center justify-center text-ink dark:text-white" aria-label="Mes anterior">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        </button>
-        <div class="text-center min-w-0">
-          <div class="flex items-center justify-center gap-1.5">
-            <span class="font-display text-sm font-extrabold text-ink dark:text-white">${esc(mc.monthTitle)}</span>
-            ${showBackToToday ? `
-              <button type="button" data-action="reset-heatmap-today"
-                class="btn-tap px-2 py-0.5 rounded-lg bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-300 text-[10px] font-extrabold">
-                Hoy
-              </button>
-            ` : ''}
-          </div>
-          <div class="text-[10.5px] font-semibold text-inkMuted dark:text-white/55 tabular-nums">
-            ${mc.monthPlays > 0 ? `${mc.monthPlays} ${mc.monthPlays === 1 ? 'partida' : 'partidas'} · ${mc.monthActiveDays} ${mc.monthActiveDays === 1 ? 'día' : 'días'}` : 'Sin partidas este mes'}
-          </div>
+    <!-- Navegación mensual limpia -->
+    <div class="flex items-center justify-between gap-2 px-1">
+      <button type="button" data-action="step-heatmap-month" data-val="${mc.prevKey}"
+        class="btn-tap w-8 h-8 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.07] dark:border-white/12 flex items-center justify-center text-ink dark:text-white" aria-label="Mes anterior">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="text-center min-w-0">
+        <div class="font-display text-sm font-extrabold text-ink dark:text-white">${esc(mc.monthTitle)}</div>
+        <div class="text-[10.5px] font-semibold text-inkMuted dark:text-white/55 tabular-nums">
+          ${mc.monthPlays > 0 ? `${mc.monthPlays} ${mc.monthPlays === 1 ? 'partida' : 'partidas'} · ${mc.monthActiveDays} ${mc.monthActiveDays === 1 ? 'día' : 'días'}` : 'Sin partidas este mes'}
         </div>
-        <button type="button" data-action="step-heatmap-month" data-val="${mc.nextKey}" ${!mc.canGoNext ? 'disabled' : ''}
-          class="btn-tap w-8 h-8 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.07] dark:border-white/12 flex items-center justify-center text-ink dark:text-white disabled:opacity-35" aria-label="Mes siguiente">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-        </button>
       </div>
+      <button type="button" data-action="step-heatmap-month" data-val="${mc.nextKey}" ${!mc.canGoNext ? 'disabled' : ''}
+        class="btn-tap w-8 h-8 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.07] dark:border-white/12 flex items-center justify-center text-ink dark:text-white disabled:opacity-35" aria-label="Mes siguiente">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
 
-      <!-- Cabecera días de la semana -->
-      <div class="grid grid-cols-7 gap-1.5 text-center text-[10px] font-extrabold uppercase tracking-wider text-inkMuted/80 dark:text-white/45 select-none">
-        <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
-      </div>
+    <!-- Cabecera días de la semana -->
+    <div class="grid grid-cols-7 gap-1.5 text-center text-[10px] font-extrabold uppercase tracking-wider text-inkMuted/80 dark:text-white/45 select-none">
+      <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+    </div>
 
-      <!-- Cuadrícula mensual espaciosa -->
-      <div class="grid grid-cols-7 gap-1.5">
-        ${mc.cells.map((c) => {
-          if (c.empty) return '<div class="h-10"></div>';
-          return `
-            <button type="button" data-action="select-heatmap-day" data-iso="${c.iso}"
-              class="btn-tap h-10 rounded-xl flex flex-col items-center justify-center tabular-nums leading-none ${dayBtnClass(c.count, c.iso === selDate, c.isToday)}">
-              <span class="text-xs font-bold">${c.day}</span>
-              ${c.count > 0 ? `<span class="text-[9px] font-extrabold opacity-85 mt-0.5">${c.count === 1 ? '•' : `×${c.count}`}</span>` : ''}
-            </button>
-          `;
-        }).join('')}
-      </div>
-
-      <!-- Detalle completo del día seleccionado (sin recortes) -->
-      <div id="stats-heatmap-detail">
-        ${buildSelectedDayDetailHtml(selDate, subset)}
-      </div>
-
-      <!-- Leyenda compacta -->
-      <div class="flex items-center justify-end gap-1.5 text-[10px] text-inkMuted dark:text-white/50">
-        <span>Actividad:</span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-black/[0.06] dark:bg-white/[0.08]"></span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand/35"></span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand/65"></span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand"></span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-goldBrand"></span>
-        <span>Más</span>
-      </div>
-    `;
-  }
-
-  // Vista Anual (mapa de calor con etiquetas sin solapamiento + detalle completo debajo)
-  const selDate = uiState.heatmapSelectedDate || todayStr;
-
-  const hmCellClass = (count, inTarget, isSelected) => {
-    const ring = isSelected ? ' ring-2 ring-goldBrand ring-offset-1 ring-offset-white dark:ring-offset-surfaceDark' : '';
-    if (!inTarget) return 'bg-transparent pointer-events-none';
-    if (count === 0) return 'bg-black/[0.055] dark:bg-white/[0.07]' + ring;
-    if (count === 1) return 'bg-emeraldBrand/35 dark:bg-emerald-500/35' + ring;
-    if (count === 2) return 'bg-emeraldBrand/65 dark:bg-emerald-500/60' + ring;
-    if (count === 3) return 'bg-emeraldBrand dark:bg-emerald-400' + ring;
-    return 'bg-goldBrand dark:bg-amber-400' + ring;
-  };
-
-  // Filtra etiquetas de mes demasiado juntas (< 3 semanas) para evitar solapamientos
-  const spacedMonthMarkers = [];
-  hm.monthMarkers.forEach((mk) => {
-    const prev = spacedMonthMarkers[spacedMonthMarkers.length - 1];
-    if (!prev || mk.weekIdx - prev.weekIdx >= 3) {
-      spacedMonthMarkers.push(mk);
-    }
-  });
-
-  return `
-    ${headerControlsHtml}
-
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <div class="inline-flex items-center gap-1 p-0.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12">
-        <button type="button" data-action="set-heatmap-scope" data-val="12m"
-          class="btn-tap px-2 py-1 rounded-lg text-[10.5px] font-bold ${uiState.heatmapScope === '12m' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
-          Últimos 12m
-        </button>
-        ${hm.availableYears.slice(0, 3).map((yr) => `
-          <button type="button" data-action="set-heatmap-scope" data-val="${yr}"
-            class="btn-tap px-2 py-1 rounded-lg text-[10.5px] font-bold tabular-nums ${uiState.heatmapScope === yr ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
-            ${yr}
+    <!-- Cuadrícula mensual espaciosa -->
+    <div class="grid grid-cols-7 gap-1.5">
+      ${mc.cells.map((c) => {
+        if (c.empty) return '<div class="h-10"></div>';
+        return `
+          <button type="button" data-action="select-heatmap-day" data-iso="${c.iso}"
+            class="btn-tap h-10 rounded-xl flex flex-col items-center justify-center tabular-nums leading-none ${dayBtnClass(c.count, c.iso === selDate, c.isToday)}">
+            <span class="text-xs font-bold">${c.day}</span>
+            ${c.count > 0 ? `<span class="text-[9px] font-extrabold opacity-85 mt-0.5">${c.count === 1 ? '•' : `×${c.count}`}</span>` : ''}
           </button>
-        `).join('')}
-      </div>
-      <div class="inline-flex items-center gap-1 text-[10px] text-inkMuted dark:text-white/50">
-        <span>Menos</span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-black/[0.06] dark:bg-white/[0.08]"></span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand/35"></span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand/65"></span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand"></span>
-        <span class="w-2.5 h-2.5 rounded-[2px] bg-goldBrand"></span>
-        <span>Más</span>
-      </div>
-    </div>
-
-    <div id="stats-heatmap-scroll" class="overflow-x-auto no-scrollbar pb-1">
-      <div class="inline-block min-w-max">
-        <div class="relative h-4 ml-5 mb-1 text-[9.5px] font-bold text-inkMuted dark:text-white/50">
-          ${spacedMonthMarkers.map((mk) => `<span class="absolute top-0" style="left:${mk.weekIdx * 14}px;">${esc(mk.label)}</span>`).join('')}
-        </div>
-        <div class="flex items-start gap-1.5">
-          <div class="grid grid-rows-7 gap-[3px] text-[9px] font-bold text-inkMuted/70 dark:text-white/40 pt-[1px] select-none w-3.5 text-right">
-            <span class="h-[11px] leading-[11px]">L</span>
-            <span class="h-[11px] leading-[11px]"></span>
-            <span class="h-[11px] leading-[11px]">X</span>
-            <span class="h-[11px] leading-[11px]"></span>
-            <span class="h-[11px] leading-[11px]">V</span>
-            <span class="h-[11px] leading-[11px]"></span>
-            <span class="h-[11px] leading-[11px]">D</span>
-          </div>
-          <div class="flex gap-[3px]">
-            ${hm.weeks.map((wk) => `
-              <div class="grid grid-rows-7 gap-[3px]">
-                ${wk.map((cell) => `
-                  <button type="button" data-action="select-heatmap-day" data-iso="${cell.iso}"
-                    title="${cell.iso}: ${cell.count} ${cell.count === 1 ? 'partida' : 'partidas'}"
-                    class="w-[11px] h-[11px] rounded-[2.5px] transition-transform hover:scale-125 ${hmCellClass(cell.count, cell.inTarget, cell.iso === selDate)}"></button>
-                `).join('')}
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      </div>
+        `;
+      }).join('')}
     </div>
 
     <!-- Detalle completo del día seleccionado (sin recortes) -->
     <div id="stats-heatmap-detail">
       ${buildSelectedDayDetailHtml(selDate, subset)}
     </div>
+
+    <!-- Leyenda compacta -->
+    <div class="flex items-center justify-end gap-1.5 text-[10px] text-inkMuted dark:text-white/50">
+      <span>Actividad:</span>
+      <span class="w-2.5 h-2.5 rounded-[2px] bg-black/[0.06] dark:bg-white/[0.08]"></span>
+      <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand/35"></span>
+      <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand/65"></span>
+      <span class="w-2.5 h-2.5 rounded-[2px] bg-emeraldBrand"></span>
+      <span class="w-2.5 h-2.5 rounded-[2px] bg-goldBrand"></span>
+      <span>Más</span>
+    </div>
   `;
 }
 
-function updateStatsHeatmapPartial({ preserveScroll = false } = {}) {
+function updateStatsHeatmapPartial() {
   const card = document.getElementById('stats-heatmap-card');
   if (!card) { renderStatsTab(); return; }
-  const prevScrollEl = document.getElementById('stats-heatmap-scroll');
-  const prevLeft = prevScrollEl ? prevScrollEl.scrollLeft : 0;
   card.innerHTML = buildHeatmapCardInnerHtml(getCurrentStatsSubset());
-  const nextScrollEl = document.getElementById('stats-heatmap-scroll');
-  if (nextScrollEl) {
-    nextScrollEl.scrollLeft = preserveScroll ? prevLeft : nextScrollEl.scrollWidth;
-  }
 }
 
 function selectHeatmapDayPartial(iso) {
   uiState.heatmapSelectedDate = iso || '';
-  updateStatsHeatmapPartial({ preserveScroll: true });
+  updateStatsHeatmapPartial();
 }
 
 function buildShelfDustInnerHtml() {
@@ -9768,7 +9725,7 @@ function renderStatsTab() {
       ? `Duelo: ${vsSummary.winsA}–${vsSummary.winsB}`
       : (vsSummary.coopShared > 0 ? `Equipo: ${vsSummary.coopSharedWins}/${vsSummary.coopShared}` : 'Sin duelos');
     const line2 = vsSummary.coopShared > 0 && vsSummary.sharedCompPlays > 0
-      ? `${vsSummary.sharedCompPlays} duelos · ${vsSummary.coopShared} coop`
+      ? `${vsSummary.sharedCompPlays} duelos · +${vsSummary.coopShared} coop`
       : (vsSummary.ties > 0
         ? `${vsSummary.ties} ${vsSummary.ties === 1 ? 'empate' : 'empates'}`
         : (vsSummary.topSharedGame ? `Top: ${vsSummary.topSharedGame}` : ''));
@@ -9921,8 +9878,7 @@ function renderStatsTab() {
     allowedKeys: pCtx.allowedKeys,
     vsNames: pCtx.mode === 'vs' ? [pCtx.playerA, pCtx.playerB] : null,
   });
-  const hmScroll = document.getElementById('stats-heatmap-scroll');
-  if (hmScroll) hmScroll.scrollLeft = hmScroll.scrollWidth;
+
 }
 
 function mountStatsCharts({ sortedGamesData, chronologicalScored, recentPointsGamesData = [], recentPointsLegendPlayers = [], leaderboard, extraChartConfig, allowedKeys = null, vsNames = null }) {
@@ -12179,34 +12135,23 @@ function bindGlobalEvents() {
         openRecapPngModal();
         break;
       }
-      case 'set-heatmap-view': {
-        uiState.heatmapView = el.dataset.val === 'year' ? 'year' : 'month';
-        updateStatsHeatmapPartial({ preserveScroll: false });
-        break;
-      }
       case 'step-heatmap-month': {
         const targetMonth = el.dataset.val || '';
         uiState.heatmapMonthKey = targetMonth;
         uiState.heatmapSelectedDate = targetMonth === todayISO().slice(0, 7) ? todayISO() : '';
-        updateStatsHeatmapPartial({ preserveScroll: false });
+        updateStatsHeatmapPartial();
         break;
       }
       case 'reset-heatmap-today': {
         const today = todayISO();
         uiState.heatmapMonthKey = today.slice(0, 7);
         uiState.heatmapSelectedDate = today;
-        updateStatsHeatmapPartial({ preserveScroll: false });
+        updateStatsHeatmapPartial();
         break;
       }
       case 'set-recent-points-mode': {
         uiState.statsRecentPointsMode = el.dataset.val === 'top' ? 'top' : 'recent';
         renderStatsTab();
-        break;
-      }
-      case 'set-heatmap-scope': {
-        uiState.heatmapScope = el.dataset.val || '12m';
-        uiState.heatmapSelectedDate = '';
-        updateStatsHeatmapPartial({ preserveScroll: false });
         break;
       }
       case 'select-heatmap-day': {
