@@ -757,7 +757,12 @@ let syncState = {
   catalogUpdatedAtMs: 0,
   catalogSyncedAtMs: 0,
   swStatus: 'checking', // 'checking' | 'active' | 'unsupported' | 'local_file' | 'error'
+  serverVersion: 0,
+  lastSwCheckAt: 0,
+  updateAvailable: false,
 };
+let swRegistrationRef = null;
+let swUpdateBannerDismissed = false;
 let catalogPushTimerId = null;
 
 function todayISO() {
@@ -1346,16 +1351,21 @@ function getGameRatingFor(g, profileKey = null) {
 }
 
 function setGameRatingFor(g, rating, profileKey = null) {
-  if (!g) return;
+  if (!g) return false;
   const key = normName(profileKey || getActiveShelfProfile().key) || DEFAULT_OWNER_KEY;
   if (!g.ratingsByPlayer || typeof g.ratingsByPlayer !== 'object') g.ratingsByPlayer = {};
+  if (!g.ratingUpdatedAtByPlayer || typeof g.ratingUpdatedAtByPlayer !== 'object') g.ratingUpdatedAtByPlayer = {};
+  const prev = getGameRatingFor(g, key);
   const norm = normalizeStarRating(rating);
+  if (prev === norm) return false;
   if (norm > 0) g.ratingsByPlayer[key] = norm;
   else delete g.ratingsByPlayer[key];
+  g.ratingUpdatedAtByPlayer[key] = Date.now();
   if (key === DEFAULT_OWNER_KEY) {
     if (norm > 0) g.rating = norm;
     else delete g.rating;
   }
+  return true;
 }
 
 function isGameFavoriteFor(g, profileKey = null) {
@@ -1369,12 +1379,120 @@ function isGameFavoriteFor(g, profileKey = null) {
 }
 
 function setGameFavoriteFor(g, isFav, profileKey = null) {
-  if (!g) return;
+  if (!g) return false;
   const key = normName(profileKey || getActiveShelfProfile().key) || DEFAULT_OWNER_KEY;
   if (!g.favoritesByPlayer || typeof g.favoritesByPlayer !== 'object') g.favoritesByPlayer = {};
-  if (isFav) g.favoritesByPlayer[key] = true;
+  if (!g.favoriteUpdatedAtByPlayer || typeof g.favoriteUpdatedAtByPlayer !== 'object') g.favoriteUpdatedAtByPlayer = {};
+  const prev = isGameFavoriteFor(g, key);
+  const next = Boolean(isFav);
+  if (prev === next) return false;
+  if (next) g.favoritesByPlayer[key] = true;
   else delete g.favoritesByPlayer[key];
-  if (key === DEFAULT_OWNER_KEY) g.favorite = Boolean(isFav);
+  g.favoriteUpdatedAtByPlayer[key] = Date.now();
+  if (key === DEFAULT_OWNER_KEY) g.favorite = next;
+  return true;
+}
+
+// Fusión determinista y segura por perfil entre dos copias del mismo juego (local vs remoto)
+function mergeSingleGameRecords(localG, remoteG, preferLocalOnTie = false) {
+  if (!localG) return JSON.parse(JSON.stringify(remoteG));
+  if (!remoteG) return JSON.parse(JSON.stringify(localG));
+
+  const loc = JSON.parse(JSON.stringify(localG));
+  const rem = JSON.parse(JSON.stringify(remoteG));
+  migrateGameRatingsToProfiles([loc, rem]);
+
+  const locMetaTs = Number(loc.metaUpdatedAt) || 0;
+  const remMetaTs = Number(rem.metaUpdatedAt) || 0;
+  const base = (locMetaTs > remMetaTs || (locMetaTs === remMetaTs && preferLocalOnTie)) ? loc : rem;
+  const merged = JSON.parse(JSON.stringify(base));
+
+  // Reglas: gana la edición más reciente
+  const locRulesTs = Number(loc.rulesUpdatedAt) || 0;
+  const remRulesTs = Number(rem.rulesUpdatedAt) || 0;
+  if (locRulesTs > remRulesTs) {
+    merged.rulesNotes = loc.rulesNotes;
+    merged.rulesUpdatedAt = locRulesTs;
+  } else if (remRulesTs > locRulesTs) {
+    merged.rulesNotes = rem.rulesNotes;
+    merged.rulesUpdatedAt = remRulesTs;
+  }
+
+  // Estrellas por persona: cada clave se resuelve de forma independiente por timestamp
+  const mergedRatings = {};
+  const mergedRatingTs = {};
+  const allRatingKeys = new Set([
+    ...Object.keys(loc.ratingsByPlayer || {}),
+    ...Object.keys(rem.ratingsByPlayer || {}),
+    ...Object.keys(loc.ratingUpdatedAtByPlayer || {}),
+    ...Object.keys(rem.ratingUpdatedAtByPlayer || {}),
+  ]);
+  let localWonAny = false;
+  allRatingKeys.forEach((rawK) => {
+    const k = normName(rawK);
+    if (!k) return;
+    const lTs = Number(loc.ratingUpdatedAtByPlayer?.[k]) || 0;
+    const rTs = Number(rem.ratingUpdatedAtByPlayer?.[k]) || 0;
+    const lVal = normalizeStarRating(loc.ratingsByPlayer?.[k]);
+    const rVal = normalizeStarRating(rem.ratingsByPlayer?.[k]);
+    let winVal = 0;
+    let winTs = 0;
+
+    if (lTs > rTs) {
+      winVal = lVal; winTs = lTs;
+      if (lVal !== rVal) localWonAny = true;
+    } else if (rTs > lTs) {
+      winVal = rVal; winTs = rTs;
+    } else {
+      // Sin timestamp (datos legados): nunca perder una nota existente
+      if (lVal > 0 && rVal === 0) { winVal = lVal; localWonAny = true; }
+      else if (rVal > 0 && lVal === 0) { winVal = rVal; }
+      else { winVal = preferLocalOnTie ? lVal : rVal; }
+    }
+    if (winVal > 0) mergedRatings[k] = winVal;
+    if (winTs > 0) mergedRatingTs[k] = winTs;
+  });
+
+  // Favoritos por persona: cada clave se resuelve de forma independiente por timestamp
+  const mergedFavs = {};
+  const mergedFavTs = {};
+  const allFavKeys = new Set([
+    ...Object.keys(loc.favoritesByPlayer || {}),
+    ...Object.keys(rem.favoritesByPlayer || {}),
+    ...Object.keys(loc.favoriteUpdatedAtByPlayer || {}),
+    ...Object.keys(rem.favoriteUpdatedAtByPlayer || {}),
+  ]);
+  allFavKeys.forEach((rawK) => {
+    const k = normName(rawK);
+    if (!k) return;
+    const lTs = Number(loc.favoriteUpdatedAtByPlayer?.[k]) || 0;
+    const rTs = Number(rem.favoriteUpdatedAtByPlayer?.[k]) || 0;
+    const lFav = Boolean(loc.favoritesByPlayer?.[k]);
+    const rFav = Boolean(rem.favoritesByPlayer?.[k]);
+    let winFav = false;
+    let winTs = 0;
+
+    if (lTs > rTs) {
+      winFav = lFav; winTs = lTs;
+      if (lFav !== rFav) localWonAny = true;
+    } else if (rTs > lTs) {
+      winFav = rFav; winTs = rTs;
+    } else {
+      // Sin timestamp (datos legados): conservar si cualquiera lo tenía marcado
+      winFav = lFav || rFav;
+      if (lFav && !rFav) localWonAny = true;
+    }
+    if (winFav) mergedFavs[k] = true;
+    if (winTs > 0) mergedFavTs[k] = winTs;
+  });
+
+  merged.ratingsByPlayer = mergedRatings;
+  merged.ratingUpdatedAtByPlayer = mergedRatingTs;
+  merged.favoritesByPlayer = mergedFavs;
+  merged.favoriteUpdatedAtByPlayer = mergedFavTs;
+  merged.metaUpdatedAt = Math.max(locMetaTs, remMetaTs);
+  migrateGameRatingsToProfiles([merged]);
+  return { game: merged, localWonAny };
 }
 
 function getShelfProfileCandidates() {
@@ -1999,19 +2117,30 @@ function renameOrMergePlayer(oldName, newName) {
   });
   if (draftChanged) saveDraftLocal();
 
-  // Migra valoraciones y favoritos de Ludoteca al nuevo perfil
+  // Migra valoraciones, favoritos y marcas de tiempo de Ludoteca al nuevo perfil
   let gamesProfileMoved = false;
+  const moveNow = Date.now();
   games.forEach((g) => {
     if (g.ratingsByPlayer && g.ratingsByPlayer[oldKey] !== undefined) {
+      if (!g.ratingUpdatedAtByPlayer) g.ratingUpdatedAtByPlayer = {};
       if (g.ratingsByPlayer[newKey] === undefined) {
         g.ratingsByPlayer[newKey] = g.ratingsByPlayer[oldKey];
+        g.ratingUpdatedAtByPlayer[newKey] = moveNow;
       }
-      if (oldKey !== newKey) delete g.ratingsByPlayer[oldKey];
+      if (oldKey !== newKey) {
+        delete g.ratingsByPlayer[oldKey];
+        g.ratingUpdatedAtByPlayer[oldKey] = moveNow;
+      }
       gamesProfileMoved = true;
     }
     if (g.favoritesByPlayer && g.favoritesByPlayer[oldKey]) {
+      if (!g.favoriteUpdatedAtByPlayer) g.favoriteUpdatedAtByPlayer = {};
       g.favoritesByPlayer[newKey] = true;
-      if (oldKey !== newKey) delete g.favoritesByPlayer[oldKey];
+      g.favoriteUpdatedAtByPlayer[newKey] = moveNow;
+      if (oldKey !== newKey) {
+        delete g.favoritesByPlayer[oldKey];
+        g.favoriteUpdatedAtByPlayer[oldKey] = moveNow;
+      }
       gamesProfileMoved = true;
     }
   });
@@ -2223,6 +2352,7 @@ function openPlayerProfilesModal() {
                 name: finalName,
                 color: tempColor || getPlayerColor(finalName),
                 initials: finalInitials,
+                updatedAtMs: Date.now(),
               };
               savePlayerProfilesLocal();
               rebuildFrequentPlayersFromHistory();
@@ -2345,6 +2475,7 @@ function openPlayerProfilesModal() {
           name: val,
           color: getPlayerColor(val),
           initials: computeDefaultInitials(val),
+          updatedAtMs: Date.now(),
         };
         savePlayerProfilesLocal();
       }
@@ -2804,7 +2935,7 @@ async function flushOfflineQueue() {
   return { uploaded, deleted, remaining: getPendingSyncCount() };
 }
 
-function mergeRemoteCatalog(remoteCat) {
+function mergeRemoteCatalog(remoteCat, { markDirtyIfLocalAhead = true } = {}) {
   if (!remoteCat || typeof remoteCat !== 'object') return false;
   syncState.catalogSupported = true;
   const remoteUpdatedAt = Number(remoteCat.updatedAtMs) || 0;
@@ -2812,76 +2943,92 @@ function mergeRemoteCatalog(remoteCat) {
   const remoteGames = Array.isArray(remoteCat.games) ? remoteCat.games : [];
   migrateGameRatingsToProfiles(remoteGames);
 
-  const hasAnyRatingInList = (arr) => arr.some((g) =>
-    normalizeStarRating(g?.rating) > 0
-    || Object.values(g?.ratingsByPlayer || {}).some((v) => normalizeStarRating(v) > 0)
-  );
-  const localHasRatings = hasAnyRatingInList(games);
-  const remoteHasRatings = hasAnyRatingInList(remoteGames);
-
-  // Si el catálogo local tiene cambios pendientes más recientes, rescata posibles valoraciones
-  // que solo existieran en Sheets antes de subir el catálogo local (nunca las borra por accidente).
-  if (syncState.catalogDirty && syncState.catalogUpdatedAtMs > remoteUpdatedAt) {
-    if (remoteHasRatings && !localHasRatings) {
-      remoteGames.forEach((rg) => {
-        if (!rg || !rg.id) return;
-        const loc = localById.get(rg.id);
-        if (!loc) return;
-        loc.ratingsByPlayer = { ...(rg.ratingsByPlayer || {}), ...(loc.ratingsByPlayer || {}) };
-        loc.favoritesByPlayer = { ...(rg.favoritesByPlayer || {}), ...(loc.favoritesByPlayer || {}) };
-      });
-      migrateGameRatingsToProfiles(games);
-      saveGamesLocal(false);
-    }
-    return false;
-  }
-
+  const localIsDirty = Boolean(syncState.catalogDirty);
   let changed = false;
+  let needsRePush = localIsDirty;
 
-  if (Array.isArray(remoteCat.deletedGameIds)) {
-    deletedGameIds = [...new Set(remoteCat.deletedGameIds.map(String))];
-    saveDeletedGamesLocal(false);
-    changed = true;
+  // Fusiona juegos borrados (si local tiene borrados nuevos pendientes, se combinan)
+  const remoteDeleted = Array.isArray(remoteCat.deletedGameIds) ? remoteCat.deletedGameIds.map(String) : [];
+  if (remoteDeleted.length > 0 || !localIsDirty) {
+    const mergedDeleted = localIsDirty
+      ? [...new Set([...deletedGameIds, ...remoteDeleted])]
+      : [...new Set(remoteDeleted)];
+    if (JSON.stringify(mergedDeleted) !== JSON.stringify(deletedGameIds)) {
+      deletedGameIds = mergedDeleted;
+      saveDeletedGamesLocal(false);
+      changed = true;
+    }
   }
 
   if (remoteGames.length > 0) {
     const mergedMap = new Map();
-    const protectLocalRatings = localHasRatings && !remoteHasRatings;
-    let needsRePush = protectLocalRatings;
+    const deletedSet = new Set(deletedGameIds);
 
     remoteGames.forEach((rg) => {
-      if (!rg || !rg.id) return;
+      if (!rg || !rg.id || deletedSet.has(rg.id)) return;
       const loc = localById.get(rg.id);
-      if (protectLocalRatings && loc) {
-        rg.ratingsByPlayer = { ...(loc.ratingsByPlayer || {}), ...(rg.ratingsByPlayer || {}) };
-        rg.favoritesByPlayer = { ...(loc.favoritesByPlayer || {}), ...(rg.favoritesByPlayer || {}) };
+      if (loc) {
+        const res = mergeSingleGameRecords(loc, rg, localIsDirty);
+        mergedMap.set(rg.id, res.game);
+        if (res.localWonAny && markDirtyIfLocalAhead) needsRePush = true;
+      } else {
+        mergedMap.set(rg.id, rg);
       }
-      mergedMap.set(rg.id, rg);
     });
-    // Conserva juegos de catálogo base si no fueron explícitamente borrados ni estaban en remoto
+
+    // Conserva juegos personalizados creados localmente en este móvil que aún no estén en Sheets
+    if (localIsDirty) {
+      games.forEach((loc) => {
+        if (loc && loc.id && !mergedMap.has(loc.id) && !deletedSet.has(loc.id)) {
+          mergedMap.set(loc.id, loc);
+          needsRePush = true;
+        }
+      });
+    }
+
+    // Conserva juegos del catálogo base si no fueron explícitamente borrados
     DEFAULT_GAMES.forEach((def) => {
-      if (!mergedMap.has(def.id) && !deletedGameIds.includes(def.id)) {
+      if (!mergedMap.has(def.id) && !deletedSet.has(def.id)) {
         const loc = localById.get(def.id);
         const copy = loc ? JSON.parse(JSON.stringify(loc)) : JSON.parse(JSON.stringify(def));
         if (!copy.rulesNotes && DEFAULT_RULES_NOTES[def.id]) copy.rulesNotes = DEFAULT_RULES_NOTES[def.id];
         mergedMap.set(def.id, copy);
       }
     });
+
     games = Array.from(mergedMap.values());
     migrateGameRatingsToProfiles(games);
     const remotePaletteMigrated = migrateGamePaletteColors(games);
-    if (remotePaletteMigrated) needsRePush = true;
-    saveGamesLocal(needsRePush);
+    if (remotePaletteMigrated && markDirtyIfLocalAhead) needsRePush = true;
+    saveGamesLocal(false);
     changed = true;
   }
 
+  // Fusiona perfiles de jugadores por clave respetando el más reciente
   if (remoteCat.playerProfiles && typeof remoteCat.playerProfiles === 'object' && !Array.isArray(remoteCat.playerProfiles)) {
-    playerProfiles = { ...playerProfiles, ...remoteCat.playerProfiles };
+    const nextProfiles = { ...playerProfiles };
+    Object.entries(remoteCat.playerProfiles).forEach(([rawK, rp]) => {
+      const k = normName(rawK);
+      if (!k || !rp) return;
+      const lp = nextProfiles[k];
+      const lTs = Number(lp?.updatedAtMs) || 0;
+      const rTs = Number(rp?.updatedAtMs) || 0;
+      if (!lp || rTs >= lTs) {
+        nextProfiles[k] = { ...lp, ...rp };
+      } else if (markDirtyIfLocalAhead) {
+        needsRePush = true;
+      }
+    });
+    playerProfiles = nextProfiles;
     savePlayerProfilesLocal(false);
     changed = true;
   }
 
-  if (remoteUpdatedAt > 0 && !syncState.catalogDirty) {
+  if (needsRePush && markDirtyIfLocalAhead) {
+    syncState.catalogDirty = true;
+    syncState.catalogUpdatedAtMs = Math.max(syncState.catalogUpdatedAtMs || 0, remoteUpdatedAt, Date.now());
+    saveCatalogMetaLocal();
+  } else if (remoteUpdatedAt > 0 && !syncState.catalogDirty) {
     syncState.catalogUpdatedAtMs = remoteUpdatedAt;
     syncState.catalogSyncedAtMs = Date.now();
     syncState.catalogDirty = false;
@@ -2890,12 +3037,26 @@ function mergeRemoteCatalog(remoteCat) {
   return changed;
 }
 
-async function pushCatalogToSheets({ silent = false } = {}) {
+let catalogPushInFlight = false;
+async function pushCatalogToSheets({ silent = false, skipPreMerge = false } = {}) {
   const url = syncState.apiUrl || getSavedSheetsUrl();
   const pin = syncState.pin || getSavedPin();
-  if (!url) return false;
+  if (!url || catalogPushInFlight) return false;
 
+  catalogPushInFlight = true;
   try {
+    // Si el Apps Script aún es v2.0 (sin fusión atómica en servidor), descarga y fusiona por perfil antes de subir
+    if (!skipPreMerge && syncState.serverVersion > 0 && syncState.serverVersion < 2.1) {
+      try {
+        const sep = url.includes('?') ? '&' : '?';
+        const pinParam = pin ? `&pin=${encodeURIComponent(pin)}` : '';
+        const latest = await fetchSheetsJson(`${url}${sep}t=${Date.now()}${pinParam}`);
+        if (latest && latest.catalog) {
+          mergeRemoteCatalog(latest.catalog, { markDirtyIfLocalAhead: false });
+        }
+      } catch (e) {}
+    }
+
     const payload = {
       action: 'saveCatalog',
       pin: pin || '',
@@ -2913,34 +3074,43 @@ async function pushCatalogToSheets({ silent = false } = {}) {
     });
     if (res && res.catalogSaved) {
       syncState.catalogSupported = true;
+      if (res.version) syncState.serverVersion = Number(res.version) || syncState.serverVersion;
       syncState.catalogDirty = false;
       syncState.catalogSyncedAtMs = Date.now();
       if (res.updatedAtMs) syncState.catalogUpdatedAtMs = Number(res.updatedAtMs);
+      // Si Apps Script v2.1 devolvió el catálogo ya fusionado atómicamente, actualizamos local al instante
+      if (res.catalog) {
+        mergeRemoteCatalog(res.catalog, { markDirtyIfLocalAhead: false });
+        if (uiState.activeTab === 'shelf' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+          renderShelfTab();
+        }
+      }
       saveCatalogMetaLocal();
       if (!silent) showToast('Catálogo y perfiles sincronizados con Sheets', 'success');
       return true;
     } else {
-      // Apps Script v1 antiguo ignoró la acción sin fallar
       syncState.catalogSupported = false;
-      if (!silent) showToast('Actualiza tu Apps Script a v2 para sincronizar el catálogo', 'neutral');
+      if (!silent) showToast('Actualiza tu Apps Script a v2.1 para sincronizar el catálogo', 'neutral');
       return false;
     }
   } catch (err) {
     const msg = String(err?.message || '').toLowerCase();
     if (msg.includes('acción') || msg.includes('action') || msg.includes('no soportada') || msg.includes('desconocida')) {
       syncState.catalogSupported = false;
-      if (!silent) showToast('Actualiza tu Apps Script a v2 para sincronizar el catálogo', 'neutral');
+      if (!silent) showToast('Actualiza tu Apps Script a v2.1 para sincronizar el catálogo', 'neutral');
       return false;
     }
     if (!silent) showToast('No se pudo subir el catálogo a Sheets', 'danger');
     return false;
+  } finally {
+    catalogPushInFlight = false;
   }
 }
 
 function getAppsScriptV2Template() {
   const currentPin = syncState.pin || getSavedPin() || '';
   return `// =========================================================================
-// LUDOTECA — GOOGLE APPS SCRIPT v2 (PARTIDAS + ESTADÍSTICAS + CATÁLOGO + PERFILES)
+// LUDOTECA — GOOGLE APPS SCRIPT v2.1 (FUSIÓN SEGURA MULTI-MÓVIL POR PERFIL)
 // =========================================================================
 const SECRET_PIN = "${currentPin.replace(/"/g, '\\"')}";
 const SHEET_MATCHES = "Partidas";
@@ -3081,7 +3251,7 @@ function doGet(e) {
       });
     }
 
-    return jsonOut({ ok: true, version: 2, rows: rows, catalog: readCatalog(ss) });
+    return jsonOut({ ok: true, version: 2.1, rows: rows, catalog: readCatalog(ss) });
   } catch (err) {
     return jsonOut({ ok: false, error: "Error leyendo Sheets: " + (err && err.message ? err.message : String(err)) });
   }
@@ -3107,13 +3277,87 @@ function doPost(e) {
       const cat = body.catalog || {};
       const gamesSh = ensureSheet(ss, SHEET_GAMES, GAME_HEADERS);
       const playersSh = ensureSheet(ss, SHEET_PLAYERS, PLAYER_HEADERS);
+      const existing = readCatalog(ss);
+
+      // Fusión segura en servidor por perfil (Sebas, Raquel, etc.) bajo LockService
+      const existingById = {};
+      (existing.games || []).forEach(function(eg) { if (eg && eg.id) existingById[eg.id] = eg; });
+
+      const mergePerProfile = function(srvG, incG) {
+        if (!srvG) return incG;
+        var out = JSON.parse(JSON.stringify((Number(incG.metaUpdatedAt) || 0) >= (Number(srvG.metaUpdatedAt) || 0) ? incG : srvG));
+        var sRTs = Number(srvG.rulesUpdatedAt) || 0;
+        var iRTs = Number(incG.rulesUpdatedAt) || 0;
+        if (sRTs > iRTs) { out.rulesNotes = srvG.rulesNotes; out.rulesUpdatedAt = sRTs; }
+        else if (iRTs > sRTs) { out.rulesNotes = incG.rulesNotes; out.rulesUpdatedAt = iRTs; }
+
+        var mRat = {}, mRatTs = {};
+        var rKeys = {};
+        [srvG.ratingsByPlayer, incG.ratingsByPlayer, srvG.ratingUpdatedAtByPlayer, incG.ratingUpdatedAtByPlayer].forEach(function(o) {
+          if (o && typeof o === "object") Object.keys(o).forEach(function(k) { rKeys[String(k).toLowerCase()] = true; });
+        });
+        Object.keys(rKeys).forEach(function(k) {
+          var sTs = Number(srvG.ratingUpdatedAtByPlayer && srvG.ratingUpdatedAtByPlayer[k]) || 0;
+          var iTs = Number(incG.ratingUpdatedAtByPlayer && incG.ratingUpdatedAtByPlayer[k]) || 0;
+          var sV = Number(srvG.ratingsByPlayer && srvG.ratingsByPlayer[k]) || 0;
+          var iV = Number(incG.ratingsByPlayer && incG.ratingsByPlayer[k]) || 0;
+          var wV = 0, wTs = 0;
+          if (iTs > sTs) { wV = iV; wTs = iTs; }
+          else if (sTs > iTs) { wV = sV; wTs = sTs; }
+          else { wV = iV || sV; }
+          if (wV > 0) mRat[k] = wV;
+          if (wTs > 0) mRatTs[k] = wTs;
+        });
+
+        var mFav = {}, mFavTs = {};
+        var fKeys = {};
+        [srvG.favoritesByPlayer, incG.favoritesByPlayer, srvG.favoriteUpdatedAtByPlayer, incG.favoriteUpdatedAtByPlayer].forEach(function(o) {
+          if (o && typeof o === "object") Object.keys(o).forEach(function(k) { fKeys[String(k).toLowerCase()] = true; });
+        });
+        Object.keys(fKeys).forEach(function(k) {
+          var sTs = Number(srvG.favoriteUpdatedAtByPlayer && srvG.favoriteUpdatedAtByPlayer[k]) || 0;
+          var iTs = Number(incG.favoriteUpdatedAtByPlayer && incG.favoriteUpdatedAtByPlayer[k]) || 0;
+          var sF = Boolean(srvG.favoritesByPlayer && srvG.favoritesByPlayer[k]);
+          var iF = Boolean(incG.favoritesByPlayer && incG.favoritesByPlayer[k]);
+          var wF = false, wTs = 0;
+          if (iTs > sTs) { wF = iF; wTs = iTs; }
+          else if (sTs > iTs) { wF = sF; wTs = sTs; }
+          else { wF = iF || sF; }
+          if (wF) mFav[k] = true;
+          if (wTs > 0) mFavTs[k] = wTs;
+        });
+
+        out.ratingsByPlayer = mRat;
+        out.ratingUpdatedAtByPlayer = mRatTs;
+        out.favoritesByPlayer = mFav;
+        out.favoriteUpdatedAtByPlayer = mFavTs;
+        if (mRat.sebas > 0) out.rating = mRat.sebas; else delete out.rating;
+        out.favorite = Boolean(mFav.sebas);
+        return out;
+      };
+
+      const deletedList = Array.isArray(cat.deletedGameIds) ? cat.deletedGameIds.map(String) : [];
+      const deletedMap = {};
+      deletedList.forEach(function(id) { deletedMap[id] = true; });
+
+      const mergedGames = [];
+      const seenIds = {};
+      (Array.isArray(cat.games) ? cat.games : []).forEach(function(ig) {
+        if (!ig || !ig.id || deletedMap[ig.id]) return;
+        seenIds[ig.id] = true;
+        mergedGames.push(mergePerProfile(existingById[ig.id], ig));
+      });
+      (existing.games || []).forEach(function(eg) {
+        if (eg && eg.id && !seenIds[eg.id] && !deletedMap[eg.id]) {
+          mergedGames.push(eg);
+        }
+      });
 
       if (gamesSh.getLastRow() > 1) {
         gamesSh.getRange(2, 1, gamesSh.getLastRow() - 1, GAME_HEADERS.length).clearContent();
       }
-      const gList = Array.isArray(cat.games) ? cat.games : [];
-      if (gList.length > 0) {
-        const gRows = gList.map(function(g) {
+      if (mergedGames.length > 0) {
+        const gRows = mergedGames.map(function(g) {
           return [
             g.id || "", g.name || "", g.color || "", g.color2 || "", g.icon || "dice",
             g.scoringType || "points", g.minPlayers || 1, g.maxPlayers || 6, g.defaultDuration || 30,
@@ -3124,12 +3368,24 @@ function doPost(e) {
         gamesSh.getRange(2, 1, gRows.length, GAME_HEADERS.length).setValues(gRows);
       }
 
+      const mergedProfiles = {};
+      var srvP = existing.playerProfiles || {};
+      var incP = cat.playerProfiles || {};
+      Object.keys(srvP).forEach(function(k) { mergedProfiles[k.toLowerCase()] = srvP[k]; });
+      Object.keys(incP).forEach(function(k) {
+        var lk = k.toLowerCase();
+        var prev = mergedProfiles[lk];
+        var next = incP[k];
+        if (!prev || (Number(next && next.updatedAtMs) || 0) >= (Number(prev && prev.updatedAtMs) || 0)) {
+          mergedProfiles[lk] = next;
+        }
+      });
+
       if (playersSh.getLastRow() > 1) {
         playersSh.getRange(2, 1, playersSh.getLastRow() - 1, PLAYER_HEADERS.length).clearContent();
       }
-      const pObj = cat.playerProfiles || {};
-      const pRows = Object.keys(pObj).map(function(k) {
-        var p = pObj[k] || {};
+      const pRows = Object.keys(mergedProfiles).map(function(k) {
+        var p = mergedProfiles[k] || {};
         return [k, p.name || k, p.color || "#227554", p.initials || ""];
       });
       if (pRows.length > 0) {
@@ -3137,11 +3393,17 @@ function doPost(e) {
       }
 
       const props = PropertiesService.getScriptProperties();
-      const ts = Number(cat.updatedAtMs) || Date.now();
-      props.setProperty("LUDOTECA_DELETED_GAMES", JSON.stringify(Array.isArray(cat.deletedGameIds) ? cat.deletedGameIds : []));
+      const ts = Math.max(Number(existing.updatedAtMs) || 0, Number(cat.updatedAtMs) || 0, Date.now());
+      props.setProperty("LUDOTECA_DELETED_GAMES", JSON.stringify(deletedList));
       props.setProperty("LUDOTECA_CATALOG_UPDATED_MS", String(ts));
 
-      return jsonOut({ ok: true, catalogSaved: true, updatedAtMs: ts });
+      return jsonOut({
+        ok: true,
+        version: 2.1,
+        catalogSaved: true,
+        updatedAtMs: ts,
+        catalog: { games: mergedGames, deletedGameIds: deletedList, playerProfiles: mergedProfiles, updatedAtMs: ts }
+      });
     }
 
     const sh = ensureSheet(ss, SHEET_MATCHES, MATCH_HEADERS);
@@ -3230,8 +3492,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v15 (PWA estática sin Tailwind CDN)
-const CACHE_NAME = 'ludoteca-offline-v15';
+  return `// Ludoteca — Service Worker Offline v16 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v16';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -3247,24 +3509,30 @@ const PRECACHE_URLS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
-const cache = await caches.open(CACHE_NAME);
-await Promise.allSettled(
-  PRECACHE_URLS.map((url) =>
-    fetch(url, { mode: url.startsWith('http') ? 'no-cors' : 'same-origin' })
-      .then((res) => cache.put(url, res))
-      .catch(() => {})
-  )
-);
-await self.skipWaiting();
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.allSettled(
+      PRECACHE_URLS.map((url) =>
+        fetch(url, { mode: url.startsWith('http') ? 'no-cors' : 'same-origin', cache: 'no-cache' })
+          .then((res) => cache.put(url, res))
+          .catch(() => {})
+      )
+    );
+    await self.skipWaiting();
   })());
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-const keys = await caches.keys();
-await Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)));
-await self.clients.claim();
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)));
+    await self.clients.claim();
   })());
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
@@ -3274,40 +3542,114 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   // Nunca cachear las llamadas en vivo a Google Apps Script
   if (url.hostname.includes('script.google.com') || url.hostname.includes('script.googleusercontent.com')) {
-return;
+    return;
   }
 
-  // Navegación HTML: Network-First con respaldo offline instantáneo
-  if (req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
-event.respondWith((async () => {
-  try {
-    const fresh = await fetch(req);
-    const cache = await caches.open(CACHE_NAME);
-    cache.put(req, fresh.clone());
-    return fresh;
-  } catch (err) {
-    const cached = await caches.match(req) || await caches.match('./index.html') || await caches.match('./');
-    return cached || new Response('Sin conexión y sin caché local todavía.', { status: 503 });
-  }
-})());
-return;
+  const isSameOrigin = url.origin === self.location.origin;
+  const isAppShellFile = isSameOrigin && (
+    req.mode === 'navigate'
+    || url.pathname.endsWith('/')
+    || url.pathname.endsWith('.html')
+    || url.pathname.endsWith('.js')
+    || url.pathname.endsWith('.css')
+    || url.pathname.endsWith('manifest.json')
+  );
+
+  // Archivos de la app (HTML, JS, CSS): Network-First para recibir cambios de GitHub al instante con respaldo offline
+  if (isAppShellFile) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const fresh = await fetch(req, { cache: 'no-cache' });
+        if (fresh && fresh.status === 200) {
+          cache.put(req, fresh.clone());
+        }
+        return fresh;
+      } catch (err) {
+        const cached = await cache.match(req)
+          || (req.mode === 'navigate' ? (await cache.match('./index.html') || await cache.match('./')) : null);
+        return cached || new Response('Sin conexión y sin caché local todavía.', { status: 503 });
+      }
+    })());
+    return;
   }
 
-  // Librerías CDN, fuentes y recursos estáticos: Cache-First + actualización en segundo plano
+  // Librerías CDN, fuentes e iconos: Cache-First + actualización en segundo plano
   event.respondWith((async () => {
-const cache = await caches.open(CACHE_NAME);
-const cached = await cache.match(req, { ignoreSearch: false });
-const fetchPromise = fetch(req).then((res) => {
-  if (res && (res.status === 200 || res.type === 'opaque')) {
-    cache.put(req, res.clone());
-  }
-  return res;
-}).catch(() => null);
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(req, { ignoreSearch: false });
+    const fetchPromise = fetch(req).then((res) => {
+      if (res && (res.status === 200 || res.type === 'opaque')) {
+        cache.put(req, res.clone());
+      }
+      return res;
+    }).catch(() => null);
 
-return cached || (await fetchPromise) || new Response('', { status: 504 });
+    return cached || (await fetchPromise) || new Response('', { status: 504 });
   })());
 });
 `;
+}
+
+function showUpdateAvailableBanner() {
+  syncState.updateAvailable = true;
+  if (swUpdateBannerDismissed) return;
+  if (document.getElementById('pwa-update-banner')) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'pwa-update-banner';
+  banner.className = 'fixed top-20 left-1/2 -translate-x-1/2 z-[60] w-full max-w-md px-3 anim-in';
+  banner.innerHTML = `
+    <div class="p-3 rounded-2xl toast-milestone flex items-center justify-between gap-2.5 shadow-elevated">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="w-2 h-2 rounded-full bg-amber-300 animate-pulse shrink-0"></span>
+        <div class="min-w-0">
+          <div class="text-xs font-extrabold text-white leading-tight">Nueva versión disponible</div>
+          <div class="text-[10.5px] text-amber-100 truncate">Actualiza para aplicar los últimos cambios</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button type="button" id="btn-apply-pwa-update"
+          class="btn-tap px-3 py-1.5 rounded-xl bg-amber-400 text-[#142620] text-xs font-extrabold shadow-xs">
+          Actualizar
+        </button>
+        <button type="button" id="btn-dismiss-pwa-update"
+          class="btn-tap w-7 h-7 rounded-xl bg-white/15 text-white text-xs font-bold flex items-center justify-center" aria-label="Cerrar aviso">
+          ✕
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(banner);
+
+  document.getElementById('btn-apply-pwa-update')?.addEventListener('click', () => {
+    if (swRegistrationRef && swRegistrationRef.waiting) {
+      swRegistrationRef.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+    window.location.reload();
+  });
+  document.getElementById('btn-dismiss-pwa-update')?.addEventListener('click', () => {
+    swUpdateBannerDismissed = true;
+    banner.remove();
+  });
+}
+
+function checkSwUpdateThrottled(force = false) {
+  if (!swRegistrationRef || typeof swRegistrationRef.update !== 'function') return Promise.resolve(false);
+  if (navigator.onLine === false) return Promise.resolve(false);
+  const now = Date.now();
+  if (!force && now - (syncState.lastSwCheckAt || 0) < 60000) return Promise.resolve(false);
+  syncState.lastSwCheckAt = now;
+  return swRegistrationRef.update()
+    .then(() => {
+      if (swRegistrationRef.waiting) {
+        swUpdateBannerDismissed = false;
+        showUpdateAvailableBanner();
+        return true;
+      }
+      return Boolean(syncState.updateAvailable);
+    })
+    .catch(() => false);
 }
 
 function registerOfflineServiceWorker() {
@@ -3319,10 +3661,36 @@ function registerOfflineServiceWorker() {
     syncState.swStatus = 'local_file';
     return;
   }
-  navigator.serviceWorker.register('./sw.js', { scope: './' })
+
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController) {
+      swUpdateBannerDismissed = false;
+      showUpdateAvailableBanner();
+    }
+  });
+
+  navigator.serviceWorker.register('./sw.js', { scope: './', updateViaCache: 'none' })
     .then((reg) => {
+      swRegistrationRef = reg;
       syncState.swStatus = 'active';
-      if (reg && reg.update) {
+      syncState.lastSwCheckAt = Date.now();
+
+      if (reg.waiting && hadController) {
+        showUpdateAvailableBanner();
+      }
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            swUpdateBannerDismissed = false;
+            showUpdateAvailableBanner();
+          }
+        });
+      });
+
+      if (reg.update) {
         try { reg.update(); } catch (e) {}
       }
     })
@@ -3343,7 +3711,7 @@ function openAppsScriptV2Modal() {
     </div>
   `;
   openModal({
-    title: 'Google Apps Script v2',
+    title: 'Google Apps Script v2.1',
     subtitle: 'Sincroniza partidas, catálogo de juegos, reglas y perfiles',
     bodyHtml,
     actions: [
@@ -3394,14 +3762,16 @@ async function syncFromSheets({ silent = false } = {}) {
     const data = await fetchSheetsJson(`${url}${sep}t=${Date.now()}${pinParam}`);
     const rows = Array.isArray(data.rows) ? data.rows : (Array.isArray(data) ? data : []);
 
+    if (data && data.version) {
+      syncState.serverVersion = Number(data.version) || syncState.serverVersion;
+    }
+
     if (data && data.catalog) {
       const remoteHadGames = Array.isArray(data.catalog.games) && data.catalog.games.length > 0;
       mergeRemoteCatalog(data.catalog);
-      // Si es la primera vez con Apps Script v2 y la pestaña Ludoteca_Juegos aún está vacía, sube tu catálogo actual
-      if (!remoteHadGames) {
-        await pushCatalogToSheets({ silent: true });
-      } else if (syncState.catalogDirty) {
-        await pushCatalogToSheets({ silent: true });
+      // Si es la primera vez con Apps Script v2 o el merge dejó cambios locales más recientes, sube ya fusionado
+      if (!remoteHadGames || syncState.catalogDirty) {
+        await pushCatalogToSheets({ silent: true, skipPreMerge: true });
       }
     } else if (data && !Array.isArray(data) && data.version === undefined) {
       syncState.catalogSupported = false;
@@ -3425,7 +3795,11 @@ async function syncFromSheets({ silent = false } = {}) {
 
     renderSyncBadge();
     updateNavBadge();
-    renderActiveTab();
+    const isTypingNow = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName);
+    const modalOpenNow = !document.getElementById('modal-backdrop')?.classList.contains('hidden');
+    if (!(silent && (isTypingNow || modalOpenNow))) {
+      renderActiveTab();
+    }
 
     if (flushStats.uploaded > 0 || flushStats.deleted > 0) {
       const parts = [];
@@ -3442,6 +3816,17 @@ async function syncFromSheets({ silent = false } = {}) {
     if (!silent) showToast('Sin conexión · cambios protegidos en cola local', 'danger');
     return false;
   }
+}
+
+
+function triggerBackgroundSync(minIntervalMs = 20000) {
+  if (!getSavedSheetsUrl()) return;
+  if (navigator.onLine === false) return;
+  if (syncState.isLoading || syncState.isSaving) return;
+  const hasPending = getPendingSyncCount() > 0 || syncState.catalogDirty;
+  const elapsed = Date.now() - (syncState.lastSyncedAt || 0);
+  if (!hasPending && syncState.lastSyncedAt && elapsed < minIntervalMs) return;
+  syncFromSheets({ silent: true });
 }
 
 function renderSyncBadge() {
@@ -3531,7 +3916,7 @@ function openSyncSettingsModal() {
             </div>
           </div>
           <button type="button" id="btn-open-as-v2" class="btn-tap shrink-0 px-2.5 py-1.5 rounded-xl bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-300 text-[11px] font-extrabold">
-            Apps Script v2
+            Apps Script v2.1
           </button>
         </div>
         ${syncState.connected ? `
@@ -3553,9 +3938,14 @@ function openSyncSettingsModal() {
                   : 'Sube sw.js junto a index.html en tu repo para activar caché offline total'}
             </div>
           </div>
-          <button type="button" id="btn-download-sw" class="btn-tap shrink-0 px-2.5 py-1.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.08] dark:border-white/15 text-[11px] font-bold text-ink dark:text-white">
-            sw.js
-          </button>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" id="btn-check-pwa-update" class="btn-tap px-2.5 py-1.5 rounded-xl bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-300 text-[11px] font-extrabold">
+              Buscar versión
+            </button>
+            <button type="button" id="btn-download-sw" class="btn-tap px-2.5 py-1.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.08] dark:border-white/15 text-[11px] font-bold text-ink dark:text-white">
+              sw.js
+            </button>
+          </div>
         </div>
       </div>
 
@@ -3643,6 +4033,16 @@ function openSyncSettingsModal() {
       pushCatBtn.addEventListener('click', async () => {
         showToast('Subiendo catálogo y perfiles...', 'neutral');
         await pushCatalogToSheets({ silent: false });
+      });
+    }
+    const chkUpdBtn = document.getElementById('btn-check-pwa-update');
+    if (chkUpdBtn) {
+      chkUpdBtn.addEventListener('click', async () => {
+        showToast('Comprobando GitHub Pages...', 'neutral');
+        const found = await checkSwUpdateThrottled(true);
+        if (!found) {
+          showToast('Ya tienes la última versión instalada', 'success');
+        }
       });
     }
     const swBtn = document.getElementById('btn-download-sw');
@@ -11295,7 +11695,11 @@ function openGameSheetModal(gameId) {
               setGameRatingFor(g, draftRatings[c.key] || 0, c.key);
               setGameFavoriteFor(g, Boolean(draftFavs[c.key]), c.key);
             });
-            g.rulesNotes = tempNotes.trim();
+            const nextNotes = tempNotes.trim();
+            if (nextNotes !== String(g.rulesNotes || '').trim()) {
+              g.rulesNotes = nextNotes;
+              g.rulesUpdatedAt = Date.now();
+            }
             setActiveShelfProfile(activeKey);
             saveGamesLocal();
             renderActiveTab();
@@ -12081,7 +12485,11 @@ function openGameModal(existingGame = null) {
                 target.defaultDuration = defaultDuration;
                 target.minPlayers = minPlayers;
                 target.maxPlayers = maxPlayers;
-                target.rulesNotes = rulesNotes;
+                if (rulesNotes !== String(target.rulesNotes || '').trim()) {
+                  target.rulesNotes = rulesNotes;
+                  target.rulesUpdatedAt = Date.now();
+                }
+                target.metaUpdatedAt = Date.now();
                 if (parsedWinModes.length > 0) {
                   target.winModes = parsedWinModes;
                   target.allowCustomWinMode = true;
@@ -12408,8 +12816,8 @@ function switchTab(tabName) {
   const scroller = document.getElementById('main-scroll');
   if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
 
-  if (tabName === 'history' && syncState.connected && !syncState.isLoading && (!syncState.lastSyncedAt || Date.now() - syncState.lastSyncedAt > 30000)) {
-    syncFromSheets({ silent: true });
+  if (tabName === 'shelf' || tabName === 'history' || tabName === 'stats') {
+    triggerBackgroundSync(20000);
   }
 }
 
@@ -12528,24 +12936,31 @@ function bindGlobalEvents() {
     }
   });
 
-  // Actualiza automáticamente la fecha al día actual al volver a abrir la PWA otro día
-  const refreshDateOnResume = () => {
+  // Al volver a la app: actualiza fecha, sincroniza datos de Sheets y busca nueva versión en GitHub
+  const handleAppResume = () => {
     if (syncDraftDateToToday() && uiState.activeTab === 'log') {
       renderLogTab();
     }
+    ensureTimerTick();
+    triggerBackgroundSync(15000);
+    checkSwUpdateThrottled(false);
   };
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') refreshDateOnResume();
+    if (document.visibilityState === 'visible') handleAppResume();
   });
-  window.addEventListener('pageshow', refreshDateOnResume);
+  window.addEventListener('pageshow', handleAppResume);
   window.addEventListener('focus', () => {
-    refreshDateOnResume();
+    if (syncDraftDateToToday() && uiState.activeTab === 'log') {
+      renderLogTab();
+    }
     ensureTimerTick();
+    triggerBackgroundSync(20000);
   });
   window.addEventListener('online', () => {
-    if (getSavedSheetsUrl() && getPendingSyncCount() > 0) {
-      syncFromSheets({ silent: false });
+    if (getSavedSheetsUrl()) {
+      syncFromSheets({ silent: getPendingSyncCount() === 0 && !syncState.catalogDirty });
     }
+    checkSwUpdateThrottled(false);
   });
 
   document.body.addEventListener('click', (e) => {

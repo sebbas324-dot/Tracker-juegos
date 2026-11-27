@@ -1,5 +1,5 @@
-// Ludoteca — Service Worker Offline v15 (PWA estática sin Tailwind CDN)
-const CACHE_NAME = 'ludoteca-offline-v15';
+// Ludoteca — Service Worker Offline v16 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v16';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -15,24 +15,30 @@ const PRECACHE_URLS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
-const cache = await caches.open(CACHE_NAME);
-await Promise.allSettled(
-  PRECACHE_URLS.map((url) =>
-    fetch(url, { mode: url.startsWith('http') ? 'no-cors' : 'same-origin' })
-      .then((res) => cache.put(url, res))
-      .catch(() => {})
-  )
-);
-await self.skipWaiting();
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.allSettled(
+      PRECACHE_URLS.map((url) =>
+        fetch(url, { mode: url.startsWith('http') ? 'no-cors' : 'same-origin', cache: 'no-cache' })
+          .then((res) => cache.put(url, res))
+          .catch(() => {})
+      )
+    );
+    await self.skipWaiting();
   })());
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-const keys = await caches.keys();
-await Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)));
-await self.clients.claim();
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)));
+    await self.clients.claim();
   })());
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
@@ -42,36 +48,49 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   // Nunca cachear las llamadas en vivo a Google Apps Script
   if (url.hostname.includes('script.google.com') || url.hostname.includes('script.googleusercontent.com')) {
-return;
+    return;
   }
 
-  // Navegación HTML: Network-First con respaldo offline instantáneo
-  if (req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
-event.respondWith((async () => {
-  try {
-    const fresh = await fetch(req);
-    const cache = await caches.open(CACHE_NAME);
-    cache.put(req, fresh.clone());
-    return fresh;
-  } catch (err) {
-    const cached = await caches.match(req) || await caches.match('./index.html') || await caches.match('./');
-    return cached || new Response('Sin conexión y sin caché local todavía.', { status: 503 });
-  }
-})());
-return;
+  const isSameOrigin = url.origin === self.location.origin;
+  const isAppShellFile = isSameOrigin && (
+    req.mode === 'navigate'
+    || url.pathname.endsWith('/')
+    || url.pathname.endsWith('.html')
+    || url.pathname.endsWith('.js')
+    || url.pathname.endsWith('.css')
+    || url.pathname.endsWith('manifest.json')
+  );
+
+  // Archivos de la app (HTML, JS, CSS): Network-First para recibir cambios de GitHub al instante con respaldo offline
+  if (isAppShellFile) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const fresh = await fetch(req, { cache: 'no-cache' });
+        if (fresh && fresh.status === 200) {
+          cache.put(req, fresh.clone());
+        }
+        return fresh;
+      } catch (err) {
+        const cached = await cache.match(req)
+          || (req.mode === 'navigate' ? (await cache.match('./index.html') || await cache.match('./')) : null);
+        return cached || new Response('Sin conexión y sin caché local todavía.', { status: 503 });
+      }
+    })());
+    return;
   }
 
-  // Librerías CDN, fuentes y recursos estáticos: Cache-First + actualización en segundo plano
+  // Librerías CDN, fuentes e iconos: Cache-First + actualización en segundo plano
   event.respondWith((async () => {
-const cache = await caches.open(CACHE_NAME);
-const cached = await cache.match(req, { ignoreSearch: false });
-const fetchPromise = fetch(req).then((res) => {
-  if (res && (res.status === 200 || res.type === 'opaque')) {
-    cache.put(req, res.clone());
-  }
-  return res;
-}).catch(() => null);
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(req, { ignoreSearch: false });
+    const fetchPromise = fetch(req).then((res) => {
+      if (res && (res.status === 200 || res.type === 'opaque')) {
+        cache.put(req, res.clone());
+      }
+      return res;
+    }).catch(() => null);
 
-return cached || (await fetchPromise) || new Response('', { status: 504 });
+    return cached || (await fetchPromise) || new Response('', { status: 504 });
   })());
 });
