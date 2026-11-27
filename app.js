@@ -639,6 +639,7 @@ let uiState = {
   statsFilterGame: 'all',
   statsSubTab: 'overview', // 'overview' | 'badges'
   statsDonutMode: 'plays', // 'plays' | 'hours'
+  statsRecentPointsMode: 'recent', // 'recent' | 'top'
   statsPlayerMode: 'all', // 'all' | 'single' | 'vs'
   statsPlayerA: '',
   statsPlayerB: '',
@@ -2833,8 +2834,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v9 (PWA estática sin Tailwind CDN)
-const CACHE_NAME = 'ludoteca-offline-v9';
+  return `// Ludoteca — Service Worker Offline v10 (PWA estática sin Tailwind CDN)
+const CACHE_NAME = 'ludoteca-offline-v10';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -3500,12 +3501,15 @@ function renderLogTab() {
   const game = getGameById(draft.gameId);
   syncAutoWinners();
 
-  // Conteo rápido y recencia por juego para ordenar inteligentemente el carrusel
+  // Conteo rápido y recencia real por fecha/hora de última partida
   const playCountsByGame = {};
-  const lastPlayedOrder = {};
-  matchHistory.forEach((m, idx) => {
+  const lastPlayedStamp = {};
+  matchHistory.forEach((m) => {
     playCountsByGame[m.gameId] = (playCountsByGame[m.gameId] || 0) + 1;
-    if (lastPlayedOrder[m.gameId] === undefined) lastPlayedOrder[m.gameId] = idx;
+    const stamp = `${String(m.date || '').slice(0, 10)}|${String(Number(m.createdAtMs) || 0).padStart(15, '0')}`;
+    if (!lastPlayedStamp[m.gameId] || stamp > lastPlayedStamp[m.gameId]) {
+      lastPlayedStamp[m.gameId] = stamp;
+    }
   });
 
   const favCount = games.filter((g) => g.favorite).length;
@@ -3524,11 +3528,11 @@ function renderLogTab() {
 
   if (!logSearchTerm && uiState.logGameMode === 'recent') {
     visibleGames = [...visibleGames].sort((a, b) => {
-      const favDiff = (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0);
-      if (favDiff !== 0) return favDiff;
-      const rA = lastPlayedOrder[a.id] ?? 99999;
-      const rB = lastPlayedOrder[b.id] ?? 99999;
-      if (rA !== rB) return rA - rB;
+      const sA = lastPlayedStamp[a.id] || '';
+      const sB = lastPlayedStamp[b.id] || '';
+      if (sA && sB) return sB.localeCompare(sA);
+      if (sA) return -1;
+      if (sB) return 1;
       return 0;
     });
   }
@@ -3606,8 +3610,8 @@ function renderLogTab() {
       ${availableChips.map((name) => `
         <button type="button" data-action="quick-fill-player" data-name="${esc(name)}"
           class="btn-tap shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.08] dark:border-white/10 text-xs font-semibold text-ink dark:text-white/85 hover:border-emeraldBrand">
-          <span class="w-2 h-2 rounded-full shrink-0" style="background:${getPlayerColor(name)};"></span>
           <span>+ ${esc(name)}</span>
+          <span class="w-2 h-2 rounded-full shrink-0" style="background:${getPlayerColor(name)};"></span>
         </button>
       `).join('')}
     </div>
@@ -8416,11 +8420,13 @@ function buildSelectedDayDetailHtml(iso, subset) {
   }
   const dayMatches = (subset || []).filter((m) => String(m.date || '').slice(0, 10) === iso);
   const dateLabel = formatFullWeekdayDate(iso);
+  const isTodayIso = iso === todayISO();
+  const todayBadge = isTodayIso ? `<span class="px-1.5 py-0.5 rounded-md bg-emeraldBrand/14 text-emeraldBrand dark:text-emerald-300 text-[9.5px] font-extrabold uppercase tracking-wider">Hoy</span>` : '';
 
   if (dayMatches.length === 0) {
     return `
       <div class="p-3.5 rounded-2xl bg-canvas/80 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.07] flex flex-wrap items-center justify-between gap-2">
-        <span class="text-xs font-extrabold text-ink dark:text-white">${esc(dateLabel)}</span>
+        <span class="inline-flex items-center gap-1.5 text-xs font-extrabold text-ink dark:text-white">${esc(dateLabel)} ${todayBadge}</span>
         <span class="text-[11px] font-medium text-inkMuted dark:text-white/55">Sin partidas registradas</span>
       </div>
     `;
@@ -8434,7 +8440,7 @@ function buildSelectedDayDetailHtml(iso, subset) {
   return `
     <div class="p-3.5 rounded-2xl bg-canvas/85 dark:bg-surfaceDarkAlt border border-black/[0.06] dark:border-white/[0.08] space-y-2.5">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <span class="text-xs font-extrabold text-ink dark:text-white">${esc(dateLabel)}</span>
+        <span class="inline-flex items-center gap-1.5 text-xs font-extrabold text-ink dark:text-white">${esc(dateLabel)} ${todayBadge}</span>
         <span class="px-2 py-0.5 rounded-lg bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-300 text-[11px] font-extrabold tabular-nums">
           ${dayMatches.length} ${dayMatches.length === 1 ? 'partida' : 'partidas'}${durLabel ? ` · ${durLabel}` : ''}
         </span>
@@ -8479,7 +8485,7 @@ function buildMonthlyCalendarGrid(subset, monthKey) {
 
   let activeMonth = monthKey;
   if (!/^\d{4}-\d{2}$/.test(activeMonth)) {
-    activeMonth = sortedMonths[0] || curMonthKey;
+    activeMonth = curMonthKey;
   }
 
   const [yearNum, monthNum] = activeMonth.split('-').map(Number);
@@ -8551,23 +8557,33 @@ function buildHeatmapCardInnerHtml(subset) {
     </div>
   `;
 
+  const todayStr = todayISO();
+  const todayMonthKey = todayStr.slice(0, 7);
+
   if (viewMode === 'month') {
     const mc = buildMonthlyCalendarGrid(subset, uiState.heatmapMonthKey);
     uiState.heatmapMonthKey = mc.activeMonth;
 
-    // Si el día seleccionado pertenece a este mes lo conservamos; si no, elegimos el último día activo del mes
+    // Si estamos en el mes actual y no hay selección manual en este mes, marca hoy por defecto
     const selBelongsToMonth = uiState.heatmapSelectedDate && uiState.heatmapSelectedDate.startsWith(mc.activeMonth);
-    const selDate = selBelongsToMonth ? uiState.heatmapSelectedDate : mc.latestActiveIso;
+    const selDate = selBelongsToMonth
+      ? uiState.heatmapSelectedDate
+      : (mc.activeMonth === todayMonthKey ? todayStr : mc.latestActiveIso);
+    const showBackToToday = mc.activeMonth !== todayMonthKey || selDate !== todayStr;
 
     const dayBtnClass = (count, isSelected, isToday) => {
       const ring = isSelected
         ? ' ring-2 ring-goldBrand ring-offset-1 ring-offset-white dark:ring-offset-surfaceDark'
-        : (isToday ? ' border-emeraldBrand/60' : '');
-      if (count === 0) return 'bg-canvas/70 dark:bg-surfaceDarkAlt/70 text-inkMuted dark:text-white/55 border border-black/[0.05] dark:border-white/[0.06]' + ring;
-      if (count === 1) return 'bg-emeraldBrand/15 dark:bg-emerald-500/35 text-emeraldBrand dark:text-emerald-200 border border-emeraldBrand/30 font-extrabold' + ring;
-      if (count === 2) return 'bg-emeraldBrand/65 dark:bg-emerald-500/60 text-white border border-transparent font-extrabold' + ring;
-      if (count === 3) return 'bg-emeraldBrand dark:bg-emerald-400 text-white dark:text-pine border border-transparent font-extrabold' + ring;
-      return 'bg-goldBrand dark:bg-amber-400 text-white dark:text-pine border border-transparent font-extrabold' + ring;
+        : '';
+      const todayBorder = isToday && !isSelected ? ' border-2 border-emeraldBrand font-extrabold text-emeraldBrand dark:text-emerald-300' : '';
+      if (count === 0) {
+        if (isToday && !isSelected) return 'bg-emeraldBrand/10 dark:bg-emeraldBrand/25 border-2 border-emeraldBrand text-emeraldBrand dark:text-emerald-300 font-extrabold';
+        return 'bg-canvas/70 dark:bg-surfaceDarkAlt/70 text-inkMuted dark:text-white/55 border border-black/[0.05] dark:border-white/[0.06]' + ring;
+      }
+      if (count === 1) return 'bg-emeraldBrand/15 dark:bg-emerald-500/35 text-emeraldBrand dark:text-emerald-200 border border-emeraldBrand/30 font-extrabold' + todayBorder + ring;
+      if (count === 2) return 'bg-emeraldBrand/65 dark:bg-emerald-500/60 text-white border border-transparent font-extrabold' + todayBorder + ring;
+      if (count === 3) return 'bg-emeraldBrand dark:bg-emerald-400 text-white dark:text-pine border border-transparent font-extrabold' + todayBorder + ring;
+      return 'bg-goldBrand dark:bg-amber-400 text-white dark:text-pine border border-transparent font-extrabold' + todayBorder + ring;
     };
 
     return `
@@ -8580,7 +8596,15 @@ function buildHeatmapCardInnerHtml(subset) {
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
         </button>
         <div class="text-center min-w-0">
-          <div class="font-display text-sm font-extrabold text-ink dark:text-white">${esc(mc.monthTitle)}</div>
+          <div class="flex items-center justify-center gap-1.5">
+            <span class="font-display text-sm font-extrabold text-ink dark:text-white">${esc(mc.monthTitle)}</span>
+            ${showBackToToday ? `
+              <button type="button" data-action="reset-heatmap-today"
+                class="btn-tap px-2 py-0.5 rounded-lg bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-300 text-[10px] font-extrabold">
+                Hoy
+              </button>
+            ` : ''}
+          </div>
           <div class="text-[10.5px] font-semibold text-inkMuted dark:text-white/55 tabular-nums">
             ${mc.monthPlays > 0 ? `${mc.monthPlays} ${mc.monthPlays === 1 ? 'partida' : 'partidas'} · ${mc.monthActiveDays} ${mc.monthActiveDays === 1 ? 'día' : 'días'}` : 'Sin partidas este mes'}
           </div>
@@ -8629,9 +8653,7 @@ function buildHeatmapCardInnerHtml(subset) {
   }
 
   // Vista Anual (mapa de calor con etiquetas sin solapamiento + detalle completo debajo)
-  const selDate = uiState.heatmapSelectedDate && hm.byDay[uiState.heatmapSelectedDate]
-    ? uiState.heatmapSelectedDate
-    : (hm.bestDay ? hm.bestDay.iso : '');
+  const selDate = uiState.heatmapSelectedDate || todayStr;
 
   const hmCellClass = (count, inTarget, isSelected) => {
     const ring = isSelected ? ' ring-2 ring-goldBrand ring-offset-1 ring-offset-white dark:ring-offset-surfaceDark' : '';
@@ -8730,17 +8752,7 @@ function updateStatsHeatmapPartial({ preserveScroll = false } = {}) {
 
 function selectHeatmapDayPartial(iso) {
   uiState.heatmapSelectedDate = iso || '';
-  const card = document.getElementById('stats-heatmap-card');
-  const detailEl = document.getElementById('stats-heatmap-detail');
-  if (!card || !detailEl) { renderStatsTab(); return; }
-
-  const ringClasses = ['ring-2', 'ring-goldBrand', 'ring-offset-1', 'ring-offset-white', 'dark:ring-offset-surfaceDark'];
-  card.querySelectorAll('[data-action="select-heatmap-day"]').forEach((btn) => {
-    const isSel = btn.dataset.iso === iso;
-    ringClasses.forEach((cls) => btn.classList.toggle(cls, isSel));
-  });
-
-  detailEl.innerHTML = buildSelectedDayDetailHtml(iso, getCurrentStatsSubset());
+  updateStatsHeatmapPartial({ preserveScroll: true });
 }
 
 function buildShelfDustInnerHtml() {
@@ -9189,10 +9201,66 @@ function renderStatsTab() {
   const chronologicalScored = selectedGameObj && selectedGameObj.scoringType === 'points'
     ? [...subset]
         .filter((m) => (m.players || []).some((p) => (!pCtx.allowedKeys || pCtx.allowedKeys.has(normName(p.name))) && p.score !== null && p.score !== undefined && !isNaN(p.score)))
-        .sort((a, b) => (a.createdAtMs || 0) - (b.createdAtMs || 0))
+        .sort((a, b) => `${a.date || ''}|${String(a.createdAtMs || 0).padStart(15, '0')}`.localeCompare(`${b.date || ''}|${String(b.createdAtMs || 0).padStart(15, '0')}`))
         .slice(-12)
     : [];
   const showScoreLineChart = chronologicalScored.length >= 2;
+
+  // Vista global: últimos 3 juegos puntuables (o los 3 más jugados) con sus últimas 3 partidas
+  let recentPointsGamesData = [];
+  let recentPointsLegendPlayers = [];
+  if (uiState.statsFilterGame === 'all') {
+    const scoredByGame = {};
+    subset.forEach((m) => {
+      if (getMatchScoringType(m) !== 'points') return;
+      const hasScore = (m.players || []).some((p) =>
+        (!pCtx.allowedKeys || pCtx.allowedKeys.has(normName(p.name))) &&
+        p.score !== null && p.score !== undefined && !isNaN(p.score)
+      );
+      if (!hasScore) return;
+      if (!scoredByGame[m.gameId]) scoredByGame[m.gameId] = [];
+      scoredByGame[m.gameId].push(m);
+    });
+
+    const sortKeyAsc = (m) => `${String(m.date || '').slice(0, 10)}|${String(Number(m.createdAtMs) || 0).padStart(15, '0')}`;
+    const gameBuckets = Object.entries(scoredByGame).map(([gid, list]) => {
+      const sortedAsc = [...list].sort((a, b) => sortKeyAsc(a).localeCompare(sortKeyAsc(b)));
+      const latestMatch = sortedAsc[sortedAsc.length - 1];
+      return {
+        game: getGameById(gid),
+        totalPlays: list.length,
+        latestKey: sortKeyAsc(latestMatch),
+        lastThree: sortedAsc.slice(-3),
+      };
+    });
+
+    if (uiState.statsRecentPointsMode === 'top') {
+      gameBuckets.sort((a, b) => (b.totalPlays - a.totalPlays) || b.latestKey.localeCompare(a.latestKey));
+    } else {
+      gameBuckets.sort((a, b) => b.latestKey.localeCompare(a.latestKey));
+    }
+
+    recentPointsGamesData = gameBuckets.slice(0, 3);
+
+    if (pCtx.mode === 'vs') {
+      recentPointsLegendPlayers = [pCtx.playerA, pCtx.playerB];
+    } else {
+      const seenP = new Map();
+      recentPointsGamesData.forEach((gb) => {
+        gb.lastThree.forEach((m) => {
+          (m.players || []).forEach((p) => {
+            const nm = String(p.name || '').trim();
+            if (!nm) return;
+            if (pCtx.allowedKeys && !pCtx.allowedKeys.has(normName(nm))) return;
+            if (p.score === null || p.score === undefined || isNaN(p.score)) return;
+            const k = normName(nm);
+            if (!seenP.has(k)) seenP.set(k, nm);
+          });
+        });
+      });
+      recentPointsLegendPlayers = Array.from(seenP.values()).slice(0, 6);
+    }
+  }
 
   // Ritmo mensual (últimos 6 meses — limpio sin horas)
   const now = new Date();
@@ -9525,6 +9593,70 @@ function renderStatsTab() {
     </div>
   ` : '';
 
+  const recentPointsCardHtml = uiState.statsFilterGame === 'all' && recentPointsGamesData.length > 0 ? `
+    <div class="card-pro rounded-[24px] p-5 anim-in space-y-3.5">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Últimas 3 partidas · Juegos de puntos</h3>
+          <p class="text-[11px] text-inkMuted dark:text-white/55">
+            ${uiState.statsRecentPointsMode === 'top' ? 'Comparativa de puntos en tus 3 juegos puntuables más jugados' : 'Evolución de puntos en los últimos 3 juegos puntuables jugados'}
+          </p>
+        </div>
+        <div class="inline-flex p-0.5 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-[#E2DACE] dark:border-white/12">
+          <button type="button" data-action="set-recent-points-mode" data-val="recent"
+            class="btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-bold ${uiState.statsRecentPointsMode !== 'top' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+            Recientes
+          </button>
+          <button type="button" data-action="set-recent-points-mode" data-val="top"
+            class="btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-bold ${uiState.statsRecentPointsMode === 'top' ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs' : 'text-inkMuted dark:text-white/65'}">
+            Más jugados
+          </button>
+        </div>
+      </div>
+
+      ${recentPointsLegendPlayers.length > 0 ? `
+        <div class="flex flex-wrap items-center gap-2 pb-1 border-b border-black/[0.05] dark:border-white/[0.07]">
+          ${recentPointsLegendPlayers.map((pName) => `
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-canvas dark:bg-surfaceDarkAlt text-[11px] font-bold text-ink dark:text-white/85">
+              <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${getPlayerColor(pName)};"></span>
+              <span>${esc(pName)}</span>
+            </span>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      <div class="space-y-3">
+        ${recentPointsGamesData.map((gb, idx) => {
+          const latest = gb.lastThree[gb.lastThree.length - 1];
+          return `
+            <div class="p-3.5 rounded-2xl bg-canvas/75 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.07] space-y-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style="background:${gb.game.color}1C; color:${gb.game.color};">
+                    ${gameIconSvg(gb.game.icon, 'w-3.5 h-3.5')}
+                  </span>
+                  <div class="min-w-0">
+                    <div class="text-xs font-extrabold text-ink dark:text-white truncate">${esc(gb.game.name)}${gb.game.lowestWins ? ' <span class="text-[10px] font-semibold text-inkMuted">(menor gana)</span>' : ''}</div>
+                    <div class="text-[10px] font-semibold text-inkMuted dark:text-white/55 tabular-nums">
+                      ${gb.lastThree.length === 1 ? 'Última partida' : `Últimas ${gb.lastThree.length} partidas`} · Últ. ganador: <strong class="text-ink dark:text-white/85">${esc(latest.winnerLabel || '—')}</strong>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" data-action="filter-stats-game" data-val="${esc(gb.game.id)}"
+                  class="btn-tap shrink-0 px-2 py-1 rounded-lg bg-white dark:bg-surfaceDark border border-black/[0.06] dark:border-white/10 text-[10px] font-bold text-inkMuted dark:text-white/70 hover:text-emeraldBrand">
+                  Ver todo →
+                </button>
+              </div>
+              <div class="relative w-full" style="height:135px;">
+                <canvas id="chart-recent-pts-${idx}"></canvas>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  ` : '';
+
   const monthlyCardHtml = `
     <div class="card-pro rounded-[24px] p-5 anim-in">
       <h3 class="font-display text-sm font-extrabold text-ink dark:text-white mb-4">Ritmo mensual (últimos 6 meses)</h3>
@@ -9620,6 +9752,7 @@ function renderStatsTab() {
         </div>
         <div class="font-display text-2xl font-extrabold text-goldBrand tabular-nums mt-1.5 leading-none">${recordEntry ? recordEntry.score : '—'}</div>
         <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${recordEntry ? esc(recordEntry.player) : 'Sin puntos'}</div>
+        ${recordEntry && uiState.statsFilterGame === 'all' ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5">${esc(recordEntry.game)}</div>` : ''}
       </div>
     </div>
 
@@ -9632,6 +9765,7 @@ function renderStatsTab() {
       ${hIndexCardHtml}
       ${heatmapCardHtml}
       ${scoreLineCardHtml}
+      ${recentPointsCardHtml}
       ${playersBarCardHtml}
       ${extraChartCardHtml}
       ${monthlyCardHtml}
@@ -9688,6 +9822,8 @@ function renderStatsTab() {
   mountStatsCharts({
     sortedGamesData,
     chronologicalScored,
+    recentPointsGamesData,
+    recentPointsLegendPlayers,
     leaderboard,
     extraChartConfig,
     allowedKeys: pCtx.allowedKeys,
@@ -9697,7 +9833,7 @@ function renderStatsTab() {
   if (hmScroll) hmScroll.scrollLeft = hmScroll.scrollWidth;
 }
 
-function mountStatsCharts({ sortedGamesData, chronologicalScored, leaderboard, extraChartConfig, allowedKeys = null, vsNames = null }) {
+function mountStatsCharts({ sortedGamesData, chronologicalScored, recentPointsGamesData = [], recentPointsLegendPlayers = [], leaderboard, extraChartConfig, allowedKeys = null, vsNames = null }) {
   if (typeof Chart === 'undefined') return;
 
   const isDark = document.documentElement.classList.contains('dark');
@@ -9845,6 +9981,133 @@ function mountStatsCharts({ sortedGamesData, chronologicalScored, leaderboard, e
       },
     });
     activeChartInstances.push(ch);
+  }
+
+  // 2B. Mini gráficas de evolución (últimas 3 partidas de los últimos 3 juegos de puntos en vista global)
+  if (Array.isArray(recentPointsGamesData) && recentPointsGamesData.length > 0) {
+    recentPointsGamesData.forEach((gb, gIdx) => {
+      const canvasEl = document.getElementById(`chart-recent-pts-${gIdx}`);
+      if (!canvasEl) return;
+
+      const matches = gb.lastThree || [];
+      const labels = matches.map((m, idx) =>
+        m.date && m.date.length >= 10 ? `${m.date.slice(8, 10)}/${m.date.slice(5, 7)}` : `#${idx + 1}`
+      );
+
+      // Jugadores que realmente puntuaron en estas partidas de este juego
+      const gamePlayers = recentPointsLegendPlayers.filter((pName) => {
+        const pk = normName(pName);
+        return matches.some((m) =>
+          (m.players || []).some((p) => normName(p.name) === pk && p.score !== null && p.score !== undefined && !isNaN(p.score))
+        );
+      });
+      if (gamePlayers.length === 0) return;
+
+      const isSingleMatch = matches.length === 1;
+
+      if (isSingleMatch) {
+        const m = matches[0];
+        const scores = gamePlayers.map((pName) => {
+          const found = (m.players || []).find((p) => normName(p.name) === normName(pName));
+          return found && found.score !== null && found.score !== undefined && !isNaN(found.score) ? Number(found.score) : 0;
+        });
+        const ch = new Chart(canvasEl, {
+          type: 'bar',
+          data: {
+            labels: gamePlayers,
+            datasets: [{
+              label: labels[0],
+              data: scores,
+              backgroundColor: gamePlayers.map((n) => getPlayerColor(n)),
+              borderRadius: 8,
+              maxBarThickness: 36,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                ...commonTooltip,
+                callbacks: {
+                  title: (items) => `${gb.game.name} · ${labels[0]}`,
+                  label: (ctx) => ` ${ctx.label}: ${ctx.parsed.y} pts`,
+                },
+              },
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: textColor, font: { size: 10.5, weight: '700' } },
+              },
+              y: {
+                beginAtZero: true,
+                grid: { color: gridColor },
+                ticks: { color: textColor, font: { size: 10 }, maxTicksLimit: 4 },
+              },
+            },
+          },
+        });
+        activeChartInstances.push(ch);
+      } else {
+        const datasets = gamePlayers.map((pName) => {
+          const col = getPlayerColor(pName);
+          const pk = normName(pName);
+          return {
+            label: pName,
+            data: matches.map((m) => {
+              const found = (m.players || []).find((p) => normName(p.name) === pk);
+              return found && found.score !== null && found.score !== undefined && !isNaN(found.score)
+                ? Number(found.score)
+                : null;
+            }),
+            borderColor: col,
+            backgroundColor: col + '22',
+            borderWidth: 2.5,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: surfaceBg,
+            pointBorderColor: col,
+            pointBorderWidth: 2.2,
+            tension: 0.28,
+            spanGaps: true,
+          };
+        });
+
+        const ch = new Chart(canvasEl, {
+          type: 'line',
+          data: { labels, datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                ...commonTooltip,
+                callbacks: {
+                  title: (items) => `${gb.game.name} · ${items[0]?.label || ''}`,
+                  label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y} pts`,
+                },
+              },
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: textColor, font: { size: 10.5, weight: '600' } },
+              },
+              y: {
+                beginAtZero: false,
+                grid: { color: gridColor },
+                ticks: { color: textColor, font: { size: 10 }, maxTicksLimit: 4 },
+              },
+            },
+          },
+        });
+        activeChartInstances.push(ch);
+      }
+    });
   }
 
   // 3. Barras horizontales apiladas: Victorias vs Otras partidas por jugador
@@ -11400,6 +11663,11 @@ function switchTab(tabName) {
   document.getElementById('header-subtitle').textContent = subMap[tabName] || 'Diario de Partidas';
 
   if (tabName === 'log') syncDraftDateToToday();
+  if (tabName === 'stats') {
+    const today = todayISO();
+    uiState.heatmapSelectedDate = today;
+    uiState.heatmapMonthKey = today.slice(0, 7);
+  }
   if (tabName !== 'stats') destroyActiveCharts();
   renderActiveTab();
   const scroller = document.getElementById('main-scroll');
@@ -11825,9 +12093,22 @@ function bindGlobalEvents() {
         break;
       }
       case 'step-heatmap-month': {
-        uiState.heatmapMonthKey = el.dataset.val || '';
-        uiState.heatmapSelectedDate = '';
+        const targetMonth = el.dataset.val || '';
+        uiState.heatmapMonthKey = targetMonth;
+        uiState.heatmapSelectedDate = targetMonth === todayISO().slice(0, 7) ? todayISO() : '';
         updateStatsHeatmapPartial({ preserveScroll: false });
+        break;
+      }
+      case 'reset-heatmap-today': {
+        const today = todayISO();
+        uiState.heatmapMonthKey = today.slice(0, 7);
+        uiState.heatmapSelectedDate = today;
+        updateStatsHeatmapPartial({ preserveScroll: false });
+        break;
+      }
+      case 'set-recent-points-mode': {
+        uiState.statsRecentPointsMode = el.dataset.val === 'top' ? 'top' : 'recent';
+        renderStatsTab();
         break;
       }
       case 'set-heatmap-scope': {
