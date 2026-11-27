@@ -4,6 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
+const APP_VERSION = 'v1.8';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -3492,8 +3493,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v17 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v17';
+  return `// Ludoteca — Service Worker Offline v18 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v18';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -3845,6 +3846,19 @@ function triggerBackgroundSync(minIntervalMs = 20000) {
   syncFromSheets({ silent: true });
 }
 
+function renderAppVersionBadge() {
+  const h1 = document.querySelector('header h1') || document.getElementById('header-subtitle')?.previousElementSibling;
+  if (!h1) return;
+  let tag = document.getElementById('app-version-tag');
+  if (!tag) {
+    tag = document.createElement('span');
+    tag.id = 'app-version-tag';
+    tag.className = 'text-[11px] font-semibold text-white/55 ml-1 tabular-nums';
+    h1.appendChild(tag);
+  }
+  tag.textContent = APP_VERSION;
+}
+
 function renderSyncBadge() {
   const btn = document.getElementById('btn-sync-settings');
   const dot = document.getElementById('sync-dot');
@@ -3980,7 +3994,7 @@ function openSyncSettingsModal() {
 
   openModal({
     title: 'Sincronización y Datos',
-    subtitle: 'Google Sheets privado + respaldo local',
+    subtitle: `Ludoteca ${APP_VERSION} · Google Sheets privado + respaldo local`,
     bodyHtml,
     actions: [
       { label: 'Cerrar' },
@@ -4057,7 +4071,7 @@ function openSyncSettingsModal() {
         showToast('Comprobando GitHub Pages...', 'neutral');
         const found = await checkSwUpdateThrottled(true);
         if (!found) {
-          showToast('Ya tienes la última versión instalada', 'success');
+          showToast(`Ya tienes la última versión instalada (${APP_VERSION})`, 'success');
         }
       });
     }
@@ -13432,6 +13446,7 @@ function bindGlobalEvents() {
 // 16. ARRANQUE
 // =========================================================================
 initTheme();
+renderAppVersionBadge();
 setupPwaAssets();
 registerOfflineServiceWorker();
 loadLocalData();
