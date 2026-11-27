@@ -1143,16 +1143,85 @@ function gameIconSvg(iconName, cls = 'w-5 h-5') {
   return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${icons[iconName] || icons.dice}</svg>`;
 }
 
-function formatDisplayDate(isoStr, createdAtMs) {
-  if (isoStr && /^\d{4}-\d{2}-\d{2}$/.test(isoStr)) {
-    const [y, m, d] = isoStr.split('-').map(Number);
-    const dt = new Date(y, m - 1, d);
-    return dt.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+const MONTHS_SHORT_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+function normalizeDateToISO(raw, fallbackMs = null) {
+  const s = String(raw || '').trim();
+  if (s) {
+    // 1) Timestamp ISO con hora (ej. 2026-11-25T23:00:00.000Z) -> convertir a fecha local del dispositivo
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+      const dt = new Date(s);
+      if (!isNaN(dt.getTime())) {
+        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+      }
+    }
+    // 2) YYYY-MM-DD (o YYYY-M-D)
+    const isoM = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (isoM) {
+      return `${isoM[1]}-${String(Number(isoM[2])).padStart(2, '0')}-${String(Number(isoM[3])).padStart(2, '0')}`;
+    }
+    // 3) DD/MM/YYYY o DD-MM-YYYY
+    const esM = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (esM) {
+      return `${esM[3]}-${String(Number(esM[2])).padStart(2, '0')}-${String(Number(esM[1])).padStart(2, '0')}`;
+    }
+    // 4) "26 nov 2026" o "26 nov. 2026"
+    const txtM = s.toLowerCase().match(/^(\d{1,2})\s+([a-z]{3})\.?\s+(\d{4})$/);
+    if (txtM) {
+      const mIdx = MONTHS_SHORT_ES.indexOf(txtM[2]);
+      if (mIdx >= 0) {
+        return `${txtM[3]}-${String(mIdx + 1).padStart(2, '0')}-${String(Number(txtM[1])).padStart(2, '0')}`;
+      }
+    }
   }
-  if (createdAtMs) {
-    return new Date(createdAtMs).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  if (fallbackMs) {
+    const dt = new Date(Number(fallbackMs));
+    if (!isNaN(dt.getTime())) {
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    }
+  }
+  return todayISO();
+}
+
+function formatDisplayDate(isoStr, createdAtMs) {
+  const norm = normalizeDateToISO(isoStr, createdAtMs);
+  const m = norm.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const y = Number(m[1]);
+    const mo = Number(m[2]) - 1;
+    const d = Number(m[3]);
+    if (mo >= 0 && mo < 12) {
+      return `${d} ${MONTHS_SHORT_ES[mo]} ${y}`;
+    }
   }
   return isoStr || 'Hoy';
+}
+
+function normalizeStarRating(raw) {
+  const n = Number(raw);
+  if (!n || isNaN(n) || n <= 0) return 0;
+  // Migración suave de notas antiguas en escala 5–10 a 1–5 en pasos de 0.5
+  let val = n > 5 ? (Math.round(n) / 2) : n;
+  val = Math.round(val * 2) / 2;
+  return Math.min(5, Math.max(1, val));
+}
+
+function formatStarRating(raw) {
+  const val = normalizeStarRating(raw);
+  if (!val) return '';
+  return val.toFixed(1).replace(/\.0$/, '');
+}
+
+function renderStarSvg(state, uid) {
+  // state: 'full' | 'half' | 'empty'
+  const starPath = 'M12 2.4l2.92 5.92 6.53.95-4.72 4.6 1.11 6.5L12 17.3l-5.84 3.07 1.11-6.5-4.72-4.6 6.53-.95L12 2.4z';
+  if (state === 'full') {
+    return `<svg class="w-7 h-7" viewBox="0 0 24 24" aria-hidden="true"><path d="${starPath}" fill="#F59E0B" stroke="#D97706" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+  }
+  if (state === 'half') {
+    return `<svg class="w-7 h-7" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="starHalf_${uid}" x1="0" y1="0" x2="1" y2="0"><stop offset="50%" stop-color="#F59E0B"/><stop offset="50%" stop-color="rgba(148,163,184,0.22)"/></linearGradient></defs><path d="${starPath}" fill="url(#starHalf_${uid})" stroke="#D97706" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+  }
+  return `<svg class="w-7 h-7" viewBox="0 0 24 24" aria-hidden="true"><path d="${starPath}" fill="rgba(148,163,184,0.16)" stroke="rgba(148,163,184,0.5)" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
 }
 
 function showToast(msg, tone = 'neutral') {
@@ -1246,6 +1315,9 @@ function loadLocalData() {
     const rawHist = localStorage.getItem(KEYS.HISTORY);
     matchHistory = rawHist ? JSON.parse(rawHist) : [];
     if (!Array.isArray(matchHistory)) matchHistory = [];
+    matchHistory.forEach((m) => {
+      if (m && m.date) m.date = normalizeDateToISO(m.date, m.createdAtMs);
+    });
   } catch (e) {
     matchHistory = [];
   }
@@ -1423,6 +1495,20 @@ function loadLocalData() {
     }
   });
   if (historyRenamed) saveHistoryLocal();
+
+  // Migra valoraciones antiguas (>5) a la nueva escala de 1 a 5 estrellas (pasos de 0.5)
+  games.forEach((g) => {
+    if (g.rating !== undefined && g.rating !== null && g.rating !== '') {
+      const normR = normalizeStarRating(g.rating);
+      if (normR > 0 && normR !== Number(g.rating)) {
+        g.rating = normR;
+        gamesChanged = true;
+      } else if (normR === 0) {
+        delete g.rating;
+        gamesChanged = true;
+      }
+    }
+  });
 
   // Inyecta o actualiza chuletas base de reglas (respeta cualquier nota editada por el usuario)
   games.forEach((g) => {
@@ -2223,7 +2309,7 @@ function groupSheetRows(rows) {
       map.set(id, {
         id,
         source: 'sheets',
-        date: String(row.fecha || '').slice(0, 10) || todayISO(),
+        date: normalizeDateToISO(row.fecha, Number(row.createdAtMs) || null),
         createdAtMs: Number(row.createdAtMs) || Date.now(),
         gameId: String(row.juegoId || 'custom'),
         gameName: String(row.juego || 'Juego'),
@@ -2371,7 +2457,13 @@ function mergeRemoteCatalog(remoteCat) {
   if (Array.isArray(remoteCat.games) && remoteCat.games.length > 0) {
     const mergedMap = new Map();
     remoteCat.games.forEach((rg) => {
-      if (rg && rg.id) mergedMap.set(rg.id, rg);
+      if (!rg || !rg.id) return;
+      if (rg.rating !== undefined && rg.rating !== null && rg.rating !== '') {
+        const normR = normalizeStarRating(rg.rating);
+        if (normR > 0) rg.rating = normR;
+        else delete rg.rating;
+      }
+      mergedMap.set(rg.id, rg);
     });
     // Conserva juegos de catálogo base si no fueron explícitamente borrados ni estaban en remoto
     DEFAULT_GAMES.forEach((def) => {
@@ -2454,8 +2546,8 @@ function getAppsScriptV2Template() {
 // LUDOTECA — GOOGLE APPS SCRIPT v2 (PARTIDAS + ESTADÍSTICAS + CATÁLOGO + PERFILES)
 // =========================================================================
 const SECRET_PIN = "${currentPin.replace(/"/g, '\\"')}";
-const SHEET_MATCHES = "Ludoteca_Partidas";
-const SHEET_STATS   = "Ludoteca_Estadísticas";
+const SHEET_MATCHES = "Partidas";
+const SHEET_STATS   = "Estadísticas";
 const SHEET_GAMES   = "Ludoteca_Juegos";
 const SHEET_PLAYERS = "Ludoteca_Perfiles";
 
@@ -2481,15 +2573,36 @@ function checkPin(pin) {
   return String(pin || "").trim() === String(SECRET_PIN).trim();
 }
 
+function normalizeDisplayDate(raw) {
+  var s = String(raw || "").trim();
+  var iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) {
+    return iso[1] + "-" + ("0" + iso[2]).slice(-2) + "-" + ("0" + iso[3]).slice(-2);
+  }
+  var es = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (es) {
+    return es[3] + "-" + ("0" + es[2]).slice(-2) + "-" + ("0" + es[1]).slice(-2);
+  }
+  var months = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  var txt = s.toLowerCase().match(/^(\d{1,2})\s+([a-z]{3})\.?\s+(\d{4})/);
+  if (txt) {
+    var mi = months.indexOf(txt[2]);
+    if (mi >= 0) {
+      return txt[3] + "-" + ("0" + (mi + 1)).slice(-2) + "-" + ("0" + txt[1]).slice(-2);
+    }
+  }
+  return s.slice(0, 10);
+}
+
 function ensureSheet(ss, name, headers) {
   let sh = ss.getSheetByName(name);
   if (!sh) {
-sh = ss.insertSheet(name);
-sh.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
-sh.setFrozenRows(1);
+    sh = ss.insertSheet(name);
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
+    sh.setFrozenRows(1);
   } else if (sh.getLastRow() === 0) {
-sh.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
-sh.setFrozenRows(1);
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
+    sh.setFrozenRows(1);
   }
   return sh;
 }
@@ -2502,36 +2615,38 @@ function readCatalog(ss) {
   const profiles = {};
 
   if (gamesSh && gamesSh.getLastRow() > 1) {
-const vals = gamesSh.getRange(2, 1, gamesSh.getLastRow() - 1, GAME_HEADERS.length).getValues();
-vals.forEach(function(r) {
-  if (!r[0]) return;
-  var obj = null;
-  if (r[13]) { try { obj = JSON.parse(r[13]); } catch (e) {} }
-  if (!obj || typeof obj !== "object") {
-    obj = {
-      id: String(r[0]), name: String(r[1]), color: String(r[2] || "#475569"),
-      color2: String(r[3] || "#1E293B"), icon: String(r[4] || "dice"),
-      scoringType: String(r[5] || "points"), minPlayers: Number(r[6]) || 1,
-      maxPlayers: Number(r[7]) || 6, defaultDuration: Number(r[8]) || 30,
-      favorite: r[9] === true || String(r[9]) === "Sí",
-      rating: r[10] ? Number(r[10]) : undefined,
-      tagline: String(r[11] || ""), rulesNotes: String(r[12] || "")
-    };
-  }
-  gamesList.push(obj);
-});
+    const gCols = Math.max(1, Math.min(gamesSh.getLastColumn() || GAME_HEADERS.length, GAME_HEADERS.length));
+    const vals = gamesSh.getRange(2, 1, gamesSh.getLastRow() - 1, gCols).getValues();
+    vals.forEach(function(r) {
+      if (!r[0]) return;
+      var obj = null;
+      if (r[13]) { try { obj = JSON.parse(r[13]); } catch (e) {} }
+      if (!obj || typeof obj !== "object") {
+        obj = {
+          id: String(r[0]), name: String(r[1]), color: String(r[2] || "#475569"),
+          color2: String(r[3] || "#1E293B"), icon: String(r[4] || "dice"),
+          scoringType: String(r[5] || "points"), minPlayers: Number(r[6]) || 1,
+          maxPlayers: Number(r[7]) || 6, defaultDuration: Number(r[8]) || 30,
+          favorite: r[9] === true || String(r[9]) === "Sí",
+          rating: r[10] ? Number(r[10]) : undefined,
+          tagline: String(r[11] || ""), rulesNotes: String(r[12] || "")
+        };
+      }
+      gamesList.push(obj);
+    });
   }
 
   if (playersSh && playersSh.getLastRow() > 1) {
-const pVals = playersSh.getRange(2, 1, playersSh.getLastRow() - 1, PLAYER_HEADERS.length).getValues();
-pVals.forEach(function(r) {
-  if (!r[0]) return;
-  profiles[String(r[0]).toLowerCase()] = {
-    name: String(r[1] || r[0]),
-    color: String(r[2] || "#227554"),
-    initials: String(r[3] || "")
-  };
-});
+    const pCols = Math.max(1, Math.min(playersSh.getLastColumn() || PLAYER_HEADERS.length, PLAYER_HEADERS.length));
+    const pVals = playersSh.getRange(2, 1, playersSh.getLastRow() - 1, pCols).getValues();
+    pVals.forEach(function(r) {
+      if (!r[0]) return;
+      profiles[String(r[0]).toLowerCase()] = {
+        name: String(r[1] || r[0]),
+        color: String(r[2] || "#227554"),
+        initials: String(r[3] || "")
+      };
+    });
   }
 
   var deletedIds = [];
@@ -2554,14 +2669,16 @@ function doGet(e) {
     if (lastRow > 1) {
       const colCount = Math.max(1, Math.min(sh.getLastColumn() || MATCH_HEADERS.length, MATCH_HEADERS.length));
       const vals = sh.getRange(2, 1, lastRow - 1, colCount).getValues();
-      vals.forEach(function(r) {
+      const dateTexts = sh.getRange(2, 2, lastRow - 1, 1).getDisplayValues();
+      vals.forEach(function(r, rowIdx) {
         if (!r[0]) return;
         var obj = {};
         MATCH_HEADERS.forEach(function(h, idx) {
-          var v = idx < r.length ? r[idx] : "";
-          obj[h] = (h === "fecha" && v instanceof Date)
-            ? Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd")
-            : v;
+          if (h === "fecha") {
+            obj[h] = normalizeDisplayDate(dateTexts[rowIdx][0]);
+          } else {
+            obj[h] = idx < r.length ? r[idx] : "";
+          }
         });
         rows.push(obj);
       });
@@ -2576,7 +2693,7 @@ function doGet(e) {
 function doPost(e) {
   var body = {};
   try { body = JSON.parse(e.postData.contents); } catch (err) {
-return jsonOut({ ok: false, error: "JSON inválido" });
+    return jsonOut({ ok: false, error: "JSON inválido" });
   }
   if (!checkPin(body.pin)) return jsonOut({ ok: false, error: "PIN incorrecto" });
 
@@ -2586,84 +2703,86 @@ return jsonOut({ ok: false, error: "JSON inválido" });
   }
 
   try {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const action = body.action || "save";
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const action = body.action || "save";
 
-  if (action === "saveCatalog") {
-const cat = body.catalog || {};
-const gamesSh = ensureSheet(ss, SHEET_GAMES, GAME_HEADERS);
-const playersSh = ensureSheet(ss, SHEET_PLAYERS, PLAYER_HEADERS);
+    if (action === "saveCatalog") {
+      const cat = body.catalog || {};
+      const gamesSh = ensureSheet(ss, SHEET_GAMES, GAME_HEADERS);
+      const playersSh = ensureSheet(ss, SHEET_PLAYERS, PLAYER_HEADERS);
 
-if (gamesSh.getLastRow() > 1) {
-  gamesSh.getRange(2, 1, gamesSh.getLastRow() - 1, GAME_HEADERS.length).clearContent();
-}
-const gList = Array.isArray(cat.games) ? cat.games : [];
-if (gList.length > 0) {
-  const gRows = gList.map(function(g) {
-    return [
-      g.id || "", g.name || "", g.color || "", g.color2 || "", g.icon || "dice",
-      g.scoringType || "points", g.minPlayers || 1, g.maxPlayers || 6, g.defaultDuration || 30,
-      g.favorite ? "Sí" : "", g.rating || "", g.tagline || "", g.rulesNotes || "",
-      JSON.stringify(g)
-    ];
-  });
-  gamesSh.getRange(2, 1, gRows.length, GAME_HEADERS.length).setValues(gRows);
-}
+      if (gamesSh.getLastRow() > 1) {
+        gamesSh.getRange(2, 1, gamesSh.getLastRow() - 1, GAME_HEADERS.length).clearContent();
+      }
+      const gList = Array.isArray(cat.games) ? cat.games : [];
+      if (gList.length > 0) {
+        const gRows = gList.map(function(g) {
+          return [
+            g.id || "", g.name || "", g.color || "", g.color2 || "", g.icon || "dice",
+            g.scoringType || "points", g.minPlayers || 1, g.maxPlayers || 6, g.defaultDuration || 30,
+            g.favorite ? "Sí" : "", g.rating || "", g.tagline || "", g.rulesNotes || "",
+            JSON.stringify(g)
+          ];
+        });
+        gamesSh.getRange(2, 1, gRows.length, GAME_HEADERS.length).setValues(gRows);
+      }
 
-if (playersSh.getLastRow() > 1) {
-  playersSh.getRange(2, 1, playersSh.getLastRow() - 1, PLAYER_HEADERS.length).clearContent();
-}
-const pObj = cat.playerProfiles || {};
-const pRows = Object.keys(pObj).map(function(k) {
-  var p = pObj[k] || {};
-  return [k, p.name || k, p.color || "#227554", p.initials || ""];
-});
-if (pRows.length > 0) {
-  playersSh.getRange(2, 1, pRows.length, PLAYER_HEADERS.length).setValues(pRows);
-}
+      if (playersSh.getLastRow() > 1) {
+        playersSh.getRange(2, 1, playersSh.getLastRow() - 1, PLAYER_HEADERS.length).clearContent();
+      }
+      const pObj = cat.playerProfiles || {};
+      const pRows = Object.keys(pObj).map(function(k) {
+        var p = pObj[k] || {};
+        return [k, p.name || k, p.color || "#227554", p.initials || ""];
+      });
+      if (pRows.length > 0) {
+        playersSh.getRange(2, 1, pRows.length, PLAYER_HEADERS.length).setValues(pRows);
+      }
 
-const props = PropertiesService.getScriptProperties();
-const ts = Number(cat.updatedAtMs) || Date.now();
-props.setProperty("LUDOTECA_DELETED_GAMES", JSON.stringify(Array.isArray(cat.deletedGameIds) ? cat.deletedGameIds : []));
-props.setProperty("LUDOTECA_CATALOG_UPDATED_MS", String(ts));
+      const props = PropertiesService.getScriptProperties();
+      const ts = Number(cat.updatedAtMs) || Date.now();
+      props.setProperty("LUDOTECA_DELETED_GAMES", JSON.stringify(Array.isArray(cat.deletedGameIds) ? cat.deletedGameIds : []));
+      props.setProperty("LUDOTECA_CATALOG_UPDATED_MS", String(ts));
 
-return jsonOut({ ok: true, catalogSaved: true, updatedAtMs: ts });
-  }
+      return jsonOut({ ok: true, catalogSaved: true, updatedAtMs: ts });
+    }
 
-  const sh = ensureSheet(ss, SHEET_MATCHES, MATCH_HEADERS);
+    const sh = ensureSheet(ss, SHEET_MATCHES, MATCH_HEADERS);
 
-  if (action === "delete") {
-const targetId = String(body.partidaId || "").trim();
-if (targetId && sh.getLastRow() > 1) {
-  const ids = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues();
-  for (var i = ids.length - 1; i >= 0; i--) {
-    if (String(ids[i][0]).trim() === targetId) sh.deleteRow(i + 2);
-  }
-  rebuildStatsSheet(ss, sh);
-}
-return jsonOut({ ok: true, deletedId: targetId });
-  }
+    if (action === "delete") {
+      const targetId = String(body.partidaId || "").trim();
+      if (targetId && sh.getLastRow() > 1) {
+        const ids = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues();
+        for (var i = ids.length - 1; i >= 0; i--) {
+          if (String(ids[i][0]).trim() === targetId) sh.deleteRow(i + 2);
+        }
+        rebuildStatsSheet(ss, sh);
+      }
+      return jsonOut({ ok: true, deletedId: targetId });
+    }
 
-  // action === "save"
-  const m = body.match || {};
-  const partidaId = String(m.id || ("lud_" + Date.now()));
-  const players = Array.isArray(m.players) ? m.players : [];
-  const metaStr = JSON.stringify(m.meta || {});
-  const newRows = players.map(function(p, idx) {
-return [
-  partidaId, m.date || "", Number(m.createdAtMs) || Date.now(), m.gameId || "custom",
-  m.gameName || "Juego", m.scoringType || "points", Number(m.duration) || 0,
-  m.extraLabel || "", m.winnerLabel || "", m.topScore !== null && m.topScore !== undefined ? m.topScore : "",
-  Number(p.rank) || (idx + 1), p.name || "Jugador", p.score !== null && p.score !== undefined ? p.score : "",
-  p.tag || "", m.notes || "", metaStr
-];
-  });
+    // action === "save"
+    const m = body.match || {};
+    const partidaId = String(m.id || ("lud_" + Date.now()));
+    const players = Array.isArray(m.players) ? m.players : [];
+    const metaStr = JSON.stringify(m.meta || {});
+    const newRows = players.map(function(p, idx) {
+      return [
+        partidaId, m.date || "", Number(m.createdAtMs) || Date.now(), m.gameId || "custom",
+        m.gameName || "Juego", m.scoringType || "points", Number(m.duration) || 0,
+        m.extraLabel || "", m.winnerLabel || "", m.topScore !== null && m.topScore !== undefined ? m.topScore : "",
+        Number(p.rank) || (idx + 1), p.name || "Jugador", p.score !== null && p.score !== undefined ? p.score : "",
+        p.tag || "", m.notes || "", metaStr
+      ];
+    });
 
-  if (newRows.length > 0) {
-    sh.getRange(sh.getLastRow() + 1, 1, newRows.length, MATCH_HEADERS.length).setValues(newRows);
-    rebuildStatsSheet(ss, sh);
-  }
-  return jsonOut({ ok: true, partidaId: partidaId });
+    if (newRows.length > 0) {
+      const startRow = sh.getLastRow() + 1;
+      sh.getRange(startRow, 2, newRows.length, 1).setNumberFormat("@");
+      sh.getRange(startRow, 1, newRows.length, MATCH_HEADERS.length).setValues(newRows);
+      rebuildStatsSheet(ss, sh);
+    }
+    return jsonOut({ ok: true, partidaId: partidaId });
   } catch (err) {
     return jsonOut({ ok: false, error: "Error guardando en Sheets: " + (err && err.message ? err.message : String(err)) });
   } finally {
@@ -2677,40 +2796,45 @@ function rebuildStatsSheet(ss, matchSh) {
   if (stSh.getLastRow() > 1) stSh.getRange(2, 1, stSh.getLastRow() - 1, statsHeaders.length).clearContent();
   if (matchSh.getLastRow() <= 1) return;
 
-  const vals = matchSh.getRange(2, 1, matchSh.getLastRow() - 1, MATCH_HEADERS.length).getValues();
+  const colCount = Math.max(1, Math.min(matchSh.getLastColumn() || MATCH_HEADERS.length, MATCH_HEADERS.length));
+  const vals = matchSh.getRange(2, 1, matchSh.getLastRow() - 1, colCount).getValues();
+  const dateTexts = matchSh.getRange(2, 2, matchSh.getLastRow() - 1, 1).getDisplayValues();
   const seenMatches = {};
   const byGame = {};
-  vals.forEach(function(r) {
-var mid = String(r[0]);
-if (!mid || seenMatches[mid]) return;
-seenMatches[mid] = true;
-var gName = String(r[4] || "Juego");
-var dur = Number(r[6]) || 0;
-var top = r[9] !== "" && r[9] !== null ? Number(r[9]) : null;
-var dt = (r[1] instanceof Date) ? Utilities.formatDate(r[1], Session.getScriptTimeZone(), "yyyy-MM-dd") : String(r[1] || "");
-if (!byGame[gName]) byGame[gName] = { plays: 0, mins: 0, best: null, last: "" };
-byGame[gName].plays++;
-byGame[gName].mins += dur;
-if (top !== null && !isNaN(top) && (byGame[gName].best === null || top > byGame[gName].best)) byGame[gName].best = top;
-if (dt > byGame[gName].last) byGame[gName].last = dt;
+  vals.forEach(function(r, rowIdx) {
+    var mid = String(r[0]);
+    if (!mid || seenMatches[mid]) return;
+    seenMatches[mid] = true;
+    var gName = String(r[4] || "Juego");
+    var dur = Number(r[6]) || 0;
+    var top = r[9] !== "" && r[9] !== null && r[9] !== undefined ? Number(r[9]) : null;
+    var dt = normalizeDisplayDate(dateTexts[rowIdx][0]);
+    if (!byGame[gName]) byGame[gName] = { plays: 0, mins: 0, best: null, last: "" };
+    byGame[gName].plays++;
+    byGame[gName].mins += dur;
+    if (top !== null && !isNaN(top) && (byGame[gName].best === null || top > byGame[gName].best)) byGame[gName].best = top;
+    if (dt > byGame[gName].last) byGame[gName].last = dt;
   });
 
   const totalMatches = Object.keys(seenMatches).length || 1;
   const rows = Object.keys(byGame).sort().map(function(name) {
-var d = byGame[name];
-return [
-  name, d.plays, ((d.plays / totalMatches) * 100).toFixed(1) + "%",
-  Number((d.mins / 60).toFixed(1)), d.best !== null ? d.best : "-", d.last
-];
+    var d = byGame[name];
+    return [
+      name, d.plays, ((d.plays / totalMatches) * 100).toFixed(1) + "%",
+      Number((d.mins / 60).toFixed(1)), d.best !== null ? d.best : "-", d.last
+    ];
   });
-  if (rows.length > 0) stSh.getRange(2, 1, rows.length, statsHeaders.length).setValues(rows);
+  if (rows.length > 0) {
+    stSh.getRange(2, 6, rows.length, 1).setNumberFormat("@");
+    stSh.getRange(2, 1, rows.length, statsHeaders.length).setValues(rows);
+  }
 }
 `;
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v7 (PWA estática sin Tailwind CDN)
-const CACHE_NAME = 'ludoteca-offline-v7';
+  return `// Ludoteca — Service Worker Offline v9 (PWA estática sin Tailwind CDN)
+const CACHE_NAME = 'ludoteca-offline-v9';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -6336,48 +6460,23 @@ function buildHistoryDynamicHtml() {
         <div class="flex">
           <div class="w-1.5 shrink-0" style="background: linear-gradient(180deg, ${g.color}, ${g.color2 || g.color});"></div>
           <div class="flex-1 p-4 min-w-0">
-            <div class="flex items-start justify-between gap-2">
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border" style="background:${g.color}14; border-color:${g.color}28; color:${g.color};">
-                  ${gameIconSvg(g.icon, 'w-5 h-5')}
-                </div>
-                <div class="min-w-0">
-                  <div class="flex flex-wrap items-center gap-1.5">
-                    <h3 class="font-display text-[15px] font-extrabold text-ink dark:text-white truncate">${esc(m.gameName)}</h3>
+            <!-- Cabecera a ancho completo -->
+            <div class="flex items-start gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border" style="background:${g.color}14; border-color:${g.color}28; color:${g.color};">
+                ${gameIconSvg(g.icon, 'w-5 h-5')}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <h3 class="font-display text-[15px] font-extrabold text-ink dark:text-white leading-tight">${esc(m.gameName)}</h3>
+                  <div class="flex items-center gap-1 shrink-0">
                     ${m.topScore !== null ? `<span class="px-2 py-0.5 rounded-lg bg-amber-500/14 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-[11px] font-extrabold tabular-nums">${m.topScore} pts</span>` : ''}
                     ${m.pendingSync ? `<span class="px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-[9.5px] font-extrabold uppercase tracking-wider">Pendiente</span>` : ''}
                   </div>
-                  <p class="text-[11px] font-medium text-inkMuted dark:text-white/55 mt-0.5">
-                    ${esc(formatDisplayDate(m.date, m.createdAtMs))}${m.duration ? ` · ${m.duration} min` : ''}${m.extraLabel ? ` · ${esc(m.extraLabel)}` : ''}
-                  </p>
                 </div>
-              </div>
-
-              <div class="flex items-center gap-0.5 shrink-0">
-                <button type="button" data-action="share-match-png" data-id="${esc(m.id)}"
-                  class="btn-tap p-2 rounded-xl text-inkMuted/70 hover:text-blue-600 hover:bg-blue-500/10" title="Exportar tarjeta PNG" aria-label="Compartir PNG">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
-                  </svg>
-                </button>
-                <button type="button" data-action="edit-match" data-id="${esc(m.id)}"
-                  class="btn-tap p-2 rounded-xl text-inkMuted/70 hover:text-amber-600 hover:bg-amber-500/10" title="Editar partida" aria-label="Editar partida">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                  </svg>
-                </button>
-                <button type="button" data-action="rematch-match" data-id="${esc(m.id)}"
-                  class="btn-tap p-2 rounded-xl text-inkMuted/70 hover:text-emeraldBrand hover:bg-emeraldBrand/10" title="Revancha (cargar juego y jugadores)" aria-label="Revancha">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
-                  </svg>
-                </button>
-                <button type="button" data-action="delete-match" data-id="${esc(m.id)}"
-                  class="btn-tap p-2 rounded-xl text-inkMuted/70 hover:text-coralBrand hover:bg-coralBrand/10" aria-label="Eliminar">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                </button>
+                <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-inkMuted dark:text-white/60">
+                  <span class="font-semibold tabular-nums" style="white-space:nowrap;">${esc(formatDisplayDate(m.date, m.createdAtMs))}${m.duration ? ` · ${m.duration} min` : ''}</span>
+                  ${m.extraLabel ? `<span class="px-2 py-0.5 rounded-lg bg-black/[0.045] dark:bg-white/[0.08] text-[10.5px] font-semibold text-inkMuted dark:text-white/70">${esc(m.extraLabel)}</span>` : ''}
+                </div>
               </div>
             </div>
 
@@ -6409,6 +6508,38 @@ function buildHistoryDynamicHtml() {
               </div>
             ` : ''}
             ${m.notes ? `<p class="mt-2.5 text-xs text-inkMuted dark:text-white/60 italic bg-canvas/60 dark:bg-surfaceDarkAlt/60 rounded-xl px-3 py-2 border-l-2 border-emeraldBrand/45">${esc(m.notes)}</p>` : ''}
+
+            <!-- Barra de acciones inferior limpia y espaciosa -->
+            <div class="mt-3 pt-2.5 border-t border-black/[0.05] dark:border-white/[0.06] grid grid-cols-4 gap-1.5">
+              <button type="button" data-action="share-match-png" data-id="${esc(m.id)}"
+                class="btn-tap py-1.5 px-1.5 rounded-xl bg-canvas/75 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.07] text-inkMuted dark:text-white/70 hover:text-blue-600 hover:bg-blue-500/10 inline-flex items-center justify-center gap-1 text-[10.5px] font-bold" title="Exportar tarjeta PNG" aria-label="Compartir PNG">
+                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+                </svg>
+                <span>PNG</span>
+              </button>
+              <button type="button" data-action="edit-match" data-id="${esc(m.id)}"
+                class="btn-tap py-1.5 px-1.5 rounded-xl bg-canvas/75 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.07] text-inkMuted dark:text-white/70 hover:text-amber-600 hover:bg-amber-500/10 inline-flex items-center justify-center gap-1 text-[10.5px] font-bold" title="Editar partida" aria-label="Editar partida">
+                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                </svg>
+                <span>Editar</span>
+              </button>
+              <button type="button" data-action="rematch-match" data-id="${esc(m.id)}"
+                class="btn-tap py-1.5 px-1.5 rounded-xl bg-canvas/75 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.07] text-inkMuted dark:text-white/70 hover:text-emeraldBrand hover:bg-emeraldBrand/10 inline-flex items-center justify-center gap-1 text-[10.5px] font-bold" title="Revancha (cargar juego y jugadores)" aria-label="Revancha">
+                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+                </svg>
+                <span>Repetir</span>
+              </button>
+              <button type="button" data-action="delete-match" data-id="${esc(m.id)}"
+                class="btn-tap py-1.5 px-1.5 rounded-xl bg-canvas/75 dark:bg-surfaceDarkAlt border border-black/[0.05] dark:border-white/[0.07] text-inkMuted dark:text-white/70 hover:text-coralBrand hover:bg-coralBrand/10 inline-flex items-center justify-center gap-1 text-[10.5px] font-bold" title="Eliminar partida" aria-label="Eliminar">
+                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                <span>Borrar</span>
+              </button>
+            </div>
           </div>
         </div>
       </article>
@@ -9899,7 +10030,7 @@ function renderShelfTab() {
             <div class="flex items-center gap-1">
               ${g.rating ? `
                 <span class="px-2 py-1 rounded-full bg-amber-400/24 border border-amber-300/35 text-[10.5px] font-extrabold text-amber-100 tabular-nums">
-                  ★ ${Number(g.rating).toFixed(1).replace(/\.0$/, '')}
+                  ★ ${formatStarRating(g.rating)}
                 </span>
               ` : ''}
               <span class="px-2.5 py-1 rounded-full bg-black/24 border border-white/15 text-[11px] font-extrabold tabular-nums">
@@ -10048,7 +10179,7 @@ function renderShelfTab() {
 }
 
 // -------------------------------------------------------------------------
-// FICHA DE REGLAS, SETUP Y VALORACIÓN PERSONAL (1–10) POR JUEGO
+// FICHA DE REGLAS, SETUP Y VALORACIÓN PERSONAL (1–5 ESTRELLAS) POR JUEGO
 // -------------------------------------------------------------------------
 function formatRulesNotesHtml(notesText) {
   const lines = String(notesText || '').split('\n').map((l) => l.trim()).filter(Boolean);
@@ -10080,7 +10211,7 @@ function openGameSheetModal(gameId) {
   const g = games.find((x) => x.id === gameId);
   if (!g) return;
 
-  let tempRating = g.rating ? Number(g.rating) : 0;
+  let tempRating = normalizeStarRating(g.rating);
   let tempNotes = g.rulesNotes !== undefined ? String(g.rulesNotes) : (DEFAULT_RULES_NOTES[g.id] || '');
   let tempFav = Boolean(g.favorite);
   let editingRules = !tempNotes.trim();
@@ -10089,7 +10220,6 @@ function openGameSheetModal(gameId) {
   const daysSince = getDaysSinceLastPlay(g.id);
 
   const renderSheet = () => {
-    const ratingButtons = [5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
     const bodyHtml = `
       <div class="space-y-4">
         <!-- Portada compacta -->
@@ -10142,25 +10272,42 @@ function openGameSheetModal(gameId) {
           `}
         </div>
 
-        <!-- Valoración personal 1–10 -->
+        <!-- Valoración personal (1–5 estrellas con medias estrellas) -->
         <div class="p-3.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2.5">
           <div class="flex items-center justify-between gap-2">
             <span class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Tu valoración personal</span>
-            <div class="flex items-center gap-1.5">
-              <span class="font-display text-sm font-extrabold tabular-nums ${tempRating ? 'text-goldBrand' : 'text-inkMuted'}">${tempRating ? `★ ${tempRating.toFixed(1).replace(/\.0$/, '')} / 10` : 'Sin nota'}</span>
+            <div class="flex items-center gap-2">
+              <span class="font-display text-sm font-extrabold tabular-nums ${tempRating ? 'text-goldBrand' : 'text-inkMuted'}">${tempRating ? `★ ${formatStarRating(tempRating)} / 5` : 'Sin nota'}</span>
               ${tempRating ? `<button type="button" data-gs="set-rating" data-val="0" class="btn-tap text-[11px] font-bold text-coralBrand">Quitar</button>` : ''}
             </div>
           </div>
-          <div class="grid grid-cols-5 gap-1.5">
-            ${ratingButtons.map((val) => `
-              <button type="button" data-gs="set-rating" data-val="${val}"
-                class="btn-tap h-8 rounded-xl text-xs font-extrabold tabular-nums border ${
-                  tempRating === val
-                    ? 'bg-goldBrand text-white border-goldBrand shadow-xs'
-                    : 'bg-canvas dark:bg-surfaceDark text-ink dark:text-white/80 border-black/[0.07] dark:border-white/10'
-                }">${val}</button>
-            `).join('')}
+
+          <div class="flex items-center justify-between gap-1.5 py-1">
+            <button type="button" data-gs="step-rating" data-delta="-0.5" ${tempRating <= 1 ? 'disabled' : ''}
+              class="btn-tap w-9 h-9 rounded-xl bg-canvas dark:bg-surfaceDark border border-black/[0.07] dark:border-white/10 text-xs font-extrabold text-ink dark:text-white disabled:opacity-35 shrink-0"
+              aria-label="Restar media estrella">−½</button>
+
+            <div class="flex items-center justify-center gap-1 flex-1">
+              ${[1, 2, 3, 4, 5].map((n) => {
+                const st = tempRating >= n ? 'full' : (tempRating >= n - 0.5 ? 'half' : 'empty');
+                return `
+                  <button type="button" data-gs="tap-star" data-star="${n}"
+                    class="btn-tap w-10 h-10 rounded-xl flex items-center justify-center"
+                    aria-label="${n} ${n === 1 ? 'estrella' : 'estrellas'}">
+                    ${renderStarSvg(st, `${g.id}_${n}`)}
+                  </button>
+                `;
+              }).join('')}
+            </div>
+
+            <button type="button" data-gs="step-rating" data-delta="0.5" ${tempRating >= 5 ? 'disabled' : ''}
+              class="btn-tap w-9 h-9 rounded-xl bg-canvas dark:bg-surfaceDark border border-black/[0.07] dark:border-white/10 text-xs font-extrabold text-ink dark:text-white disabled:opacity-35 shrink-0"
+              aria-label="Sumar media estrella">+½</button>
           </div>
+
+          <p class="text-[10.5px] text-center text-inkMuted dark:text-white/50">
+            Toca una estrella (repítela para media ★) o ajusta con −½ / +½
+          </p>
         </div>
       </div>
     `;
@@ -10203,6 +10350,22 @@ function openGameSheetModal(gameId) {
         renderSheet();
       } else if (act === 'set-rating') {
         tempRating = Number(el.dataset.val) || 0;
+        renderSheet();
+      } else if (act === 'tap-star') {
+        const star = Number(el.dataset.star) || 1;
+        if (star === 1) {
+          tempRating = 1;
+        } else {
+          tempRating = tempRating === star ? (star - 0.5) : star;
+        }
+        renderSheet();
+      } else if (act === 'step-rating') {
+        const delta = Number(el.dataset.delta) || 0;
+        if (tempRating === 0) {
+          tempRating = delta > 0 ? 1 : 0;
+        } else {
+          tempRating = Math.min(5, Math.max(1, Math.round((tempRating + delta) * 2) / 2));
+        }
         renderSheet();
       } else if (act === 'toggle-edit-rules') {
         const ta = document.getElementById('gs-rules-textarea');
