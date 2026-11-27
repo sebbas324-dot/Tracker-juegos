@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v2.7';
+const APP_VERSION = 'v2.8';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -2093,6 +2093,34 @@ function getPlayerColor(name) {
   return getPlayerProfile(name).color;
 }
 
+const PLAYER_DARK_SURFACE_COLORS = {
+  '#227554': '#34D399',
+  '#d48a17': '#FBBF24',
+  '#2563eb': '#60A5FA',
+  '#d04e36': '#F87171',
+  '#7c3aed': '#A78BFA',
+  '#0d9488': '#2DD4BF',
+  '#e11d48': '#FB7185',
+  '#0284c7': '#38BDF8',
+  '#a21caf': '#E879F9',
+  '#65a30d': '#A3E635',
+  '#ea580c': '#FB923C',
+  '#475569': '#CBD5E1',
+};
+
+function getPlayerColorOnDark(name) {
+  const hex = String(getPlayerColor(name) || '#34D399').trim().toLowerCase();
+  if (PLAYER_DARK_SURFACE_COLORS[hex]) return PLAYER_DARK_SURFACE_COLORS[hex];
+  const m = hex.match(/^#([0-9a-f]{6})$/);
+  if (!m) return hex;
+  const r = parseInt(m[1].slice(0, 2), 16);
+  const g = parseInt(m[1].slice(2, 4), 16);
+  const b = parseInt(m[1].slice(4, 6), 16);
+  // Mezcla suave hacia blanco para garantizar contraste nítido sobre fondos oscuros
+  const lift = (c) => Math.min(255, Math.round(c + (255 - c) * 0.42));
+  return `rgb(${lift(r)}, ${lift(g)}, ${lift(b)})`;
+}
+
 function renderPlayerAvatarHtml(name, sizeClass = 'w-6 h-6 text-[10px]') {
   const prof = getPlayerProfile(name);
   return `<span class="${sizeClass} rounded-full inline-flex items-center justify-center font-display font-extrabold text-white shrink-0 shadow-2xs select-none" style="background:${prof.color};" title="${esc(prof.name)}">${esc(prof.initials)}</span>`;
@@ -3543,8 +3571,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v27 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v27';
+  return `// Ludoteca — Service Worker Offline v28 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v28';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -9297,6 +9325,8 @@ function computeVsDuelSummary(subset, pCtx) {
 
 function renderVsDuelCardHtml(vs, pCtx, gameObj) {
   const isTogether = pCtx.vsScope === 'together';
+  const colorAOnDark = getPlayerColorOnDark(pCtx.playerA);
+  const colorBOnDark = getPlayerColorOnDark(pCtx.playerB);
   const onlyCoop = (isTogether ? vs.sharedCompPlays === 0 : (vs.playsA === 0 && vs.playsB === 0)) && vs.coopShared > 0;
   const scoreLeft = isTogether ? vs.winsA : vs.totalWinsA;
   const scoreRight = isTogether ? vs.winsB : vs.totalWinsB;
@@ -9372,9 +9402,9 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
               <span class="text-white/35 text-sm">/</span>
               <span class="text-white">${vs.coopShared}</span>
             ` : `
-              <span class="${scoreLeft >= scoreRight && scoreLeft > 0 ? 'text-emerald-300' : 'text-white'}">${scoreLeft}</span>
+              <span style="color:${colorAOnDark};">${scoreLeft}</span>
               <span class="text-white/35 text-sm">–</span>
-              <span class="${scoreRight >= scoreLeft && scoreRight > 0 ? 'text-amber-300' : 'text-white'}">${scoreRight}</span>
+              <span style="color:${colorBOnDark};">${scoreRight}</span>
             `}
           </div>
           <div class="text-[9px] font-bold uppercase tracking-wider text-white/55 mt-0.5 text-center">${onlyCoop ? 'Equipo' : (isTogether ? 'Duelos' : 'Victorias')}</div>
@@ -9401,9 +9431,9 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
           `}
         </div>
         <div class="mt-2 flex items-center justify-between gap-2 text-[10.5px] text-white/70">
-          <span class="tabular-nums font-bold text-emerald-200 shrink-0">${pctA}%</span>
+          <span class="tabular-nums font-bold shrink-0" style="${onlyCoop ? 'color:#A7F3D0;' : `color:${colorAOnDark};`}">${pctA}%</span>
           <span class="flex-1 text-center leading-tight">${footerNote}</span>
-          <span class="tabular-nums font-bold text-amber-200 shrink-0">${onlyCoop ? 'Éxito' : `${pctB}%`}</span>
+          <span class="tabular-nums font-bold shrink-0" style="${onlyCoop ? 'color:#FDE68A;' : `color:${colorBOnDark};`}">${onlyCoop ? 'Éxito' : `${pctB}%`}</span>
         </div>
       </div>
     </div>
@@ -10684,7 +10714,7 @@ function renderStatsTab() {
             ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
           </span>
         </div>
-        <div class="font-display text-2xl font-extrabold text-emeraldBrand dark:text-emerald-400 tabular-nums mt-1.5 leading-none">${st0.winRate}%</div>
+        <div class="font-display text-2xl font-extrabold text-violet-600 dark:text-violet-400 tabular-nums mt-1.5 leading-none">${st0.winRate}%</div>
         <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate tabular-nums">${esc(line1)}</div>
         ${showSecondKpiLine && line2 ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5 tabular-nums">${esc(line2)}</div>` : ''}
       </div>
@@ -10706,7 +10736,7 @@ function renderStatsTab() {
             ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
           </span>
         </div>
-        <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${vsSummary.sharedPlays}</div>
+        <div class="font-display text-2xl font-extrabold text-violet-600 dark:text-violet-400 tabular-nums mt-1.5 leading-none">${vsSummary.sharedPlays}</div>
         <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate tabular-nums">${esc(line1)}</div>
         ${showSecondKpiLine && line2 ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5 tabular-nums">${esc(line2)}</div>` : ''}
       </div>
@@ -10726,7 +10756,7 @@ function renderStatsTab() {
             ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
           </span>
         </div>
-        <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${leaderboard.length}</div>
+        <div class="font-display text-2xl font-extrabold text-violet-600 dark:text-violet-400 tabular-nums mt-1.5 leading-none">${leaderboard.length}</div>
         <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${leader ? `Líder: ${esc(leader.name)}` : '—'}</div>
         ${showSecondKpiLine && line2 ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5 tabular-nums">${esc(line2)}</div>` : ''}
       </div>
@@ -10853,8 +10883,8 @@ function renderStatsTab() {
             ${gameIconSvg('dice', 'w-3.5 h-3.5')}
           </span>
         </div>
-        <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${totalPlays}</div>
-        <div class="text-[11px] text-emeraldBrand dark:text-emerald-400 font-semibold mt-1 truncate">${selectedGameObj ? `Media ${Math.round(totalMins / Math.max(1, totalPlays))} min` : `${playedGameIds.length} ${playedGameIds.length === 1 ? 'juego' : 'juegos'}`}</div>
+        <div class="font-display text-2xl font-extrabold text-emeraldBrand dark:text-emerald-400 tabular-nums mt-1.5 leading-none">${totalPlays}</div>
+        <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${selectedGameObj ? `Media ${Math.round(totalMins / Math.max(1, totalPlays))} min` : `${playedGameIds.length} ${playedGameIds.length === 1 ? 'juego' : 'juegos'}`}</div>
       </div>
 
       <div class="card-pro kpi-card-blue p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
@@ -10864,7 +10894,7 @@ function renderStatsTab() {
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
           </span>
         </div>
-        <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${totalHours}<span class="text-sm font-bold ml-0.5 text-inkMuted">h</span></div>
+        <div class="font-display text-2xl font-extrabold text-blue-600 dark:text-blue-400 tabular-nums mt-1.5 leading-none">${totalHours}<span class="text-sm font-bold ml-0.5 opacity-75">h</span></div>
         <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1">${totalMins} min totales</div>
       </div>
 
@@ -10877,7 +10907,7 @@ function renderStatsTab() {
             ${gameIconSvg('crown', 'w-3.5 h-3.5')}
           </span>
         </div>
-        <div class="font-display ${recordEntry?.isSpecial ? 'text-xl' : 'text-2xl'} font-extrabold text-goldBrand tabular-nums mt-1.5 leading-none truncate" style="min-height:1.5rem; display:flex; align-items:flex-end;">${recordEntry ? (recordEntry.isSpecial ? esc(recordEntry.display) : recordEntry.score) : '—'}</div>
+        <div class="font-display ${recordEntry?.isSpecial ? 'text-xl' : 'text-2xl'} font-extrabold text-goldBrand dark:text-amber-400 tabular-nums mt-1.5 leading-none truncate" style="min-height:1.5rem; display:flex; align-items:flex-end;">${recordEntry ? (recordEntry.isSpecial ? esc(recordEntry.display) : recordEntry.score) : '—'}</div>
         <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${recordEntry ? esc(recordEntry.player) : 'Sin puntos'}</div>
         ${recordSecondLine ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5 tabular-nums">${esc(recordSecondLine)}</div>` : ''}
       </div>
