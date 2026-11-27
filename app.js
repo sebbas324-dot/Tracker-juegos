@@ -3142,16 +3142,16 @@ function checkPin(pin) {
 
 function normalizeDisplayDate(raw) {
   var s = String(raw || "").trim();
-  var iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  var iso = s.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})/);
   if (iso) {
     return iso[1] + "-" + ("0" + iso[2]).slice(-2) + "-" + ("0" + iso[3]).slice(-2);
   }
-  var es = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  var es = s.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})/);
   if (es) {
     return es[3] + "-" + ("0" + es[2]).slice(-2) + "-" + ("0" + es[1]).slice(-2);
   }
   var months = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-  var txt = s.toLowerCase().match(/^(\d{1,2})\s+([a-z]{3})\.?\s+(\d{4})/);
+  var txt = s.toLowerCase().match(/^(\\d{1,2})\\s+([a-z]{3})\\.?\\s+(\\d{4})/);
   if (txt) {
     var mi = months.indexOf(txt[2]);
     if (mi >= 0) {
