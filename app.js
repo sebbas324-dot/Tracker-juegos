@@ -3492,8 +3492,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v16 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v16';
+  return `// Ludoteca — Service Worker Offline v17 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v17';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -3752,6 +3752,18 @@ async function syncFromSheets({ silent = false } = {}) {
   }
   if (uiState.activeTab === 'history') renderHistoryTab();
 
+  const computeStateFingerprint = () => {
+    try {
+      const mSig = matchHistory.map((m) => `${m.id}|${m.date}|${m.duration}|${m.topScore}|${m.winnerLabel}|${(m.players || []).length}|${m.pendingSync ? 1 : 0}`).join(';');
+      const gSig = games.map((g) => `${g.id}|${g.name}|${JSON.stringify(g.ratingsByPlayer || {})}|${JSON.stringify(g.favoritesByPlayer || {})}|${g.rulesUpdatedAt || 0}|${g.metaUpdatedAt || 0}`).join(';');
+      const pSig = JSON.stringify(playerProfiles || {});
+      return `${mSig}##${gSig}##${pSig}`;
+    } catch (e) {
+      return String(Date.now());
+    }
+  };
+  const beforeSyncFp = computeStateFingerprint();
+
   try {
     // Paso 1: Empuja primero la cola offline antes de descargar para no perder nunca cambios locales
     const flushStats = await flushOfflineQueue();
@@ -3795,10 +3807,14 @@ async function syncFromSheets({ silent = false } = {}) {
 
     renderSyncBadge();
     updateNavBadge();
+    const afterSyncFp = computeStateFingerprint();
+    const dataActuallyChanged = afterSyncFp !== beforeSyncFp;
     const isTypingNow = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName);
     const modalOpenNow = !document.getElementById('modal-backdrop')?.classList.contains('hidden');
-    if (!(silent && (isTypingNow || modalOpenNow))) {
-      renderActiveTab();
+    if (dataActuallyChanged || !silent) {
+      if (!(silent && (isTypingNow || modalOpenNow))) {
+        renderActiveTab();
+      }
     }
 
     if (flushStats.uploaded > 0 || flushStats.deleted > 0) {
@@ -4350,20 +4366,26 @@ function renderLogTab() {
       >
         ${active ? `<div class="cover-watermark">${gameIconSvg(g.icon, 'w-14 h-14')}</div>` : ''}
         <div class="flex items-center justify-between gap-1 relative z-10">
-          <div class="w-8 h-8 rounded-xl flex items-center justify-center ${active ? 'bg-white/20 border border-white/20 text-white' : ''}"
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${active ? 'bg-white/20 border border-white/20 text-white' : ''}"
             style="${!active ? `background:${g.color}16; color:${g.color}; box-shadow: inset 0 0 0 1px ${g.color}24;` : ''}">
             ${gameIconSvg(g.icon, 'w-4 h-4')}
           </div>
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1 shrink-0">
+            ${g.quickCalc ? `
+              <span class="w-5 h-5 rounded-md inline-flex items-center justify-center ${active ? 'bg-white/20 text-white' : 'bg-emeraldBrand/10 text-emeraldBrand dark:text-emerald-300'}" title="Incluye marcador en vivo" aria-label="Marcador en vivo">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="4" y="2.5" width="16" height="19" rx="2.5"/><line x1="8" y1="7" x2="16" y2="7"/><circle cx="8.5" cy="12" r="0.8" fill="currentColor"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/><circle cx="15.5" cy="12" r="0.8" fill="currentColor"/><circle cx="8.5" cy="16.5" r="0.8" fill="currentColor"/><circle cx="12" cy="16.5" r="0.8" fill="currentColor"/><circle cx="15.5" cy="16.5" r="0.8" fill="currentColor"/>
+                </svg>
+              </span>
+            ` : ''}
             ${isGameFavoriteFor(g, activeShelfProf.key) ? `<span class="text-[11px] leading-none ${active ? 'text-amber-300' : 'text-goldBrand'}" title="Favorito (${esc(activeShelfProf.name)})">★</span>` : ''}
             ${pCount > 0 ? `
               <span class="text-[10px] font-extrabold tabular-nums px-1.5 py-0.5 rounded-md ${active ? 'bg-black/22 text-white' : 'bg-black/[0.045] dark:bg-white/[0.08] text-inkMuted dark:text-white/55'}">${pCount}</span>
             ` : ''}
           </div>
         </div>
-        <div class="relative z-10">
+        <div class="relative z-10 min-h-[2.4em] flex items-end">
           <div class="font-display text-[11.5px] font-extrabold leading-tight line-clamp-2">${esc(g.name)}</div>
-          ${g.quickCalc ? `<span class="mt-1 inline-flex items-center gap-1 text-[8.5px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${active ? 'bg-white/22 text-white' : 'bg-emeraldBrand/10 text-emeraldBrand dark:text-emerald-300'}">En vivo</span>` : ''}
         </div>
       </button>
     `;
@@ -10261,14 +10283,17 @@ function renderStatsTab() {
       </div>
 
       <div class="flex flex-col sm:flex-row items-center gap-5">
-        <div class="relative w-[176px] h-[176px] shrink-0">
+        <div class="relative w-[196px] h-[196px] shrink-0">
           <canvas id="chart-games-donut"></canvas>
-          <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+          <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center px-6">
             <span id="donut-center-val" class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums leading-none">
               ${uiState.statsDonutMode === 'hours' ? `${totalHours}h` : totalPlays}
             </span>
-            <span id="donut-center-lbl" class="text-[10px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55 mt-0.5 truncate w-full">
+            <span id="donut-center-lbl" class="text-[10px] font-extrabold text-ink dark:text-white/90 mt-1 leading-tight line-clamp-2 w-full">
               ${uiState.statsDonutMode === 'hours' ? 'en mesa' : 'partidas'}
+            </span>
+            <span id="donut-center-sub" class="text-[9.5px] font-semibold text-inkMuted dark:text-white/55 mt-0.5 tabular-nums truncate w-full">
+              ${playedGameIds.length} ${playedGameIds.length === 1 ? 'juego' : 'juegos'}
             </span>
           </div>
         </div>
@@ -10558,7 +10583,7 @@ function renderStatsTab() {
       ? `Fuerte: ${st0.topWonGame}`
       : (st0.favGame ? `Más jugado: ${st0.favGame}` : '');
     return `
-      <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+      <div class="card-pro kpi-card-violet p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
         <div class="flex items-center justify-between gap-1">
           <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Victorias</span>
           <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
@@ -10580,7 +10605,7 @@ function renderStatsTab() {
         ? `${vsSummary.ties} ${vsSummary.ties === 1 ? 'empate' : 'empates'}`
         : (vsSummary.topSharedGame ? `Top: ${vsSummary.topSharedGame}` : ''));
     return `
-      <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+      <div class="card-pro kpi-card-violet p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
         <div class="flex items-center justify-between gap-1">
           <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Juntos</span>
           <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
@@ -10596,7 +10621,7 @@ function renderStatsTab() {
     const leader = leaderboard[0];
     const line2 = leader ? `${leader.wins}V · ${leader.winRate}% éxito` : '';
     return `
-      <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+      <div class="card-pro kpi-card-violet p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
         <div class="flex items-center justify-between gap-1">
           <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Jugadores</span>
           <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
@@ -10718,7 +10743,7 @@ function renderStatsTab() {
         <div class="text-[11px] text-emeraldBrand dark:text-emerald-400 font-semibold mt-1">${playedGameIds.length} ${playedGameIds.length === 1 ? 'juego' : 'juegos'}</div>
       </div>
 
-      <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+      <div class="card-pro kpi-card-blue p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
         <div class="flex items-center justify-between gap-1">
           <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">En mesa</span>
           <span class="w-7 h-7 rounded-xl bg-blue-500/12 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
@@ -10843,16 +10868,19 @@ function mountStatsCharts({ sortedGamesData, chronologicalScored, recentPointsGa
     bodyFont: { family: 'Inter, sans-serif', size: 12 },
   };
 
-  // 1. Donut de juegos (anillo 100% continuo con sincronización interactiva con leyenda)
+  // 1. Donut de juegos (anillo 100% circular sin tooltip superpuesto; detalle integrado en el centro)
   const donutCanvas = document.getElementById('chart-games-donut');
   if (donutCanvas && sortedGamesData.length > 0) {
     const isHours = uiState.statsDonutMode === 'hours';
     const donutValues = sortedGamesData.map((d) => (isHours ? d.hours : d.count));
     const activeSlices = donutValues.filter((v) => v > 0).length;
+    const baseColors = sortedGamesData.map((d) => d.game.color);
     const centerValEl = document.getElementById('donut-center-val');
     const centerLblEl = document.getElementById('donut-center-lbl');
+    const centerSubEl = document.getElementById('donut-center-sub');
     const defaultCenterVal = centerValEl ? centerValEl.textContent.trim() : '';
     const defaultCenterLbl = centerLblEl ? centerLblEl.textContent.trim() : '';
+    const defaultCenterSub = centerSubEl ? centerSubEl.textContent.trim() : '';
     let selectedDonutIdx = -1;
 
     const applyDonutSelection = (idx, chartRef) => {
@@ -10865,17 +10893,26 @@ function mountStatsCharts({ sortedGamesData, chronologicalScored, recentPointsGa
           const it = sortedGamesData[selectedDonutIdx];
           centerValEl.textContent = isHours ? `${it.hours}h` : `${it.pct}%`;
           centerLblEl.textContent = it.game.name;
+          if (centerSubEl) {
+            centerSubEl.textContent = isHours
+              ? `${it.count} ${it.count === 1 ? 'partida' : 'partidas'} · ${it.pct}%`
+              : `${it.count} ${it.count === 1 ? 'partida' : 'partidas'}`;
+          }
         } else {
           centerValEl.textContent = defaultCenterVal;
           centerLblEl.textContent = defaultCenterLbl;
+          if (centerSubEl) centerSubEl.textContent = defaultCenterSub;
         }
       }
       if (chartRef) {
-        const activeArr = selectedDonutIdx >= 0 ? [{ datasetIndex: 0, index: selectedDonutIdx }] : [];
-        chartRef.setActiveElements(activeArr);
-        if (chartRef.tooltip && chartRef.tooltip.setActiveElements) {
-          chartRef.tooltip.setActiveElements(activeArr, { x: 0, y: 0 });
-        }
+        const ds = chartRef.data.datasets[0];
+        ds.backgroundColor = selectedDonutIdx >= 0
+          ? baseColors.map((col, i) => (i === selectedDonutIdx ? col : `${col}42`))
+          : [...baseColors];
+        ds.offset = selectedDonutIdx >= 0 && activeSlices > 1
+          ? baseColors.map((_, i) => (i === selectedDonutIdx ? 5 : 0))
+          : 0;
+        chartRef.setActiveElements(selectedDonutIdx >= 0 ? [{ datasetIndex: 0, index: selectedDonutIdx }] : []);
         chartRef.update('none');
       }
     };
@@ -10886,18 +10923,21 @@ function mountStatsCharts({ sortedGamesData, chronologicalScored, recentPointsGa
         labels: sortedGamesData.map((d) => d.game.name),
         datasets: [{
           data: donutValues,
-          backgroundColor: sortedGamesData.map((d) => d.game.color),
+          backgroundColor: [...baseColors],
           borderColor: 'transparent',
           borderWidth: 0,
           hoverBorderWidth: 0,
           spacing: 0,
-          hoverOffset: activeSlices > 1 ? 6 : 0,
+          offset: 0,
+          hoverOffset: 0,
         }],
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false,
-        cutout: '68%',
+        maintainAspectRatio: true,
+        aspectRatio: 1,
+        layout: { padding: 8 },
+        cutout: '70%',
         onClick: (evt, elems) => {
           if (elems && elems.length > 0) {
             applyDonutSelection(elems[0].index, ch);
@@ -10907,17 +10947,7 @@ function mountStatsCharts({ sortedGamesData, chronologicalScored, recentPointsGa
         },
         plugins: {
           legend: { display: false },
-          tooltip: {
-            ...commonTooltip,
-            callbacks: {
-              label: (ctx) => {
-                const item = sortedGamesData[ctx.dataIndex];
-                return isHours
-                  ? ` ${item.hours} h (${item.count} ${item.count === 1 ? 'partida' : 'partidas'})`
-                  : ` ${item.count} ${item.count === 1 ? 'partida' : 'partidas'} (${item.pct}%)`;
-              },
-            },
-          },
+          tooltip: { enabled: false },
         },
       },
     });
@@ -12923,8 +12953,10 @@ function bindGlobalEvents() {
     card.addEventListener('touchcancel', finishDrag, { passive: true });
   })();
 
+  let segResizeTimer = null;
   window.addEventListener('resize', () => {
-    requestAnimationFrame(syncSegmentedControls);
+    clearTimeout(segResizeTimer);
+    segResizeTimer = setTimeout(() => requestAnimationFrame(syncSegmentedControls), 140);
   });
 
   document.addEventListener('keydown', (e) => {
