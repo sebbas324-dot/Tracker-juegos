@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v2.2';
+const APP_VERSION = 'v2.3';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -3543,8 +3543,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v22 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v22';
+  return `// Ludoteca — Service Worker Offline v23 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v23';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -11616,34 +11616,44 @@ function renderShelfTab() {
     )
     .slice(0, 3);
 
+  const ratedTotal = enriched.filter((x) => x.rating > 0).length;
+  const playedTotal = enriched.filter((x) => x.playCount > 0).length;
+
   const miniTop3Html = top3Rated.length > 0 ? `
-    <div class="card-pro rounded-2xl px-2.5 py-1.5 flex-1 min-w-0" style="max-width: 224px;">
-      <div class="flex flex-col" style="gap: 3px;">
-        ${top3Rated.map((item, idx) => {
-          const medalCls = idx === 0
-            ? 'bg-gradient-to-br from-amber-300 to-amber-500 text-[#142620]'
-            : idx === 1
-              ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900'
-              : 'bg-gradient-to-br from-amber-600 to-amber-800 text-amber-50';
-          return `
-            <button type="button" data-action="open-game-sheet" data-game-id="${esc(item.g.id)}"
-              class="btn-tap w-full flex items-center justify-between gap-1.5 text-left"
-              title="${esc(item.g.name)} · ★ ${item.ratingLabel}">
-              <span class="flex items-center gap-1.5 min-w-0">
-                <span class="w-3.5 h-3.5 rounded-md inline-flex items-center justify-center font-display text-[9px] font-extrabold shrink-0 ${medalCls}">${idx + 1}</span>
-                <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${item.g.color};"></span>
-                <span class="text-[10.5px] font-bold text-ink dark:text-white truncate leading-tight">${esc(item.g.name)}</span>
+    <div class="shelf-top3-card flex-1 min-w-0" style="max-width: 244px;">
+      <div class="relative z-10 flex items-center justify-between gap-2 px-1 pb-1 mb-1 border-b border-white/10">
+        <span class="inline-flex items-center gap-1 text-[8.5px] font-extrabold uppercase tracking-[0.14em] text-amber-200 leading-none">
+          ${gameIconSvg('crown', 'w-2.5 h-2.5 text-amber-300 shrink-0')}
+          <span>Podio</span>
+        </span>
+        <span class="text-[8.5px] font-bold uppercase tracking-wider text-white/55 truncate leading-none">
+          ${isHome ? 'Media' : esc(activeProfile.name)}
+        </span>
+      </div>
+      <div class="flex flex-col" style="gap: 2.5px;">
+        ${top3Rated.map((item, idx) => `
+          <button type="button" data-action="open-game-sheet" data-game-id="${esc(item.g.id)}"
+            class="shelf-top3-row btn-tap ${idx === 0 ? 'is-first' : ''}"
+            title="${esc(item.g.name)} · ★ ${item.ratingLabel}">
+            <span class="flex items-center gap-1 min-w-0">
+              <span class="shelf-top3-rank is-${idx + 1}">${idx + 1}</span>
+              <span class="shelf-top3-icon" style="background: linear-gradient(145deg, ${item.g.color}, ${item.g.color2 || item.g.color});">
+                ${gameIconSvg(item.g.icon, 'w-2.5 h-2.5')}
               </span>
-              <span class="text-[10px] font-extrabold text-goldBrand tabular-nums shrink-0 leading-none">★${item.ratingLabel}</span>
-            </button>
-          `;
-        }).join('')}
+              <span class="text-[10.5px] ${idx === 0 ? 'font-extrabold text-white' : 'font-semibold text-white/85'} truncate leading-tight">${esc(item.g.name)}</span>
+            </span>
+            <span class="shelf-top3-score ${idx === 0 ? 'is-first' : ''}">★${item.ratingLabel}</span>
+          </button>
+        `).join('')}
       </div>
     </div>
   ` : `
-    <div class="card-pro rounded-2xl px-3 py-2 text-right shrink-0">
-      <div class="text-[9.5px] font-extrabold uppercase tracking-wider text-goldBrand leading-none">Top 3</div>
-      <div class="text-[10.5px] font-medium text-inkMuted dark:text-white/55 mt-1 leading-tight">Sin notas aún</div>
+    <div class="shelf-top3-card px-3 py-2 text-right shrink-0">
+      <div class="relative z-10 inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-[0.14em] text-amber-200 leading-none">
+        ${gameIconSvg('crown', 'w-2.5 h-2.5 text-amber-300 shrink-0')}
+        <span>Podio</span>
+      </div>
+      <div class="relative z-10 text-[10.5px] font-medium text-white/60 mt-1 leading-tight">Sin notas aún</div>
     </div>
   `;
 
@@ -11652,6 +11662,7 @@ function renderShelfTab() {
       <div class="min-w-0 shrink-0">
         <h2 class="font-display text-base font-extrabold text-ink dark:text-white leading-tight">Tu Ludoteca (${games.length})</h2>
         <p class="text-xs text-inkMuted dark:text-white/55 mt-0.5 truncate">${isHome ? 'Promedio general' : `Perfil de <strong class="text-ink dark:text-white">${esc(activeProfile.name)}</strong>`}</p>
+        <p class="text-[10.5px] font-semibold text-emeraldBrand dark:text-emerald-400 mt-1 tabular-nums leading-none">${ratedTotal} ${ratedTotal === 1 ? 'valorado' : 'valorados'} · ${playedTotal} ${playedTotal === 1 ? 'jugado' : 'jugados'}</p>
       </div>
       ${miniTop3Html}
     </div>
