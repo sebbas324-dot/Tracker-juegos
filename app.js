@@ -2834,8 +2834,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v10 (PWA estática sin Tailwind CDN)
-const CACHE_NAME = 'ludoteca-offline-v10';
+  return `// Ludoteca — Service Worker Offline v11 (PWA estática sin Tailwind CDN)
+const CACHE_NAME = 'ludoteca-offline-v11';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -7154,9 +7154,12 @@ function buildRecapCardCanvas({ title, subtitle, matches, playerCtx = null }) {
     ctx.fill();
   });
 
-  // Podio de jugadores
+  // Podio de jugadores (solo partidas competitivas; si solo hay coop, usa coop)
   const pMap = {};
+  const hasCompInRecap = matches.some((m) => getMatchScoringType(m) !== 'coop');
   matches.forEach((m) => {
+    const isCoop = getMatchScoringType(m) === 'coop';
+    if (hasCompInRecap && isCoop) return;
     (m.players || []).forEach((p) => {
       const n = (p.name || '').trim();
       if (!n) return;
@@ -7805,14 +7808,16 @@ function computeAllBadges(sourceMatches = matchHistory, playerCtx = null) {
 
   const isAllowed = (name) => !allowedKeys || allowedKeys.has(normName(name));
 
-  // Helper para determinar si p ganó la partida (o ganó el duelo directo A vs B en modo 'together')
+  // Helper para determinar si p ganó la partida competitiva (o ganó el duelo directo A vs B en modo 'together')
   const didPlayerWinInContext = (m, p) => {
+    if (getMatchScoringType(m) === 'coop') return false;
     if (isDirectDuel) {
       const h2h = evaluateHeadToHeadMatch(m, playerCtx.keyA, playerCtx.keyB);
       if (h2h && h2h.kind === 'duel') {
         const pk = normName(p.name);
         return (h2h.outcome === 'A' && pk === playerCtx.keyA) || (h2h.outcome === 'B' && pk === playerCtx.keyB);
       }
+      return false;
     }
     return Boolean(p.winner);
   };
@@ -7824,6 +7829,7 @@ function computeAllBadges(sourceMatches = matchHistory, playerCtx = null) {
   let bestSingleScore = null;
 
   chronologicalAll.forEach((m) => {
+    const isCoopMatch = getMatchScoringType(m) === 'coop';
     (m.players || []).forEach((p) => {
       const name = (p.name || '').trim();
       if (!name || !isAllowed(name)) return;
@@ -7831,6 +7837,7 @@ function computeAllBadges(sourceMatches = matchHistory, playerCtx = null) {
         gPlayers[name] = {
           name,
           plays: 0,
+          compPlays: 0,
           wins: 0,
           totalPoints: 0,
           scoredPlays: 0,
@@ -7844,14 +7851,17 @@ function computeAllBadges(sourceMatches = matchHistory, playerCtx = null) {
       st.plays += 1;
       st.gamesPlayed.add(m.gameId);
 
-      const wonHere = didPlayerWinInContext(m, p);
-      if (wonHere) {
-        st.wins += 1;
-        st.gamesWon.add(m.gameId);
-        st.curStreak += 1;
-        if (st.curStreak > st.maxStreak) st.maxStreak = st.curStreak;
-      } else {
-        st.curStreak = 0;
+      if (!isCoopMatch) {
+        st.compPlays += 1;
+        const wonHere = didPlayerWinInContext(m, p);
+        if (wonHere) {
+          st.wins += 1;
+          st.gamesWon.add(m.gameId);
+          st.curStreak += 1;
+          if (st.curStreak > st.maxStreak) st.maxStreak = st.curStreak;
+        } else {
+          st.curStreak = 0;
+        }
       }
 
       const matchGameObj = getGameById(m.gameId);
@@ -7932,10 +7942,11 @@ function computeAllBadges(sourceMatches = matchHistory, playerCtx = null) {
     });
   }
 
-  // GLOBAL 4: Mejor porcentaje de victorias
-  const eligibleWinRate = playerStatsList.filter((p) => p.plays >= 2);
-  const winRatePool = eligibleWinRate.length > 0 ? eligibleWinRate : playerStatsList;
-  const bestWinRate = topHolders(winRatePool, (p) => Math.round((p.wins / p.plays) * 100), 1);
+  // GLOBAL 4: Mejor porcentaje de victorias (solo partidas competitivas)
+  const compPool = playerStatsList.filter((p) => p.compPlays > 0);
+  const eligibleWinRate = compPool.filter((p) => p.compPlays >= 2);
+  const winRatePool = eligibleWinRate.length > 0 ? eligibleWinRate : compPool;
+  const bestWinRate = topHolders(winRatePool, (p) => Math.round((p.wins / p.compPlays) * 100), 1);
   if (bestWinRate) {
     globalBadges.push({
       id: 'g_win_rate',
@@ -8261,34 +8272,46 @@ function renderBadgeCardHtml(badge, uid) {
 }
 
 function computeVsDuelSummary(subset, pCtx) {
-  let winsA = 0, winsB = 0, ties = 0, sharedPlays = 0, coopShared = 0;
-  let totalWinsA = 0, totalWinsB = 0, playsA = 0, playsB = 0;
+  let winsA = 0, winsB = 0, ties = 0, sharedPlays = 0, sharedCompPlays = 0, coopShared = 0, coopSharedWins = 0;
+  let totalWinsA = 0, totalWinsB = 0, playsA = 0, playsB = 0, allPlaysA = 0, allPlaysB = 0;
   const scoresA = [], scoresB = [];
   const sharedGamesCount = {};
 
   subset.forEach((m) => {
+    const isCoop = getMatchScoringType(m) === 'coop';
     const pA = (m.players || []).find((p) => normName(p.name) === pCtx.keyA);
     const pB = (m.players || []).find((p) => normName(p.name) === pCtx.keyB);
 
     if (pA) {
-      playsA++;
-      if (pA.winner) totalWinsA++;
+      allPlaysA++;
+      if (!isCoop) {
+        playsA++;
+        if (pA.winner) totalWinsA++;
+      }
       if (pA.score !== null && pA.score !== undefined && !isNaN(pA.score)) scoresA.push(Number(pA.score));
     }
     if (pB) {
-      playsB++;
-      if (pB.winner) totalWinsB++;
+      allPlaysB++;
+      if (!isCoop) {
+        playsB++;
+        if (pB.winner) totalWinsB++;
+      }
       if (pB.score !== null && pB.score !== undefined && !isNaN(pB.score)) scoresB.push(Number(pB.score));
     }
 
     if (pA && pB) {
       sharedPlays++;
-      sharedGamesCount[m.gameName] = (sharedGamesCount[m.gameName] || 0) + 1;
-      const res = evaluateHeadToHeadMatch(m, pCtx.keyA, pCtx.keyB);
-      if (res?.kind === 'coop') coopShared++;
-      else if (res?.outcome === 'A') winsA++;
-      else if (res?.outcome === 'B') winsB++;
-      else if (res?.outcome === 'tie') ties++;
+      if (isCoop) {
+        coopShared++;
+        if (m.meta?.coopWon) coopSharedWins++;
+      } else {
+        sharedCompPlays++;
+        sharedGamesCount[m.gameName] = (sharedGamesCount[m.gameName] || 0) + 1;
+        const res = evaluateHeadToHeadMatch(m, pCtx.keyA, pCtx.keyB);
+        if (res?.outcome === 'A') winsA++;
+        else if (res?.outcome === 'B') winsB++;
+        else if (res?.outcome === 'tie') ties++;
+      }
     }
   });
 
@@ -8297,8 +8320,8 @@ function computeVsDuelSummary(subset, pCtx) {
   const topSharedGame = Object.entries(sharedGamesCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
 
   return {
-    winsA, winsB, ties, sharedPlays, coopShared,
-    totalWinsA, totalWinsB, playsA, playsB,
+    winsA, winsB, ties, sharedPlays, sharedCompPlays, coopShared, coopSharedWins,
+    totalWinsA, totalWinsB, playsA, playsB, allPlaysA, allPlaysB,
     winRateA: playsA > 0 ? Math.round((totalWinsA / playsA) * 100) : 0,
     winRateB: playsB > 0 ? Math.round((totalWinsB / playsB) * 100) : 0,
     avgA, avgB, topSharedGame,
@@ -8307,23 +8330,30 @@ function computeVsDuelSummary(subset, pCtx) {
 
 function renderVsDuelCardHtml(vs, pCtx, gameObj) {
   const isTogether = pCtx.vsScope === 'together';
+  const onlyCoop = (isTogether ? vs.sharedCompPlays === 0 : (vs.playsA === 0 && vs.playsB === 0)) && vs.coopShared > 0;
   const scoreLeft = isTogether ? vs.winsA : vs.totalWinsA;
   const scoreRight = isTogether ? vs.winsB : vs.totalWinsB;
   const denom = scoreLeft + scoreRight;
-  const pctA = denom > 0 ? Math.round((scoreLeft / denom) * 100) : 50;
+  const pctA = onlyCoop ? Math.round((vs.coopSharedWins / Math.max(1, vs.coopShared)) * 100) : (denom > 0 ? Math.round((scoreLeft / denom) * 100) : 50);
   const pctB = 100 - pctA;
 
-  const subLeft = isTogether
-    ? `${vs.sharedPlays} ${vs.sharedPlays === 1 ? 'partida juntos' : 'partidas juntos'}${vs.avgA !== null && gameObj ? ` · Media ${vs.avgA}` : ''}`
-    : `${vs.playsA}P · ${vs.winRateA}% éxito${vs.avgA !== null && gameObj ? ` · Media ${vs.avgA}` : ''}`;
+  const subLeft = onlyCoop
+    ? `${vs.coopShared} coop juntos`
+    : isTogether
+      ? `${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo' : 'duelos'}${vs.avgA !== null && gameObj ? ` · Media ${vs.avgA}` : ''}`
+      : `${vs.playsA}P · ${vs.winRateA}% éxito${vs.avgA !== null && gameObj ? ` · Media ${vs.avgA}` : ''}`;
 
-  const subRight = isTogether
-    ? `${vs.sharedPlays} ${vs.sharedPlays === 1 ? 'partida juntos' : 'partidas juntos'}${vs.avgB !== null && gameObj ? ` · Media ${vs.avgB}` : ''}`
-    : `${vs.playsB}P · ${vs.winRateB}% éxito${vs.avgB !== null && gameObj ? ` · Media ${vs.avgB}` : ''}`;
+  const subRight = onlyCoop
+    ? `${vs.coopSharedWins} ${vs.coopSharedWins === 1 ? 'superada' : 'superadas'}`
+    : isTogether
+      ? `${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo' : 'duelos'}${vs.avgB !== null && gameObj ? ` · Media ${vs.avgB}` : ''}`
+      : `${vs.playsB}P · ${vs.winRateB}% éxito${vs.avgB !== null && gameObj ? ` · Media ${vs.avgB}` : ''}`;
 
-  const footerNote = isTogether
-    ? `${vs.ties > 0 ? `${vs.ties} ${vs.ties === 1 ? 'empate' : 'empates'} · ` : ''}${vs.topSharedGame && !gameObj ? `Juego favorito juntos: ${esc(vs.topSharedGame)}` : (gameObj ? `Duelo directo en ${esc(gameObj.name)}` : 'Cara a cara directo en mesa')}`
-    : `Comparativa global · ${vs.sharedPlays} ${vs.sharedPlays === 1 ? 'partida coincidida' : 'partidas coincididas'} (${vs.winsA}–${vs.winsB} directo)`;
+  const footerNote = onlyCoop
+    ? 'Partidas cooperativas · no cuentan como duelo'
+    : isTogether
+      ? `${vs.ties > 0 ? `${vs.ties} ${vs.ties === 1 ? 'empate' : 'empates'} · ` : ''}${vs.coopShared > 0 ? `${vs.coopShared} coop aparte · ` : ''}${vs.topSharedGame && !gameObj ? `Top juntos: ${esc(vs.topSharedGame)}` : (gameObj ? `Duelo en ${esc(gameObj.name)}` : 'Cara a cara en mesa')}`
+      : `${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo juntos' : 'duelos juntos'} (${vs.winsA}–${vs.winsB})${vs.coopShared > 0 ? ` · ${vs.coopShared} coop aparte` : ''}`;
 
   return `
     <div class="cover-sheen rounded-[26px] p-4 sm:p-5 text-white shadow-elevated anim-in border border-white/10"
@@ -8331,7 +8361,7 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
       <div class="flex flex-wrap items-center justify-between gap-2 mb-3.5 relative z-10">
         <div class="flex items-center gap-2">
           <span class="px-2 py-0.5 rounded-lg bg-amber-400/20 border border-amber-300/30 text-[10px] font-extrabold uppercase tracking-widest text-amber-200">
-            ${isTogether ? 'Cara a Cara' : 'Comparativa'}
+            ${onlyCoop ? 'En Equipo' : (isTogether ? 'Cara a Cara' : 'Comparativa')}
           </span>
           ${gameObj ? `<span class="text-[11px] font-bold text-white/75 truncate">${esc(gameObj.name)}</span>` : ''}
         </div>
@@ -8361,12 +8391,18 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
 
         <!-- Marcador central -->
         <div class="px-3.5 py-1.5 rounded-2xl bg-black/25 border border-white/15 text-center shrink-0">
-          <div class="font-display text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight leading-none flex items-center gap-1.5">
-            <span class="${scoreLeft >= scoreRight && scoreLeft > 0 ? 'text-emerald-300' : 'text-white'}">${scoreLeft}</span>
-            <span class="text-white/35 text-sm">–</span>
-            <span class="${scoreRight >= scoreLeft && scoreRight > 0 ? 'text-amber-300' : 'text-white'}">${scoreRight}</span>
+          <div class="font-display text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight leading-none flex items-center justify-center gap-1.5">
+            ${onlyCoop ? `
+              <span class="text-emerald-300">${vs.coopSharedWins}</span>
+              <span class="text-white/35 text-sm">/</span>
+              <span class="text-white">${vs.coopShared}</span>
+            ` : `
+              <span class="${scoreLeft >= scoreRight && scoreLeft > 0 ? 'text-emerald-300' : 'text-white'}">${scoreLeft}</span>
+              <span class="text-white/35 text-sm">–</span>
+              <span class="${scoreRight >= scoreLeft && scoreRight > 0 ? 'text-amber-300' : 'text-white'}">${scoreRight}</span>
+            `}
           </div>
-          <div class="text-[9px] font-bold uppercase tracking-wider text-white/55 mt-0.5">${isTogether ? 'Duelos' : 'Victorias'}</div>
+          <div class="text-[9px] font-bold uppercase tracking-wider text-white/55 mt-0.5 text-center">${onlyCoop ? 'Equipo' : (isTogether ? 'Duelos' : 'Victorias')}</div>
         </div>
 
         <!-- Jugador B -->
@@ -8382,13 +8418,17 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
       <!-- Barra de dominio -->
       <div class="mt-3.5 relative z-10">
         <div class="h-2 w-full rounded-full bg-white/12 overflow-hidden flex">
-          <div class="h-full transition-all duration-500" style="width:${pctA}%; background:${getPlayerColor(pCtx.playerA)};"></div>
-          <div class="h-full transition-all duration-500" style="width:${pctB}%; background:${getPlayerColor(pCtx.playerB)};"></div>
+          ${onlyCoop ? `
+            <div class="h-full transition-all duration-500 bg-emerald-400" style="width:${pctA}%;"></div>
+          ` : `
+            <div class="h-full transition-all duration-500" style="width:${pctA}%; background:${getPlayerColor(pCtx.playerA)};"></div>
+            <div class="h-full transition-all duration-500" style="width:${pctB}%; background:${getPlayerColor(pCtx.playerB)};"></div>
+          `}
         </div>
         <div class="mt-2 flex items-center justify-between gap-2 text-[10.5px] text-white/70">
-          <span class="tabular-nums font-bold text-emerald-200">${pctA}%</span>
-          <span class="truncate text-center">${footerNote}</span>
-          <span class="tabular-nums font-bold text-amber-200">${pctB}%</span>
+          <span class="tabular-nums font-bold text-emerald-200 shrink-0">${pctA}%</span>
+          <span class="flex-1 text-center leading-tight">${footerNote}</span>
+          <span class="tabular-nums font-bold text-amber-200 shrink-0">${onlyCoop ? 'Éxito' : `${pctB}%`}</span>
         </div>
       </div>
     </div>
@@ -9125,27 +9165,46 @@ function renderStatsTab() {
   const isLowestWinsFilter = uiState.statsFilterGame !== 'all' && Boolean(getGameById(uiState.statsFilterGame).lowestWins);
   const isDirectDuel = pCtx.mode === 'vs' && pCtx.vsScope === 'together';
 
-  // Agregado por jugador (respetando filtro de jugadores)
+  // Agregado por jugador (excluye cooperativas de victorias/duelos competitivos salvo filtro de juego puramente coop)
+  const isPureCoopFilter = Boolean(selectedGameObj && selectedGameObj.scoringType === 'coop');
   const playerMap = {};
   subset.forEach((m) => {
+    const isCoopMatch = getMatchScoringType(m) === 'coop';
     (m.players || []).forEach((p) => {
       const name = (p.name || '').trim();
       if (!name) return;
       if (pCtx.allowedKeys && !pCtx.allowedKeys.has(normName(name))) return;
       if (!playerMap[name]) {
-        playerMap[name] = { name, plays: 0, wins: 0, scores: [], bestScore: isLowestWinsFilter ? Infinity : -Infinity, byGame: {} };
+        playerMap[name] = {
+          name, plays: 0, compPlays: 0, compWins: 0, coopPlays: 0, coopWins: 0,
+          scores: [], bestScore: isLowestWinsFilter ? Infinity : -Infinity,
+          byGame: {}, winsByGame: {},
+        };
       }
       const st = playerMap[name];
       st.plays += 1;
-      let wonMatch = Boolean(p.winner);
-      if (isDirectDuel) {
-        const h2h = evaluateHeadToHeadMatch(m, pCtx.keyA, pCtx.keyB);
-        if (h2h && h2h.kind === 'duel') {
-          const pk = normName(name);
-          wonMatch = (h2h.outcome === 'A' && pk === pCtx.keyA) || (h2h.outcome === 'B' && pk === pCtx.keyB);
+
+      if (isCoopMatch) {
+        st.coopPlays += 1;
+        if (m.meta?.coopWon) st.coopWins += 1;
+      } else {
+        st.compPlays += 1;
+        let wonMatch = Boolean(p.winner);
+        if (isDirectDuel) {
+          const h2h = evaluateHeadToHeadMatch(m, pCtx.keyA, pCtx.keyB);
+          if (h2h && h2h.kind === 'duel') {
+            const pk = normName(name);
+            wonMatch = (h2h.outcome === 'A' && pk === pCtx.keyA) || (h2h.outcome === 'B' && pk === pCtx.keyB);
+          } else {
+            wonMatch = false;
+          }
+        }
+        if (wonMatch) {
+          st.compWins += 1;
+          st.winsByGame[m.gameName] = (st.winsByGame[m.gameName] || 0) + 1;
         }
       }
-      if (wonMatch) st.wins += 1;
+
       if (p.score !== null && p.score !== undefined && !isNaN(p.score)) {
         const sc = Number(p.score);
         st.scores.push(sc);
@@ -9156,11 +9215,17 @@ function renderStatsTab() {
   });
 
   const leaderboard = Object.values(playerMap).map((st) => {
-    const winRate = st.plays > 0 ? Math.round((st.wins / st.plays) * 100) : 0;
+    const useCoopOnly = isPureCoopFilter || (st.compPlays === 0 && st.coopPlays > 0);
+    const effectivePlays = useCoopOnly ? st.coopPlays : st.compPlays;
+    const wins = useCoopOnly ? st.coopWins : st.compWins;
+    const winRate = effectivePlays > 0 ? Math.round((wins / effectivePlays) * 100) : 0;
     const avg = st.scores.length > 0 ? (st.scores.reduce((a, b) => a + b, 0) / st.scores.length).toFixed(1) : null;
     const favGame = Object.entries(st.byGame).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
-    return { ...st, winRate, avg, favGame };
-  }).sort((a, b) => (b.wins - a.wins) || (b.winRate - a.winRate) || (b.plays - a.plays));
+    const topWonEntry = Object.entries(st.winsByGame).sort((a, b) => b[1] - a[1])[0] || null;
+    const topWonGame = topWonEntry ? topWonEntry[0] : '';
+    const topWonCount = topWonEntry ? topWonEntry[1] : 0;
+    return { ...st, effectivePlays, wins, winRate, avg, favGame, topWonGame, topWonCount, coopOnly: useCoopOnly };
+  }).sort((a, b) => (b.wins - a.wins) || (b.winRate - a.winRate) || (b.effectivePlays - a.effectivePlays));
 
   // Récord de puntuación del filtro
   let recordEntry = null;
@@ -9675,41 +9740,68 @@ function renderStatsTab() {
     </div>
   `;
 
-  // Tercer KPI adaptativo según modo (Todos / 1 Jugador / VS)
-  const thirdKpiHtml = pCtx.mode === 'single' && leaderboard[0] ? `
-    <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
-      <div class="flex items-center justify-between gap-1">
-        <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Victorias</span>
-        <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
-          ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
-        </span>
+  // Tercer KPI adaptativo según modo (Todos / 1 Jugador / VS), equilibrado con Récord
+  const showSecondKpiLine = Boolean(recordEntry && uiState.statsFilterGame === 'all');
+  const thirdKpiHtml = pCtx.mode === 'single' && leaderboard[0] ? (() => {
+    const st0 = leaderboard[0];
+    const line1 = st0.coopOnly
+      ? `${st0.wins} de ${st0.effectivePlays} coop`
+      : `${st0.wins} de ${st0.effectivePlays}${st0.coopPlays > 0 ? ` (+${st0.coopPlays} coop)` : ' partidas'}`;
+    const line2 = st0.topWonGame
+      ? `Fuerte: ${st0.topWonGame}`
+      : (st0.favGame ? `Más jugado: ${st0.favGame}` : '');
+    return `
+      <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+        <div class="flex items-center justify-between gap-1">
+          <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Victorias</span>
+          <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+            ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
+          </span>
+        </div>
+        <div class="font-display text-2xl font-extrabold text-emeraldBrand dark:text-emerald-400 tabular-nums mt-1.5 leading-none">${st0.winRate}%</div>
+        <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate tabular-nums">${esc(line1)}</div>
+        ${showSecondKpiLine && line2 ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5">${esc(line2)}</div>` : ''}
       </div>
-      <div class="font-display text-2xl font-extrabold text-emeraldBrand dark:text-emerald-400 tabular-nums mt-1.5 leading-none">${leaderboard[0].winRate}%</div>
-      <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${leaderboard[0].wins} de ${leaderboard[0].plays} partidas</div>
-    </div>
-  ` : pCtx.mode === 'vs' && vsSummary ? `
-    <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
-      <div class="flex items-center justify-between gap-1">
-        <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Juntos</span>
-        <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
-          ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
-        </span>
+    `;
+  })() : pCtx.mode === 'vs' && vsSummary ? (() => {
+    const line1 = vsSummary.sharedCompPlays > 0
+      ? `Duelo: ${vsSummary.winsA}–${vsSummary.winsB}`
+      : (vsSummary.coopShared > 0 ? `Equipo: ${vsSummary.coopSharedWins}/${vsSummary.coopShared}` : 'Sin duelos');
+    const line2 = vsSummary.coopShared > 0 && vsSummary.sharedCompPlays > 0
+      ? `${vsSummary.sharedCompPlays} duelos · ${vsSummary.coopShared} coop`
+      : (vsSummary.ties > 0
+        ? `${vsSummary.ties} ${vsSummary.ties === 1 ? 'empate' : 'empates'}`
+        : (vsSummary.topSharedGame ? `Top: ${vsSummary.topSharedGame}` : ''));
+    return `
+      <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+        <div class="flex items-center justify-between gap-1">
+          <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Juntos</span>
+          <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+            ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
+          </span>
+        </div>
+        <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${vsSummary.sharedPlays}</div>
+        <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate tabular-nums">${esc(line1)}</div>
+        ${showSecondKpiLine && line2 ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5 tabular-nums">${esc(line2)}</div>` : ''}
       </div>
-      <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${vsSummary.sharedPlays}</div>
-      <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">Duelo: ${vsSummary.winsA}–${vsSummary.winsB}</div>
-    </div>
-  ` : `
-    <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
-      <div class="flex items-center justify-between gap-1">
-        <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Jugadores</span>
-        <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
-          ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
-        </span>
+    `;
+  })() : (() => {
+    const leader = leaderboard[0];
+    const line2 = leader ? `${leader.wins}V · ${leader.winRate}% éxito` : '';
+    return `
+      <div class="card-pro p-3.5 sm:p-4 rounded-[22px] relative overflow-hidden">
+        <div class="flex items-center justify-between gap-1">
+          <span class="text-[10.5px] font-bold uppercase tracking-wider text-inkMuted dark:text-white/55">Jugadores</span>
+          <span class="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+            ${gameIconSvg('meeple', 'w-3.5 h-3.5')}
+          </span>
+        </div>
+        <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${leaderboard.length}</div>
+        <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${leader ? `Líder: ${esc(leader.name)}` : '—'}</div>
+        ${showSecondKpiLine && line2 ? `<div class="text-[10.5px] font-bold text-ink dark:text-white/80 truncate mt-0.5 tabular-nums">${esc(line2)}</div>` : ''}
       </div>
-      <div class="font-display text-2xl font-extrabold text-ink dark:text-white tabular-nums mt-1.5 leading-none">${leaderboard.length}</div>
-      <div class="text-[11px] text-inkMuted dark:text-white/55 font-medium mt-1 truncate">${leaderboard[0] ? `Líder: ${esc(leaderboard[0].name)}` : '—'}</div>
-    </div>
-  `;
+    `;
+  })();
 
   container.innerHTML = `
     ${topControlsHtml}
@@ -9800,7 +9892,7 @@ function renderStatsTab() {
                     <span class="text-sm font-extrabold text-ink dark:text-white truncate">${esc(st.name)}</span>
                   </div>
                   <div class="text-[11px] text-inkMuted dark:text-white/55 truncate">
-                    ${st.wins}V / ${st.plays}P${st.avg !== null && uiState.statsFilterGame !== 'all' ? ` · Media ${st.avg}` : (st.favGame ? ` · Top: ${esc(st.favGame)}` : '')}
+                    ${st.wins}V / ${st.effectivePlays}P${!st.coopOnly && st.coopPlays > 0 ? ` (+${st.coopPlays} coop)` : ''}${st.avg !== null && uiState.statsFilterGame !== 'all' ? ` · Media ${st.avg}` : (st.favGame ? ` · Top: ${esc(st.favGame)}` : '')}
                   </div>
                 </div>
               </div>
@@ -10128,7 +10220,7 @@ function mountStatsCharts({ sortedGamesData, chronologicalScored, recentPointsGa
           },
           {
             label: 'Otras partidas',
-            data: topPl.map((p) => Math.max(0, p.plays - p.wins)),
+            data: topPl.map((p) => Math.max(0, (p.effectivePlays ?? p.plays) - p.wins)),
             backgroundColor: isDark ? 'rgba(255,255,255,0.16)' : '#E5DEC9',
             borderRadius: 6,
             barThickness: 18,
@@ -10157,7 +10249,7 @@ function mountStatsCharts({ sortedGamesData, chronologicalScored, recentPointsGa
                 const idx = items[0]?.dataIndex;
                 if (idx === undefined) return '';
                 const st = topPl[idx];
-                return `Tasa de victoria: ${st.winRate}% (${st.wins}/${st.plays})`;
+                return `Tasa de victoria: ${st.winRate}% (${st.wins}/${st.effectivePlays ?? st.plays})`;
               },
             },
           },
