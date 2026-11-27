@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v2.1';
+const APP_VERSION = 'v2.2';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -3543,8 +3543,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v21 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v21';
+  return `// Ludoteca — Service Worker Offline v22 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v22';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -11481,8 +11481,9 @@ function renderShelfTab() {
     const ratingTitle = isHome && avgInfo.count > 0
       ? `Promedio de ${avgInfo.count} ${avgInfo.count === 1 ? 'valoración' : 'valoraciones'}`
       : '';
+    const ratingCount = isHome ? avgInfo.count : (rating > 0 ? 1 : 0);
     const favorite = isHome ? isGameFavoriteByAny(g) : isGameFavoriteFor(g, activeProfile.key);
-    return { g, origIdx, playCount, lastMatch, highScore, hasFourMermaids, rating, ratingLabel, ratingTitle, favorite };
+    return { g, origIdx, playCount, lastMatch, highScore, hasFourMermaids, rating, ratingCount, ratingLabel, ratingTitle, favorite };
   });
 
   const q = (uiState.shelfSearch || '').trim().toLowerCase();
@@ -11604,22 +11605,55 @@ function renderShelfTab() {
     { val: 'calc', label: 'Con marcador' },
   ];
 
+  const top3Rated = enriched
+    .filter((x) => x.rating > 0)
+    .sort((a, b) =>
+      (b.rating - a.rating)
+      || (isHome ? (b.ratingCount - a.ratingCount) : 0)
+      || ((b.favorite ? 1 : 0) - (a.favorite ? 1 : 0))
+      || (b.playCount - a.playCount)
+      || a.g.name.localeCompare(b.g.name, 'es')
+    )
+    .slice(0, 3);
+
+  const miniTop3Html = top3Rated.length > 0 ? `
+    <div class="card-pro rounded-2xl px-2.5 py-1.5 flex-1 min-w-0" style="max-width: 224px;">
+      <div class="flex flex-col" style="gap: 3px;">
+        ${top3Rated.map((item, idx) => {
+          const medalCls = idx === 0
+            ? 'bg-gradient-to-br from-amber-300 to-amber-500 text-[#142620]'
+            : idx === 1
+              ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900'
+              : 'bg-gradient-to-br from-amber-600 to-amber-800 text-amber-50';
+          return `
+            <button type="button" data-action="open-game-sheet" data-game-id="${esc(item.g.id)}"
+              class="btn-tap w-full flex items-center justify-between gap-1.5 text-left"
+              title="${esc(item.g.name)} · ★ ${item.ratingLabel}">
+              <span class="flex items-center gap-1.5 min-w-0">
+                <span class="w-3.5 h-3.5 rounded-md inline-flex items-center justify-center font-display text-[9px] font-extrabold shrink-0 ${medalCls}">${idx + 1}</span>
+                <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${item.g.color};"></span>
+                <span class="text-[10.5px] font-bold text-ink dark:text-white truncate leading-tight">${esc(item.g.name)}</span>
+              </span>
+              <span class="text-[10px] font-extrabold text-goldBrand tabular-nums shrink-0 leading-none">★${item.ratingLabel}</span>
+            </button>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  ` : `
+    <div class="card-pro rounded-2xl px-3 py-2 text-right shrink-0">
+      <div class="text-[9.5px] font-extrabold uppercase tracking-wider text-goldBrand leading-none">Top 3</div>
+      <div class="text-[10.5px] font-medium text-inkMuted dark:text-white/55 mt-1 leading-tight">Sin notas aún</div>
+    </div>
+  `;
+
   container.innerHTML = `
-    <div class="flex items-center justify-between gap-2 px-0.5">
-      <div class="min-w-0">
-        <h2 class="font-display text-base font-extrabold text-ink dark:text-white">Tu Ludoteca (${games.length})</h2>
-        <p class="text-xs text-inkMuted dark:text-white/55 truncate">${isHome ? 'Promedio de todos los perfiles' : `Perfil de <strong class="text-ink dark:text-white">${esc(activeProfile.name)}</strong> · notas y partidas`}</p>
+    <div class="flex items-center justify-between gap-2.5 px-0.5">
+      <div class="min-w-0 shrink-0">
+        <h2 class="font-display text-base font-extrabold text-ink dark:text-white leading-tight">Tu Ludoteca (${games.length})</h2>
+        <p class="text-xs text-inkMuted dark:text-white/55 mt-0.5 truncate">${isHome ? 'Promedio general' : `Perfil de <strong class="text-ink dark:text-white">${esc(activeProfile.name)}</strong>`}</p>
       </div>
-      <div class="flex items-center gap-1.5 shrink-0">
-        <button type="button" data-action="open-table-tools-tab" data-tab="picker"
-          class="btn-tap px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/35 text-amber-800 dark:text-amber-200 text-xs font-extrabold">
-          ¿A qué jugar?
-        </button>
-        <button type="button" data-action="open-add-game"
-          class="btn-tap btn-primary-pro px-3 py-2 rounded-xl text-white text-xs font-bold">
-          + Nuevo
-        </button>
-      </div>
+      ${miniTop3Html}
     </div>
 
     <!-- Selector de vista de Ludoteca (Inicio promedio general + perfiles individuales) -->
@@ -11667,6 +11701,11 @@ function renderShelfTab() {
             ${o.label}
           </button>
         `).join('')}
+        <button type="button" data-action="open-add-game"
+          class="btn-tap btn-primary-pro shrink-0 w-8 h-8 rounded-full text-white inline-flex items-center justify-center"
+          title="Añadir nuevo juego" aria-label="Añadir nuevo juego">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
       </div>
     </div>
 
