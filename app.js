@@ -150,7 +150,7 @@ const DEFAULT_GAMES = [
   },
   {
     id: 'oceanos_de_papel',
-    name: 'Océanos de Papel',
+    name: 'Sea Salt & Paper',
     color: '#0369A1',
     color2: '#0C4A6E',
     icon: 'origami',
@@ -403,7 +403,7 @@ const DEFAULT_GAMES = [
   },
 ];
 
-const DEFAULT_RULES_NOTES = {
+const LEGACY_RULES_NOTES_V1 = {
   wyrmspan: '• Setup: 3 monedas, 1 huevo, 3 cartas de dragón y 3 de cueva (conserva 4 en total pagando el resto en recursos/cartas).\n• 4 rondas; al pasar ya no actúas hasta la siguiente ronda.\n• Desempate: más monedas > más recursos > más cartas en mano.',
   splendor_duel: '• 3 victorias inmediatas: 20 pts, 10 coronas o 10 pts de un mismo color.\n• Rellenar el tablero otorga 1 privilegio al rival.\n• Nunca puedes tener más de 10 gemas al final de tu turno.',
   terraforming_mars: '• Inicio: VT 20 (14 en solitario). En estándar compras cartas iniciales a 3 M€ c/u.\n• Hitos: 8 M€ (máx. 3 entre todos). Recompensas: 8 / 14 / 20 M€.\n• Fin al completar 14% O₂, +8 °C y 9 océanos (+ última fase de vegetación).\n• Desempate: más M€.',
@@ -429,6 +429,161 @@ const DEFAULT_RULES_NOTES = {
   sleeping_queens: '• 2–3 jugadores: gana quien despierte 5 reinas o sume 50 pts.\n• 4–5 jugadores: 4 reinas o 40 pts.\n• Recuerda que la Reina Rosa y la Reina Gato/Perro tienen restricciones entre sí.',
   exploding_kittens: '• Setup: 7 cartas + 1 Desactivación (Defuse) por jugador; mete (N−1) bombas en el mazo.\n• Puedes jugar tantas cartas de acción como quieras antes de robar 1 carta al final de tu turno.',
   sushi_go: '• 3 rondas. Reparto: 2p = 10 cartas, 3p = 9, 4p = 8, 5p = 7.\n• Wasabi multiplica ×3 el siguiente Nigiri que coloques encima.\n• Pudines se puntúan al final (+6 al mayor; −6 al menor solo con 3+ jugadores).',
+};
+
+const DEFAULT_RULES_NOTES = {
+  wyrmspan: [
+    '• Setup: 3 monedas, 1 huevo, 3 cartas de dragón y 3 de cueva; quédate 4 cartas en total (paga el resto con tus 3 recursos iniciales). Coloca 1 objetivo público por ronda (4 rondas).',
+    '• Turno: 1 acción: Excavar cueva (1 moneda + coste), Atraer dragón (1 moneda + recursos/huevos) o Explorar cueva (1 moneda; el 2.º uso cuesta +1 huevo y el 3.º +2 huevos; máx. 3 exploraciones por cueva/ronda).',
+    '• Claves: Al pasar ya no actúas hasta la nueva ronda (recibes 6 monedas y 1 huevo cada ronda). Límite al fin de turno: máx. 9 recursos y 9 cartas.',
+    '• Fin y Puntos: Tras la 4.ª ronda suma Gremio, dragones, habilidades de fin, objetivos, huevos (1), almacenados (1), solapadas (1), monedas (1) y cada 4 recursos sobrantes (1).',
+    '• Desempate: Más monedas > más recursos sobrantes > más cartas en mano.',
+  ].join('\n'),
+  splendor_duel: [
+    '• Setup: Tablero 5×5 con 25 gemas en espiral, 3 filas de cartas (Niveles 1–3), 4 cartas reales y 3 privilegios. El 2.º jugador empieza con 1 privilegio.',
+    '• Turno: Opcional antes de actuar: gastar privilegios (1 gema no oro c/u) o rellenar tablero (el rival gana 1 privilegio). Luego 1 acción: tomar hasta 3 gemas en línea sin oro (3 iguales o 2 perlas dan 1 privilegio al rival), comprar carta o reservar 1 carta + 1 oro.',
+    '• Claves: Con 3 y 6 coronas eliges 1 carta real. Máximo 3 cartas reservadas y 10 gemas al terminar tu turno.',
+    '• Victoria inmediata: Terminar tu turno con 20+ puntos, 10+ coronas o 10+ puntos en cartas de un mismo color.',
+  ].join('\n'),
+  terraforming_mars: [
+    '• Setup: VT en 20 (14 en solitario). Eliges 1 de 2 corporaciones y compras las que quieras de tus 10 cartas iniciales a 3 M€ c/u.',
+    '• Generación: 1) Orden de turno. 2) Investigación (robas 4 cartas, compras a 3 M€). 3) Acciones (1–2 por turno hasta que todos pasen). 4) Producción (energía sobrante pasa a calor y cobras VT + producción).',
+    '• Claves: Hitos cuestan 8 M€ (+5 pts, máx. 3). Recompensas cuestan 8 / 14 / 20 M€ (+5 al 1.º, +2 al 2.º, máx. 3). 8 plantas = vegetación; 8 calor = +1 temperatura.',
+    '• Fin y Desempate: Al completar 14 % O₂, +8 °C y 9 océanos (+ última fase de vegetación). Suma VT, hitos, recompensas, vegetaciones, ciudades (1 pt por vegetación adyacente) y cartas. Desempate: más M€.',
+  ].join('\n'),
+  harmonies: [
+    '• Setup: Tablero en Cara A (Río) o Cara B (Islas), 3 fichas en cada espacio central y 5 cartas de animal visibles.',
+    '• Turno: 1) Obligatorio: coge 3 fichas de un espacio y colócalas respetando alturas (Árbol: 0–2 marrones + verde; Montaña: 1–3 grises; Edificio: base gris/marrón/roja + roja). 2) Opcional: coger 1 carta de animal (máx. 4 activas) y colocar cubos en patrones completados.',
+    '• Puntuación: Árboles (1/3/7), Montañas (1/3/7 solo si tocan otra montaña), Campos (5 pts por grupo de 2+ amarillas), Edificios (5 pts si tocan 3+ colores), Agua (Río: 2/5/8/11/15/+4; Islas: 5 c/u), Animales y Espíritu.',
+    '• Fin y Desempate: Bolsa vacía o alguien queda con ≤2 espacios libres (se igualan turnos). Desempate: más cubos de animal colocados.',
+  ].join('\n'),
+  lotr_duel: [
+    '• Setup: Comunidad vs Sauron. Prepara la Carrera del Anillo, las 7 Regiones con unidades iniciales, monedas iniciales, 3 losetas de Lugar y la pirámide del Capítulo 1.',
+    '• Turno: Toma una carta descubierta de la pirámide (cómprala pagando recursos/monedas o descártala para ganar monedas según el capítulo) o adquiere una loseta de Lugar disponible.',
+    '• Claves: Al reunir símbolos de una misma raza desbloqueas fichas de Alianza. En regiones con unidades de ambos bandos, estas se eliminan 1 a 1.',
+    '• Victoria inmediata: Completar la Carrera del Anillo, reunir 6 Pueblos distintos o controlar/tener presencia en las 7 Regiones.',
+    '• Fin del Capítulo 3: Si nadie logra victoria directa, gana quien tenga presencia en más Regiones.',
+  ].join('\n'),
+  lotr_battle: [
+    '• Setup: Prepara el mazo de aventura y villanos y reparte la mano inicial de héroes y cartas de acción a cada jugador.',
+    '• Turno: Juega cartas de tu mano para infligir daño a los villanos activos, activar efectos de apoyo o preparar combos de ataque.',
+    '• Claves: Quien asesta el golpe definitivo captura la carta de villano y suma sus puntos de victoria; mide bien cuándo atacar para no dejar el remate servido al rival.',
+    '• Fin y Victoria: Al derrotar al villano final o agotarse el mazo de enemigos, cada jugador suma los puntos de sus villanos derrotados. Gana quien obtenga más puntos.',
+  ].join('\n'),
+  jaipur: [
+    '• Setup: 3 camellos + 2 cartas del mazo en el mercado central; 5 cartas por jugador (los camellos bajan a tu rebaño). Ordena las pilas de mercancía de mayor a menor y las bonificaciones (3, 4 y 5 cartas).',
+    '• Turno: Toma cartas (1 mercancía, todos los camellos del mercado o intercambia 2+ cartas sin pasar de 7 en mano) O vende 1 tipo de mercancía (oro, plata y diamantes exigen mínimo 2 cartas) cobrando sus fichas + bono si vendes 3, 4 o 5.',
+    '• Claves: Los camellos del rebaño NO cuentan para el límite de 7 cartas en mano. Mayor rebaño al final de la ronda suma la ficha de +5 pts.',
+    '• Fin y Desempate: Ronda acaba con 3 pilas vacías o mazo agotado. Al mejor de 3 Sellos (2 rondas). Desempate de ronda: más fichas de bonificación > más fichas de mercancía.',
+  ].join('\n'),
+  unstable_unicorns: [
+    '• Setup: En 2 jugadores retira las cartas marcadas para "2P". Todos empiezan con 1 Unicornio Bebé en su Establo y 5 cartas en mano.',
+    '• Turno (4 fases): 1) Inicio de turno (efectos de tu Establo). 2) Roba 1 carta. 3) Acción: juega 1 carta de tu mano O roba otra carta. 4) Fin de turno: descarta hasta tener máximo 7 cartas.',
+    '• Claves: Las cartas "Relincho" (Neigh) se juegan en cualquier momento para anular una carta rival (pueden encadenarse). Las Desventajas suelen jugarse en Establos enemigos.',
+    '• Victoria: Primer jugador con 7 unicornios en su Establo (2–5 jug.) o 6 unicornios (6–8 jug.). Si se acaba el mazo gana quien tenga más unicornios.',
+  ].join('\n'),
+  oceanos_de_papel: [
+    '• Setup: Baraja el mazo y voltea 2 cartas formando las 2 pilas de descarte; todos empiezan sin cartas en mano.',
+    '• Turno: 1) Roba 2 cartas del mazo (te quedas 1 y descartas 1 en cualquier pila) O coge la superior de un descarte. 2) Opcional: baja parejas dúo (Cangrejos, Barcos, Peces o Tiburón+Nadador) para activar su poder (+1 pt c/u).',
+    '• Fin de ronda: Con 7+ puntos (mano + mesa) puedes decir "STOP" (todos puntúan ya) o "ÚLTIMA OPORTUNIDAD" (los rivales juegan 1 turno; si sigues liderando cobras tus puntos + bonus de tu color mayoritario y ellos solo su bonus; si te superan, tú solo cobras tu bonus).',
+    '• Victoria: Suma parejas, colecciones, multiplicadores y Sirenas (1 pt por carta de tu color mayoritario por cada Sirena; 4 Sirenas = victoria instantánea). Meta: 40 pts (2p), 35 pts (3p), 30 pts (4p).',
+  ].join('\n'),
+  last_bullet: [
+    '• Modos: Admite PvP (2–5 jugadores), Cooperativo y Solitario; selecciona el modo arriba antes de guardar para separarlo en tus estadísticas.',
+    '• Turno: Gestiona tus disparos, defensas, habilidades y recargas vigilando siempre las balas restantes del cargador para no quedar vendido.',
+    '• Claves: Coordina el orden de acciones y guarda tus recursos defensivos para los turnos críticos de impacto.',
+    '• Victoria: En PvP gana el último jugador en pie; en Cooperativo/Solitario ganáis al completar el objetivo antes de quedaros sin vidas ni munición.',
+  ].join('\n'),
+  splendor_marvel: [
+    '• Setup: 4 cartas de cada nivel (1–3), losetas de Lugar según jugadores, loseta de Vengadores Unidos (+3 pts) y Guantelete. Fichas: 4 por color (2p), 5 (3p) o 7 (4p), más 5 grises y 1 verde (Gema del Tiempo).',
+    '• Turno (1 acción): Tomar 3 fichas distintas, tomar 2 del mismo color (si quedan 4+), reservar 1 carta + 1 ficha gris (máx. 3 reservadas) o reclutar 1 personaje pagando con fichas y descuentos permanentes.',
+    '• Claves: Máximo 10 fichas al acabar tu turno. Con 3+ iconos de Vengadores tomas la loseta (+3 pts), pero puede robártela quien te supere. Solo reclutar una carta de Nivel 3 otorga la ficha verde.',
+    '• Fin y Desempate: Quien llegue a 16+ pts teniendo 1 carta de cada color y la ficha verde reclama el Guantelete (se igualan turnos). Desempate: loseta de Vengadores > menos cartas reclutadas.',
+  ].join('\n'),
+  azul_duel: [
+    '• Setup: Tablero personal de cúpula, fichas de bonificación disponibles y pilas de discos/ofertas preparadas para 5 rondas.',
+    '• Ronda: 1) Colocación de losetas de cúpula (boca arriba o apiladas para controlar la oferta). 2) Draft de fichas de color hacia tus líneas de patrón (1 color por línea; las sobrantes caen al suelo y restan puntos).',
+    '• Claves: Al llenar una fila trasladas 1 ficha a tu cúpula puntuando por adyacencias verticales y horizontales. Completa los objetivos de tus fichas de bonificación para rematar la puntuación.',
+    '• Fin y Desempate: Termina tras la 5.ª ronda sumando bonificaciones finales. Desempate: más fichas de bonificación completadas.',
+  ].join('\n'),
+  ttr_europa: [
+    '• Setup: 45 vagones, 3 estaciones, 4 cartas de vagón, 1 billete largo y 3 normales (quédate mínimo 2; puedes descartar el largo). 5 cartas de vagón boca arriba.',
+    '• Turno (1 acción): Robar 2 cartas (1 locomotora visible cuenta como tus 2 robos; 3 locomotoras visibles renuevan el mercado), cubrir 1 recorrido (en túneles revela 3 cartas del mazo y paga 1 extra por coincidencia), robar 3 billetes (quédate ≥1) o poner 1 estación (1/2/3 cartas iguales).',
+    '• Claves: En 2–3 jugadores solo se usa una vía en rutas dobles. Cada estación sin usar vale +4 pts.',
+    '• Fin y Desempate: Al quedar ≤2 vagones, todos juegan 1 último turno. Suma recorridos (1/2/4/7/15/21), billetes (+/−), estaciones (+4) y Expreso Europeo (+10). Desempate: más billetes completados > más estaciones sin usar.',
+  ].join('\n'),
+  monopoly_deal: [
+    '• Setup: Reparte 5 cartas a cada jugador y deja el mazo en el centro.',
+    '• Turno: Roba 2 cartas (5 si empiezas el turno sin cartas) y juega hasta 3 cartas en cualquier orden: dinero/acciones a tu Banco, propiedades a tu mesa o Acciones al centro.',
+    '• Claves: Máximo 7 cartas en mano al terminar el turno. Nunca se devuelve cambio al pagar deudas y las cartas del Banco no vuelven a la mano. Reorganizar comodines en tu turno es gratis. "Di que no" anula cualquier acción contra ti.',
+    '• Victoria: Gana al instante el primer jugador con 3 grupos completos de propiedades de colores distintos.',
+  ].join('\n'),
+  skull_king: [
+    '• Setup: 10 rondas; en la ronda N se reparten N cartas a cada jugador.',
+    '• Ronda: 1) Apuesta simultánea de cuántas bazas ganarás (0 a N). 2) Juego de bazas siguiendo el palo inicial (verde, morado, amarillo o negro/triunfo); las cartas especiales pueden jugarse en cualquier momento.',
+    '• Jerarquía: Escape (pierde) < Colores < Negro (triunfo) < Piratas/Sirenas/Skull King. Triángulo: Pirata vence a Sirena, Skull King vence a Pirata y Sirena vence al Skull King (+40 bonus).',
+    '• Puntuación: Acertar (>0): +20/baza + bonus (14 color +10, 14 negro +20, capturas +20/+30/+40). Fallar (>0): −10 por diferencia (sin bonus). Apostar 0: +10×ronda si aciertas, −10×ronda si fallas.',
+  ].join('\n'),
+  faraway: [
+    '• Setup: 3 cartas de Región en mano por jugador y (N+1) cartas de Región visibles en el centro.',
+    '• Ronda (8 rondas): 1) Todos eligen y revelan a la vez 1 Región y la añaden a la derecha de su fila. 2) En orden ascendente del número jugado, cada uno roba 1 nueva Región del centro (siempre 3 en mano).',
+    '• Santuarios: Si tu número jugado es MAYOR que el de tu carta anterior, robas (1 + tus iconos de mapa) cartas de Santuario y te quedas 1 boca arriba.',
+    '• Puntuación inversa: Al acabar las 8 rondas, voltea tus 8 Regiones y revélalas de derecha a izquierda (de la 8 a la 1); cada carta solo cuenta símbolos visibles en ese momento (ya reveladas + Santuarios). Desempate: menor suma de números de tus 8 Regiones.',
+  ].join('\n'),
+  trio: [
+    '• Setup: 3p = 9 mano / 9 mesa; 4p = 7 / 8; 5p = 6 / 6; 6p = 5 / 6. Ordena tu mano de menor a mayor sin cambiar el orden.',
+    '• Turno: Revela cartas de una en una pidiendo a cualquier jugador (o a ti mismo) su carta MÁS BAJA o MÁS ALTA, o volteando 1 de la mesa.',
+    '• Claves: Si las cartas reveladas coinciden en número puedes seguir hasta juntar 3 iguales y ganar el trío. En cuanto aparezca un número diferente, termina tu turno y las cartas vuelven a su sitio.',
+    '• Victoria: Modo Simple: 3 tríos O el trío de 7s. Modo Picante: 2 tríos conectados (números pequeños de la esquina) O el trío de 7s.',
+  ].join('\n'),
+  virus: [
+    '• Setup: Reparte 3 cartas a cada jugador y deja el mazo en el centro.',
+    '• Turno: Juega 1 carta (órgano propio sin repetir color, virus a un rival, medicina propia o Tratamiento) O descarta las cartas que quieras de tu mano. Al acabar, roba siempre hasta tener 3 cartas.',
+    '• Claves: 1 virus infecta; 2.º virus extirpa el órgano. 1 medicina cura un virus o vacuna un órgano sano; 2.ª medicina lo INMUNIZA para siempre. Los comodines valen por cualquier color.',
+    '• Victoria: Gana al instante quien consiga 4 órganos sanos de distinto color (5 o 6 con expansiones).',
+  ].join('\n'),
+  odin: [
+    '• Setup: Reparte 9 cartas a cada jugador; las sobrantes no entran en la ronda.',
+    '• Turno: Supera la jugada en mesa o pasa. Debes jugar el MISMO número de cartas o exactamente 1 carta MÁS; si juegas 2+, deben compartir color O número (se ordenan de mayor a menor para leer el número, ej. 7 y 4 = 74).',
+    '• Claves: Tras superar una jugada, te llevas OBLIGATORIAMENTE 1 carta de la jugada anterior a tu mano (salvo si acabas de vaciar tu mano y ganar la ronda). Si todos pasan, quien jugó último limpia la mesa y sale libre.',
+    '• Fin y Victoria: Al vaciar su mano alguien, el resto suma +1 pt por carta restante. Cuando alguien alcanza 15+ pts acaba la partida y gana el MENOR puntaje.',
+  ].join('\n'),
+  got_five: [
+    '• Setup: Prepara los 5 números secretos y los soportes/cartas de deducción para cada jugador.',
+    '• Turno: Formula preguntas o jugadas de descarte para acotar las posiciones y valores de los 5 números ocultos.',
+    '• Claves: Contrasta las pistas abiertas con los extremos ya descartados antes de lanzar una adivinación definitiva.',
+    '• Victoria: Gana el primer jugador que consiga deducir los 5 números o completar el objetivo de la partida.',
+  ].join('\n'),
+  the_mind: [
+    '• Setup: Vidas iniciales = n.º de jugadores y 1 Shuriken. Niveles objetivo: 12 (2p), 10 (3p), 8 (4p). En el nivel N se reparten N cartas (1–100) por jugador.',
+    '• Ronda: Prohibido hablar, gesticular o hacer señas. Jugad las cartas al centro en orden estrictamente ascendente según vuestra intuición del tiempo.',
+    '• Claves: Si alguien tiene una carta menor que la jugada, grita "¡Alto!", perdéis 1 vida y se descartan todas las cartas inferiores antes de seguir. Si todos levantan la mano usáis 1 Shuriken (cada uno descarta su carta más baja boca arriba).',
+    '• Recompensas y Fin: Al superar ciertos niveles recuperáis vidas (nv. 3, 6, 9) o Shurikens (nv. 2, 5, 8). Ganáis al completar el último nivel; perdéis con 0 vidas.',
+  ].join('\n'),
+  flip_7: [
+    '• Setup: Mazo con copias igual a su valor (doce 12s, once 11s… hasta un 1 y un 0), modificadores (+2 a +10, ×2) y cartas de acción.',
+    '• Turno: Por orden, cada jugador activo elige "Pedir" (roba carta) o "Plantarse" (asegura sus puntos y sale de la ronda).',
+    '• Claves: Si robas un número que ya tienes delante haces BUST (0 pts en la ronda), salvo si tienes Segunda Oportunidad. Acciones: Congelar (planta a un jugador), Roba 3 (fuerza 3 robos), Segunda Oportunidad (salva 1 duplicado).',
+    '• Puntuación y Fin: 7 números distintos = fin inmediato de ronda y +15 pts extra. El ×2 multiplica solo tus cartas de número antes de sumar modificadores. Al superar 200 pts al fin de una ronda, gana quien tenga más puntos.',
+  ].join('\n'),
+  sleeping_queens: [
+    '• Setup: 12 Reinas boca abajo en el centro y 5 cartas en mano por jugador.',
+    '• Turno (1 acción y robas hasta 5 cartas): Rey (despiertas 1 Reina), Caballero (robas Reina rival salvo Dragón), Poción (duermes Reina rival salvo Varita), Bufón (revelas 1 carta: acción = repites turno; número = cuentas desde ti para despertar Reina), o descartar números (1 carta, pareja igual o suma válida ej. 2+3=5).',
+    '• Claves: La Reina Rosa despierta otra Reina gratis. No puedes tener a la vez la Reina Gato y la Reina Perro (si sale la segunda, vuelve boca abajo).',
+    '• Victoria: 2–3 jugadores: 5 Reinas o 50 pts. 4–5 jugadores: 4 Reinas o 40 pts.',
+  ].join('\n'),
+  exploding_kittens: [
+    '• Setup: Retira bombas y Defuse; reparte 7 cartas + 1 Defuse a cada jugador. Mete (N−1) Exploding Kittens y los Defuse sobrantes en el mazo y baraja.',
+    '• Turno: 1) Juega tantas cartas de acción como quieras (o ninguna). 2) Roba 1 carta del mazo para cerrar tu turno.',
+    '• Claves: Si robas bomba sin Defuse quedas eliminado; con Defuse la escondes donde quieras del mazo. 2 cartas iguales roban 1 carta al azar a un rival; 3 iguales piden una carta concreta. "Nope" anula casi cualquier carta salvo Defuse y bombas.',
+    '• Victoria: Gana el último superviviente en mesa.',
+  ].join('\n'),
+  sushi_go: [
+    '• Setup: 3 rondas. Cartas iniciales: 10 (2p), 9 (3p), 8 (4p) o 7 (5p).',
+    '• Ronda: Todos eligen en secreto 1 carta, la revelan a la vez y pasan el resto de la mano a la izquierda hasta vaciarlas.',
+    '• Puntuación: Tempura (pareja = 5), Sashimi (trío = 10), Gyoza (1/3/6/10/15), Nigiris (1/2/3; sobre Wasabi previo ×3 = 3/6/9), Maki (+6 al 1.º, +3 al 2.º; empates dividen redondeando abajo). Los Palillos permiten bajar 2 cartas en un turno posterior.',
+    '• Pudines y Desempate: Se guardan hasta terminar la 3.ª ronda (+6 al que tenga más; −6 al que tenga menos solo con 3+ jugadores). Desempate: más Pudines.',
+  ].join('\n'),
 };
 
 const TFM_CORPS = [
@@ -942,7 +1097,7 @@ function gameIconSvg(iconName, cls = 'w-5 h-5') {
     sword: `<path d="M5 19 17.8 6.2M19 19 6.2 6.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15.2 4.4 19.6 4.4 19.6 8.8M8.8 4.4 4.4 4.4 4.4 8.8" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.2 14.5 9.5 18.8M18.8 14.5 14.5 18.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>`,
     // Jaipur: camello mercader estilizado
     camel: `<path d="M4.2 18.5v-5.2c0-1.4.8-2.3 2-2.6l1.3-.4c.8-2 2.3-3.1 3.7-2.6 1 .3 1.4 1.3 1.8 1.3s1-.9 2-1.1c1.3-.3 2.4.6 2.9 2.1l1.2-.8c.8-.5 1.8 0 1.8.9 0 .9-.7 1.6-1.5 1.8l-1.2.3v6.3M8 15.2v3.3M15.2 15.2v3.3M7.8 15.2h7.6" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19.1" cy="10.2" r="0.7" fill="currentColor"/>`,
-    // Océanos de Papel: barco de origami sobre ola
+    // Sea Salt & Paper: barco de origami sobre ola
     origami: `<path d="M3.2 14.6 12 4.4l8.8 10.2-3.4 3.4H6.6l-3.4-3.4Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/><path d="M12 4.4v13.6M3.2 14.6h17.6" stroke="currentColor" stroke-width="1.55"/><path d="M3.5 20.6c2-.9 3.6.9 5.6 0s3.6.9 5.6 0 3.6.9 5.8 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`,
     // Last Bullet: mira táctica + bala central
     target: `<circle cx="12" cy="12" r="7.8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="1.85"/><path d="M12 2.2v3.2M12 18.6v3.2M2.2 12h3.2M18.6 12h3.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M10.2 15.6v-4.2c0-1.5.8-2.8 1.8-3.5 1 .7 1.8 2 1.8 3.5v4.2h-3.6Z" fill="currentColor"/>`,
@@ -1252,9 +1407,27 @@ function loadLocalData() {
       }
     }
   });
-  // Inyecta chuletas iniciales de reglas si el juego no tiene notas propias todavía
+  // Renombra Océanos de Papel -> Sea Salt & Paper conservando su ID e historial
+  const sspGame = games.find((g) => g.id === 'oceanos_de_papel');
+  if (sspGame && sspGame.name === 'Océanos de Papel') {
+    sspGame.name = 'Sea Salt & Paper';
+    gamesChanged = true;
+  }
+  let historyRenamed = false;
+  matchHistory.forEach((m) => {
+    if (m.gameId === 'oceanos_de_papel' && m.gameName === 'Océanos de Papel') {
+      m.gameName = 'Sea Salt & Paper';
+      historyRenamed = true;
+    }
+  });
+  if (historyRenamed) saveHistoryLocal();
+
+  // Inyecta o actualiza chuletas base de reglas (respeta cualquier nota editada por el usuario)
   games.forEach((g) => {
-    if (g.rulesNotes === undefined && DEFAULT_RULES_NOTES[g.id]) {
+    if (!DEFAULT_RULES_NOTES[g.id]) return;
+    const curNotes = typeof g.rulesNotes === 'string' ? g.rulesNotes.trim() : '';
+    const legacyNotes = LEGACY_RULES_NOTES_V1[g.id] ? LEGACY_RULES_NOTES_V1[g.id].trim() : '';
+    if (g.rulesNotes === undefined || curNotes === '' || (legacyNotes && curNotes === legacyNotes)) {
       g.rulesNotes = DEFAULT_RULES_NOTES[g.id];
       gamesChanged = true;
     }
@@ -2511,8 +2684,8 @@ return [
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v5 (PWA estática sin Tailwind CDN)
-const CACHE_NAME = 'ludoteca-offline-v5';
+  return `// Ludoteca — Service Worker Offline v6 (PWA estática sin Tailwind CDN)
+const CACHE_NAME = 'ludoteca-offline-v6';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -3148,7 +3321,7 @@ function renderGameExtrasHtml(game) {
     `);
   }
 
-  // 2) Bloque unificado de Formas de Victoria / Objetivo (Océanos de Papel, Virus!, Monopoly Deal, Jaipur, Splendor Duel/Marvel, LOTR, Trío, Sleeping Queens, etc.)
+  // 2) Bloque unificado de Formas de Victoria / Objetivo (Sea Salt & Paper, Virus!, Monopoly Deal, Jaipur, Splendor Duel/Marvel, LOTR, Trío, Sleeping Queens, etc.)
   const winBlock = renderWinModeBlockHtml(game);
   if (winBlock) blocks.push(winBlock);
 
@@ -9542,6 +9715,32 @@ function renderShelfTab() {
 // -------------------------------------------------------------------------
 // FICHA DE REGLAS, SETUP Y VALORACIÓN PERSONAL (1–10) POR JUEGO
 // -------------------------------------------------------------------------
+function formatRulesNotesHtml(notesText) {
+  const lines = String(notesText || '').split('\n').map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) {
+    return `<p class="text-xs text-inkMuted dark:text-white/55 italic">Todavía no hay reglas apuntadas para este juego. Pulsa «Editar» para añadir setup, puntuación o reglas de casa.</p>`;
+  }
+  return `
+    <div class="space-y-2">
+      ${lines.map((raw) => {
+        const clean = raw.replace(/^[•\-*]\s*/, '');
+        const colonIdx = clean.indexOf(':');
+        const hasHeading = colonIdx > 0 && colonIdx <= 24;
+        const head = hasHeading ? clean.slice(0, colonIdx).trim() : '';
+        const body = hasHeading ? clean.slice(colonIdx + 1).trim() : clean;
+        return `
+          <div class="flex items-start gap-2 text-xs leading-relaxed text-ink dark:text-white/85">
+            <span class="w-1.5 h-1.5 rounded-full bg-emeraldBrand mt-2 shrink-0"></span>
+            <div class="min-w-0 flex-1">
+              ${hasHeading ? `<strong class="font-extrabold text-ink dark:text-white">${esc(head)}:</strong> ` : ''}${esc(body)}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
 function openGameSheetModal(gameId) {
   const g = games.find((x) => x.id === gameId);
   if (!g) return;
@@ -9549,6 +9748,7 @@ function openGameSheetModal(gameId) {
   let tempRating = g.rating ? Number(g.rating) : 0;
   let tempNotes = g.rulesNotes !== undefined ? String(g.rulesNotes) : (DEFAULT_RULES_NOTES[g.id] || '');
   let tempFav = Boolean(g.favorite);
+  let editingRules = !tempNotes.trim();
 
   const gMatches = matchHistory.filter((m) => m.gameId === g.id);
   const daysSince = getDaysSinceLastPlay(g.id);
@@ -9579,6 +9779,34 @@ function openGameSheetModal(gameId) {
           <div class="mt-2.5 text-[11px] text-white/80 relative z-10">${formatDustyLabel(daysSince)}</div>
         </div>
 
+        <!-- Chuleta de setup y reglas -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Reglas rápidas, setup y desempates</span>
+            <div class="flex items-center gap-2 shrink-0">
+              ${DEFAULT_RULES_NOTES[g.id] && tempNotes.trim() !== DEFAULT_RULES_NOTES[g.id].trim() ? `
+                <button type="button" data-gs="reset-rules" class="btn-tap text-[11px] font-bold text-amber-700 dark:text-amber-300">Restaurar base</button>
+              ` : ''}
+              <button type="button" data-gs="toggle-edit-rules"
+                class="btn-tap px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
+                  editingRules
+                    ? 'bg-pine dark:bg-emeraldBrand text-white border-transparent'
+                    : 'bg-white dark:bg-surfaceDarkAlt text-emeraldBrand dark:text-emerald-400 border-[#E2DACE] dark:border-white/12'
+                }">
+                ${editingRules ? 'Vista lectura' : 'Editar'}
+              </button>
+            </div>
+          </div>
+          ${editingRules ? `
+            <textarea id="gs-rules-textarea" rows="9" maxlength="2400" placeholder="Apunta setup, turnos, puntuación, fin de partida y desempates..."
+              class="w-full input-pro rounded-2xl p-3 text-xs leading-relaxed text-ink dark:text-white outline-none resize-none">${esc(tempNotes)}</textarea>
+          ` : `
+            <div class="p-3.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10">
+              ${formatRulesNotesHtml(tempNotes)}
+            </div>
+          `}
+        </div>
+
         <!-- Valoración personal 1–10 -->
         <div class="p-3.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2.5">
           <div class="flex items-center justify-between gap-2">
@@ -9599,24 +9827,12 @@ function openGameSheetModal(gameId) {
             `).join('')}
           </div>
         </div>
-
-        <!-- Chuleta de setup y reglas -->
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between gap-2">
-            <label for="gs-rules-textarea" class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Chuleta de setup, reglas y desempates</label>
-            ${DEFAULT_RULES_NOTES[g.id] && tempNotes !== DEFAULT_RULES_NOTES[g.id] ? `
-              <button type="button" data-gs="reset-rules" class="btn-tap text-[11px] font-bold text-emeraldBrand dark:text-emerald-400">Restaurar base</button>
-            ` : ''}
-          </div>
-          <textarea id="gs-rules-textarea" rows="6" maxlength="1200" placeholder="Apunta cartas iniciales, reglas que siempre se olvidan, desempates..."
-            class="w-full input-pro rounded-2xl p-3 text-xs leading-relaxed text-ink dark:text-white outline-none resize-none">${esc(tempNotes)}</textarea>
-        </div>
       </div>
     `;
 
     openModal({
       title: 'Ficha y Reglas Rápidas',
-      subtitle: 'Guardado en tu ludoteca para consultar en mesa',
+      subtitle: 'Guía completa de mesa · editable y guardada en tu ludoteca',
       bodyHtml,
       actions: [
         { label: 'Cerrar' },
@@ -9652,6 +9868,11 @@ function openGameSheetModal(gameId) {
         renderSheet();
       } else if (act === 'set-rating') {
         tempRating = Number(el.dataset.val) || 0;
+        renderSheet();
+      } else if (act === 'toggle-edit-rules') {
+        const ta = document.getElementById('gs-rules-textarea');
+        if (ta) tempNotes = ta.value;
+        editingRules = !editingRules;
         renderSheet();
       } else if (act === 'reset-rules') {
         tempNotes = DEFAULT_RULES_NOTES[g.id] || '';
