@@ -1673,3 +1673,188 @@ html.dark .dark\:hover\:text-white:hover { color: #ffffff; }
 .space-y-2 > .scroll-strip:not(:first-child) { margin-top: 0.05rem; }
 .space-y-2 > .scroll-strip-cards:not(:first-child) { margin-top: -0.1rem; }
 .space-y-2\.5 > .scroll-strip:not(:first-child) { margin-top: 0.15rem; }
+
+/* === Pulido Nativo v3.0 (Pull-to-Refresh, Duelo últimos 5, Perfiles en Ludoteca) === */
+.ptr-pill {
+  position: fixed;
+  top: calc(4.15rem + var(--safe-top));
+  left: 50%;
+  z-index: 45;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(16, 36, 29, 0.94);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 10px 24px -8px rgba(6, 15, 12, 0.55);
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(-50%, -22px, 0) scale(0.92);
+  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s ease;
+}
+.ptr-pill.is-dragging {
+  transition: background-color 0.18s ease;
+}
+.ptr-pill.is-ready {
+  background: rgba(34, 117, 84, 0.96);
+  border-color: rgba(110, 231, 183, 0.40);
+}
+.ptr-pill.is-refreshing {
+  opacity: 1;
+  transform: translate3d(-50%, 6px, 0) scale(1);
+}
+html.dark .ptr-pill {
+  background: rgba(17, 30, 26, 0.95);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+html.dark .ptr-pill.is-ready {
+  background: rgba(34, 117, 84, 0.96);
+}
+
+.duel-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
+  opacity: 0.82;
+}
+.duel-dot.is-latest {
+  width: 10px;
+  height: 10px;
+  opacity: 1;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.65);
+}
+
+.rater-dot {
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.disagree-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.85rem;
+  background-color: rgba(212, 138, 23, 0.085);
+  border: 1px solid rgba(212, 138, 23, 0.22);
+}
+html.dark .disagree-strip {
+  background-color: rgba(251, 191, 36, 0.10);
+  border-color: rgba(251, 191, 36, 0.20);
+}
+
+/* === Sistema de Rating 0.0-10.0 & Etiqueta de Racha (v3.0) === */
+.streak-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.14rem 0.45rem;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(234, 88, 12, 0.16));
+  border: 1px solid rgba(245, 158, 11, 0.40);
+  color: #B45309;
+  flex-shrink: 0;
+}
+html.dark .streak-pill {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(249, 115, 22, 0.18));
+  border-color: rgba(251, 191, 36, 0.34);
+  color: #FCD34D;
+}
+.streak-pill.is-hot {
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.20), rgba(225, 29, 72, 0.18));
+  border-color: rgba(234, 88, 12, 0.45);
+  color: #C2410C;
+}
+html.dark .streak-pill.is-hot {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.24), rgba(251, 113, 133, 0.22));
+  border-color: rgba(251, 146, 60, 0.42);
+  color: #FDBA74;
+}
+.streak-pill.is-on-dark {
+  background: rgba(251, 191, 36, 0.20);
+  border-color: rgba(252, 211, 77, 0.42);
+  color: #FDE68A;
+}
+
+.rating-delta-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.08rem 0.34rem;
+  border-radius: 0.42rem;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.rating-delta-chip.is-pos {
+  background-color: rgba(34, 117, 84, 0.13);
+  color: #1B6346;
+}
+html.dark .rating-delta-chip.is-pos {
+  background-color: rgba(52, 211, 153, 0.16);
+  color: #6EE7B7;
+}
+.rating-delta-chip.is-neg {
+  background-color: rgba(208, 78, 54, 0.13);
+  color: #B83D28;
+}
+html.dark .rating-delta-chip.is-neg {
+  background-color: rgba(251, 113, 133, 0.16);
+  color: #FDA4AF;
+}
+.rating-delta-chip.is-flat {
+  background-color: rgba(100, 116, 139, 0.13);
+  color: #64748B;
+}
+html.dark .rating-delta-chip.is-flat {
+  background-color: rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.rating-bar-track {
+  position: relative;
+  height: 0.5rem;
+  width: 100%;
+  border-radius: 999px;
+  background-color: rgba(20, 36, 30, 0.08);
+  overflow: visible;
+}
+html.dark .rating-bar-track {
+  background-color: rgba(255, 255, 255, 0.10);
+}
+.rating-mid-mark {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 1.5px;
+  border-radius: 999px;
+  background-color: rgba(20, 36, 30, 0.28);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+html.dark .rating-mid-mark {
+  background-color: rgba(255, 255, 255, 0.30);
+}
+.bg-amber-400\/15 { background-color: rgba(251, 191, 36, 0.15); }
+.bg-black\/30 { background-color: rgba(0, 0, 0, 0.3); }
+.via-emeraldBrand { --grad-stops: var(--grad-from), #227554, var(--grad-to); }
+.to-pine { --grad-to: #12241E; }
+.hover\:bg-amber-400\/24:hover { background-color: rgba(251, 191, 36, 0.24); }
+.text-amber-100\/80 { color: rgba(254, 243, 199, 0.8); }
