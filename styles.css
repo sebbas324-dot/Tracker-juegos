@@ -2274,3 +2274,194 @@ html.dark .ledger-row-expand {
 .text-rose-300 { color: #fda4af; }
 .hover\:bg-amber-400\/35:hover { background-color: rgba(251, 191, 36, 0.35); }
 .hover\:bg-white\/25:hover { background-color: rgba(255, 255, 255, 0.25); }
+
+/* === Cara a Cara Premium Redesign (v3.6) === */
+.vs-duel-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 20px 40px -16px rgba(6, 15, 12, 0.68);
+}
+.vs-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.vs-avatar-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  background: var(--vs-glow, rgba(255, 255, 255, 0.35));
+  opacity: 0.36;
+  filter: blur(8px);
+  pointer-events: none;
+}
+.vs-leader-crown {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  z-index: 20;
+  width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #FEF08A, #F59E0B);
+  color: #142620;
+  border: 1.5px solid #0C1C16;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.65);
+}
+.vs-leader-crown.is-left {
+  right: auto;
+  left: -4px;
+}
+.vs-score-plaque {
+  position: relative;
+  padding: 0.5rem 0.9rem 0.45rem;
+  border-radius: 1.15rem;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0.26) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 8px 20px -8px rgba(0, 0, 0, 0.55);
+  text-align: center;
+  flex-shrink: 0;
+}
+.vs-dom-track {
+  position: relative;
+  height: 0.6rem;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  display: flex;
+}
+.vs-dom-seg {
+  height: 100%;
+  position: relative;
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.vs-dom-seg::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 50% 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.30) 0%, transparent 100%);
+  pointer-events: none;
+}
+.vs-dom-split {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 5;
+}
+.vs-momentum-dock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.68rem;
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.vs-duel-chip {
+  position: relative;
+  width: 23px;
+  height: 23px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.80;
+  transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.14s ease;
+}
+.vs-duel-chip:active {
+  transform: scale(0.92);
+}
+.vs-duel-chip.is-latest {
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
+  opacity: 1;
+  font-size: 9px;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 12px -1px var(--chip-glow, rgba(255, 255, 255, 0.45)), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.vs-duel-chip.is-latest::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  opacity: 0.85;
+  transform: translateX(-50%);
+}
+.vs-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.3rem 0.62rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.24) 0%, rgba(234, 88, 12, 0.22) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 4px 14px -4px rgba(245, 158, 11, 0.42);
+  color: #FEF3C7;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.vs-streak-badge.is-hot {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.30) 0%, rgba(225, 29, 72, 0.26) 100%);
+  border-color: rgba(251, 146, 60, 0.52);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 4px 16px -4px rgba(249, 115, 22, 0.55);
+}
+.vs-flame-icon {
+  color: #FBBF24;
+  filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.75));
+}
+.vs-streak-badge.is-hot .vs-flame-icon {
+  color: #FB923C;
+  filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.85));
+}
+.vs-last-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.26rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+  flex-shrink: 0;
+}
+
+.max-w-\[78px\] { max-width: 78px; }
+@media (min-width: 640px) {
+  .sm\:text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+}

@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v3.5';
+const APP_VERSION = 'v3.6';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -3765,8 +3765,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v36 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v36';
+  return `// Ludoteca — Service Worker Offline v37 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v37';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -10867,6 +10867,10 @@ function computeVsDuelSummary(subset, pCtx) {
 }
 
 function renderVsDuelCardHtml(vs, pCtx, gameObj) {
+  const profA = getPlayerProfile(pCtx.playerA);
+  const profB = getPlayerProfile(pCtx.playerB);
+  const rawColA = profA.color;
+  const rawColB = profB.color;
   const colorAOnDark = getPlayerColorOnDark(pCtx.playerA);
   const colorBOnDark = getPlayerColorOnDark(pCtx.playerB);
   const onlyCoop = vs.sharedCompPlays === 0 && vs.coopShared > 0;
@@ -10876,13 +10880,20 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
   const pctA = onlyCoop ? Math.round((vs.coopSharedWins / Math.max(1, vs.coopShared)) * 100) : (denom > 0 ? Math.round((scoreLeft / denom) * 100) : 50);
   const pctB = 100 - pctA;
 
+  const leaderSide = onlyCoop ? null : (scoreLeft > scoreRight ? 'A' : scoreRight > scoreLeft ? 'B' : null);
+  const diffWins = Math.abs(scoreLeft - scoreRight);
+
   const subLeft = onlyCoop
     ? `${vs.coopShared} coop juntos`
-    : `${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo' : 'duelos'}${vs.avgA !== null && gameObj ? ` · Media ${vs.avgA}` : ''}`;
+    : (vs.avgA !== null && gameObj
+        ? `Med. ${vs.avgA} · ${pctA}%`
+        : `${pctA}%${leaderSide === 'A' ? ` · +${diffWins}` : ''}`);
 
   const subRight = onlyCoop
     ? `${vs.coopSharedWins} ${vs.coopSharedWins === 1 ? 'superada' : 'superadas'}`
-    : `${vs.avgB !== null && gameObj ? `Media ${vs.avgB} · ` : ''}${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo' : 'duelos'}`;
+    : (vs.avgB !== null && gameObj
+        ? `${pctB}% · Med. ${vs.avgB}`
+        : `${leaderSide === 'B' ? `+${diffWins} · ` : ''}${pctB}%`);
 
   const togetherParts = [];
   if (vs.topSharedGame && !gameObj) togetherParts.push(`Top juntos: ${esc(vs.topSharedGame)}`);
@@ -10895,74 +10906,90 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
     ? 'Partidas cooperativas · no cuentan como duelo'
     : togetherParts.join(' · ');
 
+  const heroBg = onlyCoop
+    ? 'radial-gradient(ellipse 65% 60% at 15% 15%, rgba(52, 211, 153, 0.24) 0%, transparent 65%), radial-gradient(ellipse 65% 60% at 85% 15%, rgba(251, 191, 36, 0.18) 0%, transparent 65%), linear-gradient(155deg, #081511 0%, #10261E 54%, #1A170D 100%)'
+    : `radial-gradient(ellipse 58% 65% at 10% 24%, ${rawColA}36 0%, transparent 64%), radial-gradient(ellipse 58% 65% at 90% 24%, ${rawColB}36 0%, transparent 64%), linear-gradient(155deg, #081410 0%, #0F231C 52%, #111916 100%)`;
+
+  const centerSubLabel = onlyCoop
+    ? 'Equipo'
+    : `${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo' : 'duelos'}`;
+
   return `
-    <div class="cover-sheen rounded-[26px] p-4 sm:p-5 text-white shadow-elevated anim-in border border-white/10"
-      style="background: linear-gradient(130deg, #10261F 0%, #18362C 48%, #3B2810 100%);">
-      <div class="flex items-center justify-between gap-2 mb-3.5 relative z-10">
+    <div class="vs-duel-hero cover-sheen rounded-[26px] p-4 sm:p-5 text-white anim-in" style="background: ${heroBg};">
+      <!-- Cabecera limpia -->
+      <div class="flex items-center justify-between gap-2 mb-4 relative z-10">
         <div class="flex items-center gap-2 min-w-0">
-          <span class="px-2 py-0.5 rounded-lg bg-amber-400/20 border border-amber-300/30 text-[10px] font-extrabold uppercase tracking-widest text-amber-200 shrink-0">
-            ${onlyCoop ? 'En Equipo' : 'Cara a Cara'}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-400/18 border border-amber-300/35 text-[10px] font-extrabold uppercase tracking-widest text-amber-200 shrink-0">
+            ${gameIconSvg(onlyCoop ? 'mind' : 'sword', 'w-3 h-3 text-amber-300 shrink-0')}
+            <span>${onlyCoop ? 'En Equipo' : 'Cara a Cara'}</span>
           </span>
           ${gameObj ? `<span class="text-[11px] font-bold text-white/80 truncate">${esc(gameObj.name)}</span>` : ''}
         </div>
-        <span class="px-2.5 py-0.5 rounded-lg bg-white/10 border border-white/15 text-[10.5px] font-extrabold text-white/80 tabular-nums shrink-0">
-          ${vs.sharedPlays} ${vs.sharedPlays === 1 ? 'partida juntos' : 'partidas juntos'}
+        <span class="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-[10.5px] font-bold text-white/80 tabular-nums shrink-0">
+          ${vs.sharedPlays} ${vs.sharedPlays === 1 ? 'partida' : 'partidas'}
         </span>
       </div>
 
-      <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 relative z-10">
+      <!-- Enfrentamiento principal -->
+      <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5 relative z-10">
         <!-- Jugador A -->
-        <div class="min-w-0">
-          <div class="flex items-center gap-1.5">
-            ${renderPlayerAvatarHtml(pCtx.playerA, 'w-6 h-6 text-[10px] ring-1 ring-white/30')}
-            <span class="font-display text-sm sm:text-base font-extrabold truncate">${esc(pCtx.playerA)}</span>
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="vs-avatar-wrap" style="--vs-glow:${rawColA};">
+            ${renderPlayerAvatarHtml(pCtx.playerA, 'w-9 h-9 text-xs ring-2 ring-white/25 relative z-10')}
+            ${leaderSide === 'A' ? `<span class="vs-leader-crown is-left" title="Líder del cara a cara">${gameIconSvg('crown', 'w-2.5 h-2.5')}</span>` : ''}
+          </span>
+          <div class="min-w-0">
+            <div class="font-display text-sm sm:text-base font-extrabold text-white truncate leading-tight">${esc(pCtx.playerA)}</div>
+            <div class="text-[10.5px] font-bold mt-0.5 truncate tabular-nums" style="color:${colorAOnDark};">${subLeft}</div>
           </div>
-          <div class="text-[10.5px] text-white/65 mt-0.5 truncate tabular-nums">${subLeft}</div>
         </div>
 
         <!-- Marcador central -->
-        <div class="px-3.5 py-1.5 rounded-2xl bg-black/25 border border-white/15 text-center shrink-0">
-          <div class="font-display text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight leading-none flex items-center justify-center gap-1.5">
+        <div class="vs-score-plaque">
+          <div class="font-display text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight leading-none flex items-center justify-center gap-2">
             ${onlyCoop ? `
               <span class="text-emerald-300">${vs.coopSharedWins}</span>
-              <span class="text-white/35 text-sm">/</span>
+              <span class="text-white/35 text-base">/</span>
               <span class="text-white">${vs.coopShared}</span>
             ` : `
-              <span style="color:${colorAOnDark};">${scoreLeft}</span>
-              <span class="text-white/35 text-sm">–</span>
-              <span style="color:${colorBOnDark};">${scoreRight}</span>
+              <span style="color:${colorAOnDark}; text-shadow: 0 0 14px ${rawColA}66;">${scoreLeft}</span>
+              <span class="text-white/35 text-base font-bold">–</span>
+              <span style="color:${colorBOnDark}; text-shadow: 0 0 14px ${rawColB}66;">${scoreRight}</span>
             `}
           </div>
-          <div class="text-[9px] font-bold uppercase tracking-wider text-white/55 mt-0.5 text-center">${onlyCoop ? 'Equipo' : 'Duelos'}</div>
+          <div class="text-[9px] font-extrabold uppercase tracking-[0.12em] text-white/55 mt-1 tabular-nums">${centerSubLabel}</div>
         </div>
 
         <!-- Jugador B -->
-        <div class="min-w-0 text-right">
-          <div class="flex items-center justify-end gap-1.5">
-            <span class="font-display text-sm sm:text-base font-extrabold truncate">${esc(pCtx.playerB)}</span>
-            ${renderPlayerAvatarHtml(pCtx.playerB, 'w-6 h-6 text-[10px] ring-1 ring-white/30')}
+        <div class="flex items-center justify-end gap-2.5 min-w-0 text-right">
+          <div class="min-w-0">
+            <div class="font-display text-sm sm:text-base font-extrabold text-white truncate leading-tight">${esc(pCtx.playerB)}</div>
+            <div class="text-[10.5px] font-bold mt-0.5 truncate tabular-nums" style="color:${colorBOnDark};">${subRight}</div>
           </div>
-          <div class="text-[10.5px] text-white/65 mt-0.5 truncate tabular-nums">${subRight}</div>
+          <span class="vs-avatar-wrap" style="--vs-glow:${rawColB};">
+            ${renderPlayerAvatarHtml(pCtx.playerB, 'w-9 h-9 text-xs ring-2 ring-white/25 relative z-10')}
+            ${leaderSide === 'B' ? `<span class="vs-leader-crown" title="Líder del cara a cara">${gameIconSvg('crown', 'w-2.5 h-2.5')}</span>` : ''}
+          </span>
         </div>
       </div>
 
-      <!-- Barra de dominio -->
-      <div class="mt-3.5 relative z-10">
-        <div class="h-2 w-full rounded-full bg-white/12 overflow-hidden flex">
+      <!-- Barra de dominio con destello de choque -->
+      <div class="mt-4 relative z-10">
+        <div class="vs-dom-track">
           ${onlyCoop ? `
-            <div class="h-full transition-all duration-500 bg-emerald-400" style="width:${pctA}%;"></div>
+            <div class="vs-dom-seg bg-emerald-400" style="width:${pctA}%;"></div>
           ` : `
-            <div class="h-full transition-all duration-500" style="width:${pctA}%; background:${getPlayerColor(pCtx.playerA)};"></div>
-            <div class="h-full transition-all duration-500" style="width:${pctB}%; background:${getPlayerColor(pCtx.playerB)};"></div>
+            <div class="vs-dom-seg" style="width:${pctA}%; background: linear-gradient(90deg, ${rawColA}, ${colorAOnDark});"></div>
+            <div class="vs-dom-seg" style="width:${pctB}%; background: linear-gradient(90deg, ${colorBOnDark}, ${rawColB});"></div>
+            ${pctA > 4 && pctA < 96 ? `<span class="vs-dom-split" style="left:${pctA}%;"></span>` : ''}
           `}
         </div>
-        <div class="mt-2 flex items-center justify-between gap-2 text-[10.5px] text-white/70">
-          <span class="tabular-nums font-bold shrink-0" style="${onlyCoop ? 'color:#A7F3D0;' : `color:${colorAOnDark};`}">${pctA}%</span>
-          <span class="flex-1 text-center leading-tight">${footerNote}</span>
-          <span class="tabular-nums font-bold shrink-0" style="${onlyCoop ? 'color:#FDE68A;' : `color:${colorBOnDark};`}">${onlyCoop ? 'Éxito' : `${pctB}%`}</span>
+        <div class="mt-1.5 text-center text-[10.5px] font-medium text-white/65 leading-tight truncate">
+          ${footerNote}
         </div>
       </div>
 
+      <!-- Dock inferior: Últimos 5 con fichas de iniciales + Racha de fuego -->
       ${!onlyCoop && Array.isArray(vs.recentDuels) && vs.recentDuels.length > 0 ? (() => {
         const latestDuel = vs.recentDuels[vs.recentDuels.length - 1];
         const latestLabel = latestDuel.outcome === 'A'
@@ -10970,31 +10997,57 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
           : latestDuel.outcome === 'B'
             ? pCtx.playerB
             : 'Empate';
-        const latestColor = latestDuel.outcome === 'A'
+        const latestDotCol = latestDuel.outcome === 'A'
+          ? rawColA
+          : latestDuel.outcome === 'B'
+            ? rawColB
+            : 'rgba(255,255,255,0.45)';
+        const latestTextCol = latestDuel.outcome === 'A'
           ? colorAOnDark
           : latestDuel.outcome === 'B'
             ? colorBOnDark
-            : 'rgba(255,255,255,0.75)';
+            : 'rgba(255,255,255,0.8)';
+
         return `
-          <div class="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between gap-2 relative z-10">
+          <div class="mt-3 vs-momentum-dock relative z-10">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="text-[9.5px] font-bold uppercase tracking-wider text-white/55 shrink-0">Últimos ${vs.recentDuels.length}</span>
-              <div class="flex items-center gap-1.5">
+              <span class="text-[9px] font-extrabold uppercase tracking-[0.12em] text-white/50 shrink-0">Últ. ${vs.recentDuels.length}</span>
+              <div class="flex items-center gap-1.5 pb-0.5">
                 ${vs.recentDuels.map((d, i) => {
                   const isLast = i === vs.recentDuels.length - 1;
-                  const dotCol = d.outcome === 'A' ? colorAOnDark : d.outcome === 'B' ? colorBOnDark : 'rgba(255,255,255,0.38)';
-                  const whoTxt = d.outcome === 'A' ? pCtx.playerA : d.outcome === 'B' ? pCtx.playerB : 'Empate';
-                  return `<span class="duel-dot ${isLast ? 'is-latest' : ''}" style="background:${dotCol};" title="${esc(d.gameName)} (${esc(d.date)}) · ${esc(whoTxt)}"></span>`;
+                  const isA = d.outcome === 'A';
+                  const isB = d.outcome === 'B';
+                  const chipRaw = isA ? rawColA : isB ? rawColB : '#64748B';
+                  const chipBright = isA ? colorAOnDark : isB ? colorBOnDark : 'rgba(255,255,255,0.75)';
+                  const chipTxt = isA ? profA.initials : isB ? profB.initials : '=';
+                  const whoTxt = isA ? `Ganó ${pCtx.playerA}` : isB ? `Ganó ${pCtx.playerB}` : 'Empate';
+                  const toastMsg = `${d.gameName} (${d.date}) · ${whoTxt}`;
+                  const styleStr = isLast
+                    ? `background:${chipRaw}; border:1px solid rgba(255,255,255,0.35); --chip-glow:${chipRaw};`
+                    : `background:${chipRaw}2E; border:1px solid ${chipRaw}78; color:${chipBright};`;
+                  return `
+                    <button type="button" data-action="toast-vs-duel" data-msg="${esc(toastMsg)}"
+                      class="vs-duel-chip ${isLast ? 'is-latest' : ''}"
+                      style="${styleStr}"
+                      title="${esc(toastMsg)}" aria-label="${esc(toastMsg)}">
+                      ${esc(chipTxt)}
+                    </button>
+                  `;
                 }).join('')}
               </div>
             </div>
+
             ${vs.activeStreak ? `
-              <span class="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-[10px] font-extrabold tabular-nums shrink-0" style="color:${vs.activeStreak.who === 'A' ? colorAOnDark : colorBOnDark};">
-                Racha: ${esc(vs.activeStreak.name)} ×${vs.activeStreak.count}
+              <span class="vs-streak-badge ${vs.activeStreak.count >= 3 ? 'is-hot' : ''}" title="Racha activa en duelos cara a cara">
+                ${flameIconSvg('w-3.5 h-3.5 vs-flame-icon')}
+                <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${vs.activeStreak.who === 'A' ? colorAOnDark : colorBOnDark};"></span>
+                <span class="truncate max-w-[78px]">${esc(vs.activeStreak.name)}</span>
+                <span class="text-amber-300 font-extrabold">×${vs.activeStreak.count}</span>
               </span>
             ` : `
-              <span class="text-[10px] font-semibold text-white/60 truncate">
-                Último: <strong style="color:${latestColor};">${esc(latestLabel)}</strong>
+              <span class="vs-last-badge">
+                <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${latestDotCol};"></span>
+                <span class="truncate">Últ: <strong style="color:${latestTextCol};">${esc(latestLabel)}</strong></span>
               </span>
             `}
           </div>
@@ -15802,6 +15855,10 @@ function bindGlobalEvents() {
       }
       case 'open-player-rating-detail': {
         openPlayerRatingDetailModal(el.dataset.key || '', uiState.statsFilterGame);
+        break;
+      }
+      case 'toast-vs-duel': {
+        if (el.dataset.msg) showToast(el.dataset.msg, 'neutral');
         break;
       }
       case 'open-stats-player-filter': {
