@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v3.9';
+const APP_VERSION = 'v4.0';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -688,6 +688,8 @@ let uiState = {
   expandedHistoryLedgerId: null,
   statsFilterGame: 'all',
   statsSubTab: 'overview', // 'overview' | 'ranking' | 'badges'
+  statsSubTabDir: '',
+  statsHeroDir: '',
   statsDonutMode: 'plays', // 'plays' | 'hours'
   statsRecentPointsMode: 'recent', // 'recent' | 'top'
   statsPlayerMode: 'all', // 'all' | 'single' | 'vs'
@@ -1113,26 +1115,7 @@ function syncIosStandaloneViewport() {
       || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isStandalone = window.navigator.standalone === true
       || Boolean(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
-
     root.classList.toggle('ios-standalone', Boolean(isIos && isStandalone));
-
-    if (isIos && isStandalone) {
-      const isLandscape = window.innerWidth > window.innerHeight;
-      const screenH = isLandscape
-        ? Math.min(window.screen.width || 0, window.screen.height || 0)
-        : Math.max(window.screen.width || 0, window.screen.height || 0);
-      const shortfall = screenH - window.innerHeight;
-      if (screenH > 0 && shortfall > 10 && shortfall < 140) {
-        root.style.setProperty('--app-height', `${screenH}px`);
-        root.classList.add('ios-standalone-full');
-      } else {
-        root.classList.remove('ios-standalone-full');
-        root.style.removeProperty('--app-height');
-      }
-    } else {
-      root.classList.remove('ios-standalone-full');
-      root.style.removeProperty('--app-height');
-    }
   } catch (e) {}
 }
 
@@ -3795,8 +3778,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v40 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v40';
+  return `// Ludoteca — Service Worker Offline v41 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v41';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -11424,6 +11407,169 @@ function updateStatsDustyPartial() {
   requestAnimationFrame(syncSegmentedControls);
 }
 
+function getStatsHeroDeck(gameFilterId = 'all') {
+  const poolMatches = gameFilterId && gameFilterId !== 'all'
+    ? matchHistory.filter((m) => m.gameId === gameFilterId)
+    : matchHistory;
+
+  const counts = new Map();
+  poolMatches.forEach((m) => {
+    const isCoop = getMatchScoringType(m) === 'coop';
+    (m.players || []).forEach((p) => {
+      const nm = String(p.name || '').trim();
+      const k = normName(nm);
+      if (!k) return;
+      if (!counts.has(k)) counts.set(k, { key: k, name: nm, plays: 0, wins: 0 });
+      const st = counts.get(k);
+      st.name = nm;
+      st.plays += 1;
+      if (!isCoop && p.winner) st.wins += 1;
+    });
+  });
+
+  const sortedPlayers = Array.from(counts.values())
+    .sort((a, b) => (b.plays - a.plays) || (b.wins - a.wins) || a.name.localeCompare(b.name, 'es'))
+    .slice(0, 8);
+
+  const slides = [{ mode: 'all', key: 'all', name: '', label: 'Todos', color: '#34D399' }];
+  sortedPlayers.forEach((p) => {
+    slides.push({
+      mode: 'single',
+      key: p.key,
+      name: p.name,
+      label: p.name,
+      color: getPlayerColorOnDark(p.name),
+    });
+  });
+  return slides;
+}
+
+function getStatsHeroActiveIndex(deck, pCtx) {
+  if (!Array.isArray(deck) || deck.length === 0) return 0;
+  if (pCtx.mode === 'single' && pCtx.keyA) {
+    const idx = deck.findIndex((s) => s.mode === 'single' && s.key === pCtx.keyA);
+    return idx >= 0 ? idx : 0;
+  }
+  return 0;
+}
+
+function stepStatsHeroDeck(delta) {
+  const deck = getStatsHeroDeck(uiState.statsFilterGame);
+  if (deck.length <= 1) return;
+  const pCtx = resolveStatsPlayerContext();
+  const curIdx = getStatsHeroActiveIndex(deck, pCtx);
+  const nextIdx = (curIdx + delta + deck.length) % deck.length;
+  const target = deck[nextIdx];
+  if (!target) return;
+
+  uiState.statsHeroDir = delta > 0 ? 'right' : 'left';
+  if (target.mode === 'all') {
+    uiState.statsPlayerMode = 'all';
+    uiState.statsPlayerA = '';
+    uiState.statsPlayerB = '';
+  } else {
+    uiState.statsPlayerMode = 'single';
+    uiState.statsPlayerA = target.name;
+    uiState.statsPlayerB = '';
+  }
+  try { if (navigator.vibrate) navigator.vibrate(7); } catch (e) {}
+  renderStatsTab();
+}
+
+function jumpStatsHeroDeck(targetIdx) {
+  const deck = getStatsHeroDeck(uiState.statsFilterGame);
+  if (deck.length <= 1) return;
+  const idx = Math.max(0, Math.min(deck.length - 1, Number(targetIdx) || 0));
+  const pCtx = resolveStatsPlayerContext();
+  const curIdx = getStatsHeroActiveIndex(deck, pCtx);
+  if (idx === curIdx && pCtx.mode !== 'vs') return;
+  const target = deck[idx];
+  if (!target) return;
+
+  uiState.statsHeroDir = idx > curIdx ? 'right' : 'left';
+  if (target.mode === 'all') {
+    uiState.statsPlayerMode = 'all';
+    uiState.statsPlayerA = '';
+    uiState.statsPlayerB = '';
+  } else {
+    uiState.statsPlayerMode = 'single';
+    uiState.statsPlayerA = target.name;
+    uiState.statsPlayerB = '';
+  }
+  try { if (navigator.vibrate) navigator.vibrate(7); } catch (e) {}
+  renderStatsTab();
+}
+
+function attachStatsHeroSwipe(rootEl) {
+  if (!rootEl) return;
+  const card = rootEl.querySelector('[data-stats-hero-swipe]');
+  if (!card) return;
+  const deckLen = Number(card.dataset.deckLen) || 0;
+  if (deckLen <= 1) return;
+
+  let startX = 0;
+  let startY = 0;
+  let dx = 0;
+  let axis = ''; // 'x' | 'y' | ''
+  let active = false;
+
+  card.addEventListener('touchstart', (e) => {
+    if (!e.touches || e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    dx = 0;
+    axis = '';
+    active = true;
+  }, { passive: true });
+
+  card.addEventListener('touchmove', (e) => {
+    if (!active || !e.touches || e.touches.length !== 1) return;
+    const cx = e.touches[0].clientX;
+    const cy = e.touches[0].clientY;
+    const mx = cx - startX;
+    const my = cy - startY;
+
+    if (!axis) {
+      if (Math.abs(mx) < 10 && Math.abs(my) < 10) return;
+      if (Math.abs(mx) > Math.abs(my) * 1.15) {
+        axis = 'x';
+        card.classList.add('is-dragging');
+      } else {
+        axis = 'y';
+        active = false;
+        return;
+      }
+    }
+
+    if (axis === 'x') {
+      if (e.cancelable) e.preventDefault();
+      dx = mx;
+      const damp = Math.max(-90, Math.min(90, dx * 0.42));
+      const fade = Math.max(0.72, 1 - Math.abs(dx) / 360);
+      card.style.transform = `translate3d(${damp}px, 0, 0)`;
+      card.style.opacity = String(fade);
+    }
+  }, { passive: false });
+
+  const endSwipe = () => {
+    if (!active) return;
+    active = false;
+    card.classList.remove('is-dragging');
+    if (axis === 'x' && Math.abs(dx) >= 44) {
+      const dir = dx < 0 ? 1 : -1;
+      card.style.transform = '';
+      card.style.opacity = '';
+      stepStatsHeroDeck(dir);
+      return;
+    }
+    card.style.transform = '';
+    card.style.opacity = '';
+  };
+
+  card.addEventListener('touchend', endSwipe, { passive: true });
+  card.addEventListener('touchcancel', endSwipe, { passive: true });
+}
+
 function renderStatsTab() {
   const container = document.getElementById('view-stats');
   destroyActiveCharts();
@@ -11521,7 +11667,7 @@ function renderStatsTab() {
             <span class="w-6 h-6 rounded-lg bg-emeraldBrand/12 text-emeraldBrand dark:text-emerald-400 flex items-center justify-center shrink-0">
               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </span>
-            <span class="truncate">Todos los jugadores</span>
+            <span class="truncate sm:hidden">Todos</span><span class="truncate hidden sm:inline">Todos los jugadores</span>
           </span>
           <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-canvas dark:bg-surfaceDarkAlt border border-black/[0.06] dark:border-white/10 text-[11px] font-extrabold text-emeraldBrand dark:text-emerald-400">
             <span>Filtrar / VS</span>
@@ -11550,33 +11696,54 @@ function renderStatsTab() {
     : matchHistory.filter((m) => m.gameId === uiState.statsFilterGame);
   const ratingData = computeRatingSystem(ratingScopeMatches);
 
-  // Barra superior compartida: Sub-pestañas (Stats | Ranking | Insignias) + Filtro Jugador/VS + Filtro Juego
+  const subTabAnimCls = uiState.statsSubTabDir === 'right'
+    ? 'tab-slide-right'
+    : uiState.statsSubTabDir === 'left'
+      ? 'tab-slide-left'
+      : '';
+  uiState.statsSubTabDir = '';
+
+  const heroAnimCls = uiState.statsHeroDir === 'right'
+    ? 'hero-slide-right'
+    : uiState.statsHeroDir === 'left'
+      ? 'hero-slide-left'
+      : 'anim-in';
+  uiState.statsHeroDir = '';
+
+  const subTabThumbCls = uiState.statsSubTab === 'ranking'
+    ? 'seg-thumb-ranking'
+    : uiState.statsSubTab === 'badges'
+      ? 'seg-thumb-badges'
+      : 'seg-thumb-pine';
+
+  // Barra superior compartida: Sub-pestañas deslizantes (Stats | Ranking | Insignias) + Filtro Jugador/VS + Filtro Juego
   const topControlsHtml = `
-    <div class="grid grid-cols-3 gap-1 p-1 rounded-2xl card-pro">
-      <button type="button" data-action="set-stats-subtab" data-val="overview"
-        class="btn-tap py-2.5 px-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all ${
+    <div class="seg-control seg-grid seg-stats-bar grid-cols-3 gap-1 card-pro" data-seg-id="stats-subtabs">
+      <span class="seg-thumb ${subTabThumbCls}"></span>
+      <button type="button" data-action="set-stats-subtab" data-val="overview" data-seg-active="${uiState.statsSubTab === 'overview' ? 'true' : 'false'}"
+        class="seg-btn btn-tap py-2.5 px-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 ${
           uiState.statsSubTab === 'overview'
-            ? 'bg-pine dark:bg-emeraldBrand text-white shadow-xs'
+            ? 'text-white'
             : 'text-inkMuted dark:text-white/65 hover:text-ink dark:hover:text-white'
         }">
         <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7" rx="1"/><rect x="13" y="6" width="3" height="11" rx="1"/><rect x="19" y="13" width="2" height="4" rx="1"/></svg>
         <span>Stats</span>
       </button>
 
-      <button type="button" data-action="set-stats-subtab" data-val="ranking"
-        class="btn-tap py-2.5 px-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all ${
+      <button type="button" data-action="set-stats-subtab" data-val="ranking" data-seg-active="${uiState.statsSubTab === 'ranking' ? 'true' : 'false'}"
+        class="seg-btn btn-tap py-2.5 px-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 ${
           uiState.statsSubTab === 'ranking'
-            ? 'bg-gradient-to-r from-pine via-emeraldBrand to-pine text-white shadow-xs'
+            ? 'text-white'
             : 'text-inkMuted dark:text-white/65 hover:text-ink dark:hover:text-white'
         }">
         ${gameIconSvg('crown', 'w-3.5 h-3.5 shrink-0')}
         <span>Ranking</span>
       </button>
 
-      <button type="button" data-action="set-stats-subtab" data-val="badges"
-        class="btn-tap py-2.5 px-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1 transition-all ${
+      <button type="button" data-action="set-stats-subtab" data-val="badges" data-seg-active="${uiState.statsSubTab === 'badges' ? 'true' : 'false'}"
+        class="seg-btn btn-tap py-2.5 px-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1 ${
           uiState.statsSubTab === 'badges'
-            ? 'bg-gradient-to-r from-[#B45309] via-[#D9911E] to-[#B45309] text-white shadow-xs'
+            ? 'text-white'
             : 'text-inkMuted dark:text-white/65 hover:text-ink dark:hover:text-white'
         }">
         <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
@@ -11924,9 +12091,11 @@ function renderStatsTab() {
 
     container.innerHTML = `
       ${topControlsHtml}
-      ${heroRankingHtml}
-      ${rankingRowsHtml}
-      ${evolutionCardHtml}
+      <div class="space-y-4 ${subTabAnimCls}">
+        ${heroRankingHtml}
+        ${rankingRowsHtml}
+        ${evolutionCardHtml}
+      </div>
     `;
     requestAnimationFrame(syncSegmentedControls);
     mountRankingChart(ratingData, highlightKeys);
@@ -12025,13 +12194,14 @@ function renderStatsTab() {
 
     container.innerHTML = `
       ${topControlsHtml}
-      <div class="space-y-5">
+      <div class="space-y-5 ${subTabAnimCls}">
         ${vsDuelCardHtml}
         ${medalTableHtml}
         ${globalBlockHtml}
         ${gamesBlocksHtml}
       </div>
     `;
+    requestAnimationFrame(syncSegmentedControls);
     return;
   }
 
@@ -12743,133 +12913,347 @@ function renderStatsTab() {
     `;
   })();
 
-  // Cabecera oscura editorial para Todos / 1 Jugador (rompe la monotonía blanca con el mismo nivel visual que el modo VS)
+  // Carrusel deslizable de Fichas Hero (General -> Sebas -> Raquel -> ...) al nivel premium de Cara a Cara (v4.0)
+  const heroDeck = getStatsHeroDeck(uiState.statsFilterGame);
+  const heroActiveIdx = getStatsHeroActiveIndex(heroDeck, pCtx);
+  const renderHeroPagerHtml = () => {
+    if (heroDeck.length <= 1) return '';
+    const prevSlide = heroDeck[(heroActiveIdx - 1 + heroDeck.length) % heroDeck.length];
+    const nextSlide = heroDeck[(heroActiveIdx + 1) % heroDeck.length];
+    return `
+      <div class="hero-pager-bar relative z-10">
+        <button type="button" data-action="step-stats-hero" data-delta="-1" class="hero-pager-btn btn-tap">
+          <span>‹</span>
+          <span class="max-w-[78px] truncate">${esc(prevSlide.label)}</span>
+        </button>
+        <div class="hero-pager-dots" role="tablist" aria-label="Cambiar ficha en mesa">
+          ${heroDeck.map((s, idx) => `
+            <button type="button" data-action="jump-stats-hero" data-idx="${idx}" aria-label="${esc(s.label)}"
+              class="hero-pager-dot ${idx === heroActiveIdx ? 'is-active' : ''}"
+              style="${idx === heroActiveIdx ? `--dot-col:${s.color};` : ''}"></button>
+          `).join('')}
+        </div>
+        <button type="button" data-action="step-stats-hero" data-delta="1" class="hero-pager-btn btn-tap">
+          <span class="max-w-[78px] truncate">${esc(nextSlide.label)}</span>
+          <span>›</span>
+        </button>
+      </div>
+    `;
+  };
+
   const statsHeroCardHtml = pCtx.mode === 'vs' ? '' : pCtx.mode === 'single' && leaderboard[0] ? (() => {
     const st0 = leaderboard[0];
-    const topGameText = st0.topWonGame ? `Fuerte: ${st0.topWonGame}` : (st0.favGame ? `Más jugado: ${st0.favGame}` : 'En evolución');
+    const prof0 = getPlayerProfile(st0.name);
+    const rawCol = prof0.color;
+    const colOnDark = getPlayerColorOnDark(st0.name);
+    const rSt = ratingData.byKey[normName(st0.name)] || null;
+    const tierInfo = rSt ? getRatingTierInfo(rSt.points) : null;
+    const isRank1 = Boolean(rSt && rSt.rank === 1);
+    const topGameText = selectedGameObj
+      ? (st0.avg !== null ? `Media: ${st0.avg} pts` : (Number.isFinite(st0.bestScore) ? `${isLowestWinsFilter ? 'Mín' : 'Máx'}. pts: ${st0.bestScore}` : `${totalHours}h en mesa`))
+      : (st0.topWonGame ? `Fuerte: ${st0.topWonGame}` : (st0.favGame ? `Más jugado: ${st0.favGame}` : 'En evolución'));
+    const rightMetaText = recordEntry
+      ? `Récord: ${recordEntry.isSpecial ? recordEntry.display : `${recordEntry.score} pts`}`
+      : `${totalHours}h en mesa`;
+
+    // Últimas 5 partidas del jugador (orden cronológico ascendente para leer de izq. a der.)
+    const recentPlayerMatches = [...subset]
+      .sort((a, b) => matchChronoKey(a).localeCompare(matchChronoKey(b)))
+      .slice(-5);
+
+    const recentChipsHtml = recentPlayerMatches.map((m, idx) => {
+      const isLatest = idx === recentPlayerMatches.length - 1;
+      const isCoopM = getMatchScoringType(m) === 'coop';
+      const me = (m.players || []).find((p) => normName(p.name) === normName(st0.name));
+      const won = isCoopM ? Boolean(m.meta?.coopWon) : Boolean(me?.winner);
+      const chipBg = won
+        ? (isLatest ? rawCol : `${rawCol}40`)
+        : (isLatest ? 'rgba(208, 78, 54, 0.72)' : 'rgba(244, 63, 94, 0.22)');
+      const chipBorder = won
+        ? (isLatest ? colOnDark : `${colOnDark}80`)
+        : (isLatest ? '#FDA4AF' : 'rgba(253, 164, 175, 0.45)');
+      const chipTextCol = isLatest ? '#FFFFFF' : (won ? colOnDark : '#FDA4AF');
+      const scorePart = me && me.score !== null && me.score !== undefined ? ` (${me.score} pts)` : '';
+      const tipMsg = `${formatDisplayDate(m.date, m.createdAtMs)} · ${m.gameName}: ${won ? 'Victoria' : 'Derrota'}${scorePart}`;
+      return `
+        <button type="button" data-action="toast-vs-duel" data-msg="${esc(tipMsg)}"
+          class="hero-win-chip ${isLatest ? 'is-latest' : ''}"
+          style="background:${chipBg}; border:1.5px solid ${chipBorder}; color:${chipTextCol}; --chip-glow:${won ? rawCol : '#E11D48'};"
+          title="${esc(tipMsg)}">${won ? 'V' : 'D'}</button>
+      `;
+    }).join('');
+
+    const curStreak = rSt ? rSt.currentStreak : 0;
+    const bestStreak = rSt ? rSt.bestStreak : 0;
+    const rightDockHtml = curStreak >= 2
+      ? `<span class="vs-streak-badge ${curStreak >= 4 ? 'is-hot' : ''}">${flameIconSvg('w-3 h-3 vs-flame-icon')}<span>Racha ×${curStreak}</span></span>`
+      : (bestStreak >= 2
+          ? `<span class="vs-last-badge"><span>Mejor racha: <strong class="text-white">×${bestStreak}</strong></span></span>`
+          : `<span class="vs-last-badge"><span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${colOnDark};"></span><span class="tabular-nums">${st0.winRate}% éxito</span></span>`);
+
+    const singleHeroBg = `radial-gradient(ellipse 68% 64% at 14% 18%, ${rawCol}42 0%, transparent 66%), radial-gradient(ellipse 56% 52% at 92% 88%, rgba(251, 191, 36, 0.16) 0%, transparent 64%), linear-gradient(152deg, #081410 0%, #0F231C 52%, #131B18 100%)`;
+
     return `
-      <div class="stats-hero-dark cover-sheen rounded-[26px] p-4 sm:p-5 text-white anim-in border border-white/10">
-        <div class="flex items-center justify-between gap-2 mb-3 relative z-10">
+      <div data-stats-hero-swipe data-deck-len="${heroDeck.length}"
+        class="vs-duel-hero stats-hero-swipe cover-sheen rounded-[26px] p-4 sm:p-5 text-white ${heroAnimCls}"
+        style="background:${singleHeroBg};">
+        <!-- Cabecera -->
+        <div class="flex items-center justify-between gap-2 mb-3.5 relative z-10">
           <div class="flex items-center gap-2 min-w-0">
-            <span class="px-2 py-0.5 rounded-lg bg-amber-400/20 border border-amber-300/30 text-[10px] font-extrabold uppercase tracking-widest text-amber-200 shrink-0">
-              Perfil en mesa
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-400/18 border border-amber-300/35 text-[10px] font-extrabold uppercase tracking-widest text-amber-200 shrink-0">
+              <span>Perfil en mesa</span>
             </span>
-            ${selectedGameObj ? `<span class="text-[11px] font-bold text-white/75 truncate">${esc(selectedGameObj.name)}</span>` : ''}
+            ${selectedGameObj ? `<span class="text-[11px] font-bold text-white/80 truncate">${esc(selectedGameObj.name)}</span>` : ''}
           </div>
           ${hIndexData ? `
-            <span class="px-2.5 py-0.5 rounded-lg bg-white/10 border border-white/15 text-[10.5px] font-extrabold text-emerald-200 tabular-nums shrink-0">
+            <span class="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-[10.5px] font-extrabold text-emerald-200 tabular-nums shrink-0">
               H = ${hIndexData.h} · ${esc(hIndexData.levelLabel)}
             </span>
-          ` : ''}
+          ` : `
+            <span class="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-[10.5px] font-bold text-white/80 tabular-nums shrink-0">
+              ${totalPlays} ${totalPlays === 1 ? 'partida' : 'partidas'}
+            </span>
+          `}
         </div>
+
+        <!-- Identidad + Placa de Rating/Éxito -->
         <div class="flex items-center justify-between gap-3 relative z-10">
           <div class="flex items-center gap-3 min-w-0">
-            ${renderPlayerAvatarHtml(st0.name, 'w-11 h-11 text-sm ring-2 ring-white/25')}
+            <span class="vs-avatar-wrap" style="--vs-glow:${rawCol};">
+              ${renderPlayerAvatarHtml(st0.name, 'w-11 h-11 text-sm ring-2 ring-white/25 relative z-10')}
+              ${isRank1 ? `<span class="vs-leader-crown is-left" title="#1 en el Ranking">${gameIconSvg('crown', 'w-2.5 h-2.5')}</span>` : ''}
+            </span>
             <div class="min-w-0">
-              <div class="flex items-center gap-1.5 min-w-0">
+              <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
                 <div class="font-display text-lg font-extrabold leading-tight truncate">${esc(st0.name)}</div>
-                ${ratingData.byKey[normName(st0.name)] ? renderStreakPillHtml(ratingData.byKey[normName(st0.name)].currentStreak, { onDark: true }) : ''}
+                ${tierInfo ? `<span class="tier-pill is-on-dark" style="color:${tierInfo.color};">${esc(tierInfo.label)}</span>` : ''}
               </div>
-              <div class="text-[11px] text-white/70 mt-0.5 truncate tabular-nums">
-                ${st0.wins}V / ${st0.effectivePlays}P · ${st0.winRate}% éxito${!st0.coopOnly && st0.coopPlays > 0 ? ` · +${st0.coopPlays} coop` : ''}
+              <div class="text-[11px] text-white/75 mt-0.5 truncate tabular-nums">
+                <strong style="color:${colOnDark};">${st0.wins}V</strong> / ${st0.effectivePlays}P · ${st0.winRate}% éxito${!st0.coopOnly && st0.coopPlays > 0 ? ` · +${st0.coopPlays} coop` : ''}
               </div>
             </div>
           </div>
-          ${ratingData.byKey[normName(st0.name)] ? (() => {
-            const rSt = ratingData.byKey[normName(st0.name)];
+
+          ${rSt ? (() => {
+            const dCls = rSt.lastDelta > 0 ? 'is-pos' : rSt.lastDelta < 0 ? 'is-neg' : 'is-flat';
+            const dTxt = formatRatingDelta(rSt.lastDelta, rSt.lastHitCap);
             return `
               <button type="button" data-action="open-player-rating-detail" data-key="${esc(rSt.key)}"
-                class="btn-tap px-3.5 py-1.5 rounded-2xl bg-amber-400/15 hover:bg-amber-400/24 border border-amber-300/35 text-center shrink-0"
-                title="Ver desglose del rating (${rSt.points} pts)">
-                <div class="font-display text-xl font-extrabold text-amber-300 tabular-nums leading-none">${rSt.note}</div>
-                <div class="text-[9px] font-bold uppercase tracking-wider text-amber-100/80 mt-0.5">${rSt.rank ? `Nota #${rSt.rank}` : `${rSt.ratedPlays}/3P`}</div>
+                class="hero-stat-plaque is-gold btn-tap" title="Ver radiografía del rating (${rSt.points} pts)">
+                <div class="flex items-center justify-center gap-1">
+                  <span class="font-display text-xl font-extrabold text-amber-300 tabular-nums leading-none">${rSt.note}</span>
+                  <span class="podium-delta ${dCls}">${dTxt}</span>
+                </div>
+                <div class="text-[9px] font-bold uppercase tracking-wider text-amber-100/80 mt-1 tabular-nums">${rSt.rank ? `Nota #${rSt.rank}` : `${rSt.ratedPlays}/3P`}</div>
               </button>
             `;
           })() : `
-            <div class="px-3.5 py-1.5 rounded-2xl bg-black/25 border border-white/15 text-center shrink-0">
-              <div class="font-display text-xl font-extrabold text-emerald-300 tabular-nums leading-none">${st0.winRate}%</div>
-              <div class="text-[9px] font-bold uppercase tracking-wider text-white/55 mt-0.5">Éxito</div>
+            <div class="hero-stat-plaque">
+              <div class="font-display text-xl font-extrabold tabular-nums leading-none" style="color:${colOnDark};">${st0.winRate}%</div>
+              <div class="text-[9px] font-bold uppercase tracking-wider text-white/55 mt-1">Éxito</div>
             </div>
           `}
         </div>
-        <div class="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between gap-2 text-[11px] text-white/75 relative z-10">
-          <span class="truncate">${esc(topGameText)}</span>
-          ${recordEntry ? `<span class="shrink-0 tabular-nums font-bold text-amber-200">Récord: ${recordEntry.isSpecial ? esc(recordEntry.display) : `${recordEntry.score} pts`}</span>` : `<span class="shrink-0 tabular-nums font-bold text-emerald-200">${totalHours}h en mesa</span>`}
+
+        <!-- Barra de efectividad del jugador -->
+        <div class="mt-3.5 relative z-10">
+          <div class="vs-dom-track">
+            <div class="vs-dom-seg" style="width:${Math.max(4, st0.winRate)}%; background: linear-gradient(90deg, ${rawCol}, ${colOnDark});"></div>
+          </div>
+          <div class="mt-1.5 flex items-center justify-between gap-2 text-[10.5px] leading-tight">
+            <span class="text-white/75 font-medium truncate">${esc(topGameText)}</span>
+            <span class="font-bold text-amber-200 tabular-nums shrink-0">${esc(rightMetaText)}</span>
+          </div>
         </div>
+
+        <!-- Dock de forma reciente -->
+        ${recentPlayerMatches.length > 0 ? `
+          <div class="mt-3 vs-momentum-dock relative z-10">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-[9.5px] font-extrabold uppercase tracking-wider text-white/45 shrink-0">Últ. ${recentPlayerMatches.length}</span>
+              <div class="flex items-center gap-1.5">${recentChipsHtml}</div>
+            </div>
+            ${rightDockHtml}
+          </div>
+        ` : ''}
+
+        ${renderHeroPagerHtml()}
       </div>
     `;
   })() : (() => {
     const leader = leaderboard[0] || null;
+    const leaderProf = leader ? getPlayerProfile(leader.name) : null;
+    const leaderRawCol = leaderProf ? leaderProf.color : '#227554';
+    const leaderColDark = leader ? getPlayerColorOnDark(leader.name) : '#34D399';
+    const leaderTier = leader && leader.ratingInfo ? getRatingTierInfo(leader.ratingInfo.points) : null;
     const topPlayed = sortedGamesData[0] || null;
+    const gameTintCol = selectedGameObj ? selectedGameObj.color : '#227554';
+
+    // Barra multicolor de reparto de victorias en mesa
+    const winHolders = leaderboard.filter((p) => p.wins > 0);
+    const totalWinsPool = winHolders.reduce((acc, p) => acc + p.wins, 0);
+    const winBarSegmentsHtml = totalWinsPool > 0
+      ? winHolders.slice(0, 5).map((p) => {
+          const wPct = Math.max(4, Math.round((p.wins / totalWinsPool) * 100));
+          const cRaw = getPlayerColor(p.name);
+          const cLit = getPlayerColorOnDark(p.name);
+          return `<div class="vs-dom-seg" style="width:${wPct}%; background: linear-gradient(90deg, ${cRaw}, ${cLit});" title="${esc(p.name)}: ${p.wins}V"></div>`;
+        }).join('')
+      : `<div class="vs-dom-seg" style="width:100%; background: linear-gradient(90deg, #227554, #34D399); opacity:0.55;"></div>`;
+
     const leaderOwnRecord = (() => {
       if (!selectedGameObj || !leader) return '';
-      if (selectedGameObj.id === 'oceanos_de_papel' && leader.specialRecord) {
-        return `Su récord: ${leader.specialRecord}`;
-      }
-      if (Number.isFinite(leader.bestScore)) {
-        return `Su récord: ${leader.bestScore} pts`;
-      }
+      if (selectedGameObj.id === 'oceanos_de_papel' && leader.specialRecord) return `Su récord: ${leader.specialRecord}`;
+      if (Number.isFinite(leader.bestScore)) return `Su récord: ${leader.bestScore} pts`;
       return '';
     })();
     const leftFooterText = selectedGameObj
       ? (subset[0] ? `Última: ${esc(formatDisplayDate(subset[0].date, subset[0].createdAtMs))}` : `${leaderboard.length} ${leaderboard.length === 1 ? 'jugador' : 'jugadores'}`)
       : (topPlayed ? `Top: <strong class="text-white">${esc(topPlayed.game.name)}</strong> (${topPlayed.count})` : `${playedGameIds.length} ${playedGameIds.length === 1 ? 'juego jugado' : 'juegos jugados'}`);
     const rightFooterText = selectedGameObj
-      ? leaderOwnRecord
-      : (recordEntry ? (recordEntry.isSpecial ? `Récord: ${recordEntry.display}` : `Récord: ${recordEntry.score} pts`) : '');
+      ? (leaderOwnRecord || `${totalHours}h en mesa`)
+      : (recordEntry ? (recordEntry.isSpecial ? `Récord: ${recordEntry.display}` : `Récord: ${recordEntry.score} pts`) : `${totalHours}h en mesa`);
+
+    // Dock de últimas 5 partidas globales / del juego
+    const recentTableMatches = [...subset]
+      .sort((a, b) => matchChronoKey(a).localeCompare(matchChronoKey(b)))
+      .slice(-5);
+
+    const recentTableChipsHtml = recentTableMatches.map((m, idx) => {
+      const isLatest = idx === recentTableMatches.length - 1;
+      const isCoopM = getMatchScoringType(m) === 'coop';
+      const winners = (m.players || []).filter((p) => p.winner);
+      let label = '=';
+      let rawC = '#64748B';
+      let darkC = '#CBD5E1';
+      let tipWho = m.winnerLabel || 'Empate';
+
+      if (isCoopM) {
+        const ok = Boolean(m.meta?.coopWon);
+        label = ok ? '✓' : '✕';
+        rawC = ok ? '#227554' : '#D04E36';
+        darkC = ok ? '#34D399' : '#FDA4AF';
+      } else if (winners.length === 1) {
+        const wp = getPlayerProfile(winners[0].name);
+        label = wp.initials;
+        rawC = wp.color;
+        darkC = getPlayerColorOnDark(winners[0].name);
+        tipWho = winners[0].name;
+      }
+      const chipBg = isLatest ? rawC : `${rawC}38`;
+      const chipBorder = isLatest ? darkC : `${darkC}78`;
+      const chipTextCol = isLatest ? '#FFFFFF' : darkC;
+      const tipMsg = `${formatDisplayDate(m.date, m.createdAtMs)} · ${m.gameName}: ${tipWho}`;
+      return `
+        <button type="button" data-action="toast-vs-duel" data-msg="${esc(tipMsg)}"
+          class="vs-duel-chip ${isLatest ? 'is-latest' : ''}"
+          style="background:${chipBg}; border:1.5px solid ${chipBorder}; color:${chipTextCol}; --chip-glow:${rawC};"
+          title="${esc(tipMsg)}">${esc(label)}</button>
+      `;
+    }).join('');
+
+    // Racha activa más larga o último ganador para el lado derecho del dock
+    const latestMatch = recentTableMatches[recentTableMatches.length - 1] || null;
+    const latestWinners = latestMatch ? (latestMatch.players || []).filter((p) => p.winner) : [];
+    const latestWinnerName = latestMatch && getMatchScoringType(latestMatch) !== 'coop' && latestWinners.length === 1
+      ? latestWinners[0].name : '';
+    const leaderStreak = leader && leader.ratingInfo ? leader.ratingInfo.currentStreak : 0;
+    const tableRightDockHtml = leaderStreak >= 2
+      ? `<span class="vs-streak-badge ${leaderStreak >= 4 ? 'is-hot' : ''}">${flameIconSvg('w-3 h-3 vs-flame-icon')}<span>${esc(leader.name)} ×${leaderStreak}</span></span>`
+      : (latestWinnerName
+          ? `<span class="vs-last-badge"><span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${getPlayerColorOnDark(latestWinnerName)};"></span><span>Últ: <strong style="color:${getPlayerColorOnDark(latestWinnerName)};">${esc(latestWinnerName)}</strong></span></span>`
+          : `<span class="vs-last-badge"><span class="tabular-nums">${totalPlays} ${totalPlays === 1 ? 'partida' : 'partidas'}</span></span>`);
+
+    const generalHeroBg = `radial-gradient(ellipse 62% 60% at 12% 18%, ${gameTintCol}36 0%, transparent 66%), radial-gradient(ellipse 56% 54% at 90% 84%, rgba(251, 191, 36, 0.18) 0%, transparent 64%), linear-gradient(152deg, #081511 0%, #10261E 54%, #1A170E 100%)`;
+
     return `
-      <div class="stats-hero-dark cover-sheen rounded-[26px] p-4 sm:p-5 text-white anim-in border border-white/10">
-        <div class="flex items-center justify-between gap-2 mb-3 relative z-10">
+      <div data-stats-hero-swipe data-deck-len="${heroDeck.length}"
+        class="vs-duel-hero stats-hero-swipe cover-sheen rounded-[26px] p-4 sm:p-5 text-white ${heroAnimCls}"
+        style="background:${generalHeroBg};">
+        <!-- Cabecera -->
+        <div class="flex items-center justify-between gap-2 mb-3.5 relative z-10">
           <div class="flex items-center gap-2 min-w-0">
-            <span class="px-2 py-0.5 rounded-lg bg-amber-400/20 border border-amber-300/30 text-[10px] font-extrabold uppercase tracking-widest text-amber-200 shrink-0">
-              ${selectedGameObj ? 'Ficha en mesa' : 'Resumen General'}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-400/18 border border-amber-300/35 text-[10px] font-extrabold uppercase tracking-widest text-amber-200 shrink-0">
+              ${selectedGameObj ? gameIconSvg(selectedGameObj.icon, 'w-3 h-3 text-amber-300 shrink-0') : gameIconSvg('crown', 'w-3 h-3 text-amber-300 shrink-0')}
+              <span>${selectedGameObj ? 'Ficha en mesa' : 'Resumen General'}</span>
             </span>
-            ${selectedGameObj ? `<span class="text-[11px] font-bold text-white/80 truncate">${esc(selectedGameObj.name)}</span>` : ''}
+            ${selectedGameObj ? `<span class="text-[11px] font-bold text-white/85 truncate">${esc(selectedGameObj.name)}</span>` : ''}
           </div>
           ${hIndexData ? `
-            <span class="px-2.5 py-0.5 rounded-lg bg-white/10 border border-white/15 text-[10.5px] font-extrabold text-emerald-200 tabular-nums shrink-0">
+            <span class="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-[10.5px] font-extrabold text-emerald-200 tabular-nums shrink-0">
               H = ${hIndexData.h} · ${esc(hIndexData.levelLabel)}
             </span>
           ` : `
-            <span class="px-2.5 py-0.5 rounded-lg bg-white/10 border border-white/15 text-[10.5px] font-extrabold text-white/85 tabular-nums shrink-0">
+            <span class="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-[10.5px] font-bold text-white/85 tabular-nums shrink-0">
               ${totalPlays} ${totalPlays === 1 ? 'partida' : 'partidas'}
             </span>
           `}
         </div>
+
+        <!-- Líder + Placa -->
         <div class="flex items-center justify-between gap-3 relative z-10">
           <div class="flex items-center gap-3 min-w-0">
-            ${leader ? renderPlayerAvatarHtml(leader.name, 'w-11 h-11 text-sm ring-2 ring-white/25') : `
+            ${leader ? `
+              <span class="vs-avatar-wrap" style="--vs-glow:${leaderRawCol};">
+                ${renderPlayerAvatarHtml(leader.name, 'w-11 h-11 text-sm ring-2 ring-white/25 relative z-10')}
+                <span class="vs-leader-crown is-left" title="Líder en mesa">${gameIconSvg('crown', 'w-2.5 h-2.5')}</span>
+              </span>
+            ` : `
               <span class="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center shrink-0">${gameIconSvg('crown', 'w-5 h-5')}</span>
             `}
             <div class="min-w-0">
-              <div class="text-[10px] font-bold uppercase tracking-wider text-amber-200">Líder en mesa</div>
-              <div class="font-display text-lg font-extrabold leading-tight truncate">${leader ? esc(leader.name) : '—'}</div>
-              <div class="text-[11px] text-white/70 mt-0.5 truncate tabular-nums">
+              <div class="text-[9.5px] font-extrabold uppercase tracking-wider text-amber-200/90">Líder en mesa</div>
+              <div class="flex items-center gap-1.5 min-w-0 mt-0.5">
+                <div class="font-display text-lg font-extrabold leading-tight truncate">${leader ? esc(leader.name) : '—'}</div>
+                ${leaderTier ? `<span class="tier-pill is-on-dark" style="color:${leaderTier.color};">${esc(leaderTier.label)}</span>` : ''}
+              </div>
+              <div class="text-[11px] text-white/75 mt-0.5 truncate tabular-nums">
                 ${leader
                   ? (leader.ratingInfo
-                      ? `Nota ${leader.ratingInfo.note} · ${leader.wins}V / ${leader.effectivePlays}P`
+                      ? `Nota <strong style="color:${leaderColDark};">${leader.ratingInfo.note}</strong> · ${leader.wins}V / ${leader.effectivePlays}P`
                       : `${leader.wins}V / ${leader.effectivePlays}P · ${leader.winRate}% éxito`)
                   : 'Sin datos todavía'}
               </div>
             </div>
           </div>
-          <div class="px-3.5 py-1.5 rounded-2xl bg-black/25 border border-white/15 text-center shrink-0">
+
+          <div class="hero-stat-plaque is-gold">
             <div class="font-display text-xl font-extrabold text-amber-300 tabular-nums leading-none">${totalHours}<span class="text-xs font-bold text-white/65 ml-0.5">h</span></div>
-            <div class="text-[9px] font-bold uppercase tracking-wider text-white/55 mt-0.5">En mesa</div>
+            <div class="text-[9px] font-bold uppercase tracking-wider text-white/60 mt-1">En mesa</div>
           </div>
         </div>
-        <div class="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between gap-2 text-[11px] text-white/75 relative z-10">
-          <span class="truncate">${leftFooterText}</span>
-          ${rightFooterText ? `<span class="shrink-0 tabular-nums font-bold text-amber-200">${esc(rightFooterText)}</span>` : ''}
+
+        <!-- Barra de reparto de victorias -->
+        <div class="mt-3.5 relative z-10">
+          <div class="vs-dom-track">
+            ${winBarSegmentsHtml}
+          </div>
+          <div class="mt-1.5 flex items-center justify-between gap-2 text-[10.5px] leading-tight">
+            <span class="text-white/75 font-medium truncate">${leftFooterText}</span>
+            ${rightFooterText ? `<span class="shrink-0 tabular-nums font-bold text-amber-200">${esc(rightFooterText)}</span>` : ''}
+          </div>
         </div>
+
+        <!-- Dock de últimas partidas -->
+        ${recentTableMatches.length > 0 ? `
+          <div class="mt-3 vs-momentum-dock relative z-10">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-[9.5px] font-extrabold uppercase tracking-wider text-white/45 shrink-0">Últ. ${recentTableMatches.length}</span>
+              <div class="flex items-center gap-1.5">${recentTableChipsHtml}</div>
+            </div>
+            ${tableRightDockHtml}
+          </div>
+        ` : ''}
+
+        ${renderHeroPagerHtml()}
       </div>
     `;
   })();
 
   container.innerHTML = `
     ${topControlsHtml}
-
-    <!-- Tarjeta protagonista oscura (VS o Resumen editorial) -->
+    <div class="space-y-4 ${subTabAnimCls}">
+    <!-- Tarjeta protagonista oscura (VS o Resumen editorial deslizable) -->
     ${vsDuelCardHtml}
     ${statsHeroCardHtml}
 
@@ -12977,9 +13361,12 @@ function renderStatsTab() {
         `).join('')}
       </div>
     </div>
+    </div>
   `;
 
+  // Cerrar wrapper direccional de overview
   requestAnimationFrame(syncSegmentedControls);
+  attachStatsHeroSwipe(container);
 
   // Montar instancias de Chart.js
   mountStatsCharts({
@@ -15303,18 +15690,24 @@ function switchTab(tabName, { resetScroll = false } = {}) {
     tabScrollTops[uiState.activeTab] = scroller.scrollTop;
   }
 
+  const sections = ['log', 'history', 'stats', 'shelf'];
+  const prevIdx = sections.indexOf(uiState.activeTab);
+  const nextIdx = sections.indexOf(tabName);
+  const animClass = !hasInitializedTabs || prevIdx === nextIdx
+    ? 'view-fade'
+    : (nextIdx > prevIdx ? 'tab-slide-right' : 'tab-slide-left');
+
   uiState.activeTab = tabName;
   hasInitializedTabs = true;
 
-  const sections = ['log', 'history', 'stats', 'shelf'];
   sections.forEach((s) => {
     const secEl = document.getElementById(`view-${s}`);
     const isTarget = s === tabName;
     secEl.classList.toggle('hidden', !isTarget);
     if (isTarget) {
-      secEl.classList.remove('view-fade');
+      secEl.classList.remove('view-fade', 'tab-slide-right', 'tab-slide-left');
       void secEl.offsetWidth;
-      secEl.classList.add('view-fade');
+      secEl.classList.add(animClass);
     }
   });
 
@@ -15899,10 +16292,22 @@ function bindGlobalEvents() {
       }
       case 'set-stats-subtab': {
         const val = el.dataset.val;
-        uiState.statsSubTab = (val === 'badges' || val === 'ranking') ? val : 'overview';
+        const nextSub = (val === 'badges' || val === 'ranking') ? val : 'overview';
+        if (nextSub === uiState.statsSubTab) break;
+        const order = ['overview', 'ranking', 'badges'];
+        uiState.statsSubTabDir = order.indexOf(nextSub) > order.indexOf(uiState.statsSubTab) ? 'right' : 'left';
+        uiState.statsSubTab = nextSub;
         renderStatsTab();
         const scroller = document.getElementById('main-scroll');
         if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
+      }
+      case 'step-stats-hero': {
+        stepStatsHeroDeck(Number(el.dataset.delta) || 1);
+        break;
+      }
+      case 'jump-stats-hero': {
+        jumpStatsHeroDeck(Number(el.dataset.idx) || 0);
         break;
       }
       case 'open-rating-info': {

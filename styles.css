@@ -100,13 +100,7 @@ img, svg, video, canvas {
       color: #F3F0EA;
     }
 
-    /* Corrección iOS PWA Standalone (black-translucent): expande al 100% físico de pantalla */
-    html.ios-standalone-full,
-    html.ios-standalone-full body {
-      height: var(--app-height, 100vh) !important;
-      min-height: var(--app-height, 100vh) !important;
-      background-size: 100% var(--app-height, 100vh);
-    }
+    /* Ajuste limpio para iOS PWA Standalone */
 
     /* App Shell fijo full-bleed */
     #app-bg {
@@ -134,10 +128,7 @@ img, svg, video, canvas {
         radial-gradient(ellipse 65% 45% at 50% 100%, rgba(124, 58, 237, 0.09) 0%, transparent 70%);
     }
 
-    html.ios-standalone-full #app-bg {
-      bottom: auto;
-      height: var(--app-height, 100vh) !important;
-    }
+
 
     #main-scroll {
       -webkit-overflow-scrolling: touch;
@@ -265,20 +256,21 @@ img, svg, video, canvas {
         0 4px 12px -4px rgba(0, 0, 0, 0.42);
     }
 
-    /* Barra inferior flagship estilo iOS nativo (v3.8) */
+    /* Barra inferior flagship compacta estilo iOS nativo (v4.0) */
     #bottom-nav {
-      background-color: rgba(253, 251, 247, 0.92);
+      background-color: rgba(253, 251, 247, 0.94);
       -webkit-backdrop-filter: blur(24px) saturate(180%);
       backdrop-filter: blur(24px) saturate(180%);
       border-top: 1px solid rgba(20, 36, 30, 0.085);
-      padding-top: 0.34rem;
-      padding-bottom: max(0.5rem, var(--safe-bottom));
+      padding-top: 0.28rem;
+      padding-bottom: max(0.36rem, calc(var(--safe-bottom) * 0.35));
       box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.92),
-        0 -10px 28px -14px rgba(18, 36, 30, 0.14);
+        0 -10px 26px -14px rgba(18, 36, 30, 0.14);
     }
-    html.ios-standalone-full #bottom-nav {
-      padding-bottom: max(22px, var(--safe-bottom));
+    html.ios-standalone #bottom-nav {
+      padding-top: 0.26rem;
+      padding-bottom: 0.38rem;
     }
     html.dark #bottom-nav {
       background-color: rgba(11, 20, 17, 0.92);
@@ -332,12 +324,18 @@ img, svg, video, canvas {
     html.dark .nav-btn.is-active {
       color: #6EE7B7;
     }
+    @keyframes navPillPop {
+      0% { transform: scale(0.86); }
+      60% { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
     .nav-btn.is-active .nav-icon-wrap {
       background: linear-gradient(135deg, #10261F 0%, #1E6D4E 100%);
       color: #FFFFFF;
       box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.26),
         0 6px 14px -5px rgba(16, 38, 31, 0.52);
+      animation: navPillPop 0.28s cubic-bezier(0.22, 1, 0.36, 1);
     }
     html.dark .nav-btn.is-active .nav-icon-wrap {
       background: linear-gradient(135deg, rgba(52, 211, 153, 0.26) 0%, rgba(16, 185, 129, 0.16) 100%);
@@ -2669,19 +2667,18 @@ html.dark .ranking-row-card.is-highlighted {
 .rating-peak-dot {
   position: absolute;
   top: 50%;
-  width: 8px;
-  height: 8px;
+  width: 6.5px;
+  height: 6.5px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #FDE047, #F59E0B);
-  border: 1.5px solid #FFFFFF;
+  background: #F59E0B;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.28), 0 1px 5px rgba(245, 158, 11, 0.62);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.55);
   z-index: 2;
 }
 html.dark .rating-peak-dot {
-  border-color: #111A17;
-  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.45), 0 0 7px rgba(251, 191, 36, 0.65);
+  background: #FBBF24;
+  box-shadow: 0 0 7px rgba(251, 191, 36, 0.65);
 }
 .rating-delta-chip.is-col {
   min-width: 34px;
@@ -2702,3 +2699,153 @@ html.dark .form-dots-pill {
   border-color: rgba(255, 255, 255, 0.07);
 }
 .z-\[1\] { z-index: 1; }
+
+/* === Ludoteca v4.0 — Motion System, Swipeable Hero & Editorial Upgrades === */
+@keyframes tabSlideInRight {
+  from { opacity: 0; transform: translate3d(20px, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes tabSlideInLeft {
+  from { opacity: 0; transform: translate3d(-20px, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.tab-slide-right {
+  animation: tabSlideInRight 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.tab-slide-left {
+  animation: tabSlideInLeft 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes heroSlideInRight {
+  from { opacity: 0.25; transform: translate3d(34px, 0, 0) scale(0.985); }
+  to   { opacity: 1;    transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes heroSlideInLeft {
+  from { opacity: 0.25; transform: translate3d(-34px, 0, 0) scale(0.985); }
+  to   { opacity: 1;    transform: translate3d(0, 0, 0) scale(1); }
+}
+.hero-slide-right {
+  animation: heroSlideInRight 0.30s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.hero-slide-left {
+  animation: heroSlideInLeft 0.30s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Segmented sub-tab thumbs (Stats | Ranking | Insignias) */
+.seg-control.seg-stats-bar {
+  padding: 4px;
+  border-radius: 1rem;
+}
+.seg-control.seg-stats-bar > .seg-thumb {
+  top: 4px;
+  bottom: 4px;
+  left: 2px;
+  border-radius: 0.75rem;
+  box-shadow: 0 3px 10px -3px rgba(16, 37, 30, 0.32);
+}
+.seg-thumb-ranking {
+  background: linear-gradient(90deg, #12241E 0%, #227554 52%, #12241E 100%);
+}
+.seg-thumb-badges {
+  background: linear-gradient(90deg, #B45309 0%, #D9911E 52%, #B45309 100%);
+}
+
+/* Swipeable Hero Deck */
+.stats-hero-swipe {
+  touch-action: pan-y;
+  will-change: transform, opacity;
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease;
+}
+.stats-hero-swipe.is-dragging {
+  animation: none !important;
+  transition: none !important;
+}
+
+.hero-pager-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.72rem;
+  padding-top: 0.58rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+.hero-pager-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+.hero-pager-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+}
+.hero-pager-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+.hero-pager-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  transition: width 0.24s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease, opacity 0.2s ease;
+}
+.hero-pager-dot.is-active {
+  width: 18px;
+  background: var(--dot-col, #FBBF24);
+  box-shadow: 0 0 8px var(--dot-col, rgba(251, 191, 36, 0.65));
+}
+
+.hero-stat-plaque {
+  padding: 0.44rem 0.78rem 0.4rem;
+  border-radius: 1.05rem;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.40) 0%, rgba(0, 0, 0, 0.24) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 8px 18px -8px rgba(0, 0, 0, 0.50);
+  text-align: center;
+  flex-shrink: 0;
+}
+.hero-stat-plaque.is-gold {
+  border-color: rgba(252, 211, 77, 0.32);
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.18) 0%, rgba(0, 0, 0, 0.32) 100%);
+}
+.hero-win-chip {
+  width: 23px;
+  height: 23px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.84;
+  transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.14s ease;
+}
+.hero-win-chip:active {
+  transform: scale(0.92);
+}
+.hero-win-chip.is-latest {
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
+  opacity: 1;
+  font-size: 9.5px;
+  box-shadow: 0 0 12px -2px var(--chip-glow, rgba(255, 255, 255, 0.45)), inset 0 1px 0 rgba(255, 255, 255, 0.36);
+}
+.text-amber-200\/90 { color: rgba(253, 230, 138, 0.9); }
