@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v3.0';
+const APP_VERSION = 'v3.1';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -691,7 +691,6 @@ let uiState = {
   statsPlayerMode: 'all', // 'all' | 'single' | 'vs'
   statsPlayerA: '',
   statsPlayerB: '',
-  statsVsScope: 'together', // 'together' | 'all'
   logGameSearch: '',
   logSearchOpen: false,
   logGameMode: 'recent', // 'recent' | 'favorites' | 'all'
@@ -3584,8 +3583,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v30 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v30';
+  return `// Ludoteca — Service Worker Offline v31 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v31';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -7635,12 +7634,14 @@ function computeRatingSystem(matches) {
       stepDeltas[p.key] = appliedDelta;
     });
 
-    // Marca al líder tras cada partida (a partir de la 2.ª partida valorada para evitar ruidos de 1 sola partida)
+    // Marca al líder tras cada partida (solo entre jugadores calibrados >= 3P cuando los hay)
     if (ratedMatchCount >= 2) {
       const allNow = Object.values(stateByKey);
-      const maxNow = Math.max(...allNow.map((x) => x.points));
+      const calNow = allNow.filter((x) => x.ratedPlays >= 3);
+      const leaderPool = calNow.length > 0 ? calNow : allNow;
+      const maxNow = Math.max(...leaderPool.map((x) => x.points));
       if (maxNow > START_PTS) {
-        allNow.forEach((x) => {
+        leaderPool.forEach((x) => {
           if (x.points === maxNow) x.wasLeader = true;
         });
       }
@@ -7660,12 +7661,18 @@ function computeRatingSystem(matches) {
     });
   });
 
-  const players = Object.values(stateByKey).sort(
-    (a, b) => (b.points - a.points) || (b.wins - a.wins) || (b.ratedPlays - a.ratedPlays) || a.name.localeCompare(b.name, 'es')
-  );
+  const sortByRating = (a, b) =>
+    (b.points - a.points) || (b.wins - a.wins) || (b.ratedPlays - a.ratedPlays) || a.name.localeCompare(b.name, 'es');
 
-  players.forEach((p, idx) => {
+  const allSorted = Object.values(stateByKey).sort(sortByRating);
+  const MIN_CALIBRATED = 3;
+  const hasCalibrated = allSorted.some((p) => p.ratedPlays >= MIN_CALIBRATED);
+  const calibratedPlayers = hasCalibrated ? allSorted.filter((p) => p.ratedPlays >= MIN_CALIBRATED) : allSorted;
+  const calibratingPlayers = hasCalibrated ? allSorted.filter((p) => p.ratedPlays < MIN_CALIBRATED) : [];
+
+  calibratedPlayers.forEach((p, idx) => {
     p.rank = idx + 1;
+    p.isCalibrating = false;
     p.note = formatRatingNote(p.points);
     p.peakNote = formatRatingNote(p.peakPoints);
     p.provisional = p.ratedPlays < 5;
@@ -7673,7 +7680,28 @@ function computeRatingSystem(matches) {
     p.winRate = p.ratedPlays > 0 ? Math.round((p.wins / p.ratedPlays) * 100) : 0;
   });
 
-  return { players, byKey: stateByKey, byMatch, timeline, ratedMatchCount };
+  calibratingPlayers.forEach((p) => {
+    p.rank = null;
+    p.isCalibrating = true;
+    p.note = formatRatingNote(p.points);
+    p.peakNote = formatRatingNote(p.peakPoints);
+    p.provisional = true;
+    p.isFormerLeader = false;
+    p.winRate = p.ratedPlays > 0 ? Math.round((p.wins / p.ratedPlays) * 100) : 0;
+  });
+
+  const players = [...calibratedPlayers, ...calibratingPlayers];
+  return {
+    players,
+    calibratedPlayers,
+    calibratingPlayers,
+    hasCalibrated,
+    minCalibratedPlays: MIN_CALIBRATED,
+    byKey: stateByKey,
+    byMatch,
+    timeline,
+    ratedMatchCount,
+  };
 }
 
 function openRatingInfoModal() {
@@ -7701,7 +7729,7 @@ function openRatingInfoModal() {
         </div>
         <div class="p-3 rounded-2xl bg-canvas/85 dark:bg-surfaceDarkAlt border border-black/[0.06] dark:border-white/10">
           <div class="font-extrabold text-ink dark:text-white">4. Mesas de 3+ jugadores y exclusiones</div>
-          <p class="text-[11px] text-inkMuted dark:text-white/60 mt-0.5">Se evalúa contra cada rival de la mesa (quedar 2.º de 5 suma puntos). Solitario y cooperativos no alteran el ranking, y la llama de racha es puramente visual.</p>
+          <p class="text-[11px] text-inkMuted dark:text-white/60 mt-0.5">Se evalúa contra cada rival de la mesa (quedar 2.º de 5 suma puntos). Solitario y cooperativos no alteran el ranking, la llama de racha es puramente visual, y hace falta un mínimo de 3 partidas para entrar en la clasificación principal.</p>
         </div>
       </div>
     </div>
@@ -7738,7 +7766,7 @@ function openPlayerRatingDetailModal(playerKey, filterGameId = 'all') {
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="font-display text-base font-extrabold truncate">${esc(st.name)}</span>
-                <span class="px-2 py-0.5 rounded-lg bg-white/12 border border-white/15 text-[10px] font-extrabold tabular-nums">#${st.rank}</span>
+                <span class="px-2 py-0.5 rounded-lg bg-white/12 border border-white/15 text-[10px] font-extrabold tabular-nums">${st.rank ? `#${st.rank}` : `${st.ratedPlays}/3P`}</span>
                 ${st.isFormerLeader ? `<span class="px-2 py-0.5 rounded-lg bg-amber-400/20 border border-amber-300/35 text-[10px] font-extrabold text-amber-200">Exlíder</span>` : ''}
                 ${st.provisional ? `<span class="px-2 py-0.5 rounded-lg bg-white/12 text-[10px] font-bold text-white/75">Prov.</span>` : ''}
               </div>
@@ -9118,7 +9146,7 @@ function resolveStatsPlayerContext() {
   }
 
   const mode = uiState.statsPlayerMode;
-  const vsScope = uiState.statsVsScope === 'all' ? 'all' : 'together';
+  const vsScope = 'together';
   const playerA = uiState.statsPlayerA;
   const playerB = uiState.statsPlayerB;
   const keyA = normName(playerA);
@@ -9132,19 +9160,10 @@ function resolveStatsPlayerContext() {
     scopedMatches = matchHistory.filter((m) => (m.players || []).some((p) => normName(p.name) === keyA));
   } else if (mode === 'vs' && keyA && keyB) {
     allowedKeys = new Set([keyA, keyB]);
-    if (vsScope === 'together') {
-      scopedMatches = matchHistory.filter((m) => {
-        const keys = new Set((m.players || []).map((p) => normName(p.name)));
-        return keys.has(keyA) && keys.has(keyB);
-      });
-    } else {
-      scopedMatches = matchHistory.filter((m) =>
-        (m.players || []).some((p) => {
-          const k = normName(p.name);
-          return k === keyA || k === keyB;
-        })
-      );
-    }
+    scopedMatches = matchHistory.filter((m) => {
+      const keys = new Set((m.players || []).map((p) => normName(p.name)));
+      return keys.has(keyA) && keys.has(keyB);
+    });
   }
 
   return { allPlayers, mode, vsScope, playerA, playerB, keyA, keyB, allowedKeys, scopedMatches };
@@ -9160,7 +9179,6 @@ function openStatsPlayerFilterModal() {
   let tempMode = uiState.statsPlayerMode || 'all';
   let tempA = uiState.statsPlayerA || allPlayers[0]?.name || '';
   let tempB = uiState.statsPlayerB || allPlayers[1]?.name || '';
-  let tempScope = uiState.statsVsScope || 'together';
   let activeVsSlot = null; // null | 'A' | 'B'
 
   if (tempMode === 'vs' && allPlayers.length < 2) tempMode = 'single';
@@ -9281,25 +9299,8 @@ function openStatsPlayerFilterModal() {
             </div>
           ` : ''}
 
-          <!-- Interruptor: Solo juntos vs Todas sus partidas -->
-          <div class="p-3.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 space-y-2">
-            <div class="text-[11px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/55">Qué partidas comparar</div>
-            <div class="seg-control seg-grid grid-cols-2 bg-canvas dark:bg-surfaceDark border border-black/[0.06] dark:border-white/10" data-seg-id="pf-scope">
-              <span class="seg-thumb seg-thumb-pine"></span>
-              <button type="button" data-pf="scope" data-val="together" data-seg-active="${tempScope === 'together' ? 'true' : 'false'}"
-                class="seg-btn btn-tap py-2 px-2 rounded-lg text-xs font-extrabold ${tempScope === 'together' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
-                Solo juntos (Duelo)
-              </button>
-              <button type="button" data-pf="scope" data-val="all" data-seg-active="${tempScope === 'all' ? 'true' : 'false'}"
-                class="seg-btn btn-tap py-2 px-2 rounded-lg text-xs font-extrabold ${tempScope === 'all' ? 'text-white' : 'text-inkMuted dark:text-white/65'}">
-                Todas sus partidas
-              </button>
-            </div>
-            <p class="text-[11px] text-inkMuted dark:text-white/55 leading-relaxed">
-              ${tempScope === 'together'
-                ? 'Cuenta solo las partidas en las que ambos jugaron en la misma mesa (duelo directo).'
-                : 'Compara el historial completo de cada uno, incluidas las partidas jugadas por separado.'}
-            </p>
+          <div class="px-3.5 py-2.5 rounded-2xl bg-white dark:bg-surfaceDarkAlt border border-[#E7E0D4] dark:border-white/10 text-[11px] text-inkMuted dark:text-white/60 leading-relaxed">
+            Modo <strong class="text-ink dark:text-white">Cara a Cara</strong>: cuenta únicamente las partidas en las que ambos coincidisteis en la misma mesa.
           </div>
         </div>
       `;
@@ -9344,7 +9345,6 @@ function openStatsPlayerFilterModal() {
             uiState.statsPlayerMode = tempMode;
             uiState.statsPlayerA = tempA;
             uiState.statsPlayerB = tempB;
-            uiState.statsVsScope = tempScope;
             closeModal();
             renderStatsTab();
           },
@@ -9390,9 +9390,7 @@ function openStatsPlayerFilterModal() {
         }
         activeVsSlot = null;
         renderModalContent();
-      } else if (act === 'scope') {
-        tempScope = el.dataset.val === 'all' ? 'all' : 'together';
-        renderModalContent();
+
       } else if (act === 'swap') {
         const tmp = tempA;
         tempA = tempB;
@@ -10036,27 +10034,22 @@ function computeVsDuelSummary(subset, pCtx) {
 }
 
 function renderVsDuelCardHtml(vs, pCtx, gameObj) {
-  const isTogether = pCtx.vsScope === 'together';
   const colorAOnDark = getPlayerColorOnDark(pCtx.playerA);
   const colorBOnDark = getPlayerColorOnDark(pCtx.playerB);
-  const onlyCoop = (isTogether ? vs.sharedCompPlays === 0 : (vs.playsA === 0 && vs.playsB === 0)) && vs.coopShared > 0;
-  const scoreLeft = isTogether ? vs.winsA : vs.totalWinsA;
-  const scoreRight = isTogether ? vs.winsB : vs.totalWinsB;
+  const onlyCoop = vs.sharedCompPlays === 0 && vs.coopShared > 0;
+  const scoreLeft = vs.winsA;
+  const scoreRight = vs.winsB;
   const denom = scoreLeft + scoreRight;
   const pctA = onlyCoop ? Math.round((vs.coopSharedWins / Math.max(1, vs.coopShared)) * 100) : (denom > 0 ? Math.round((scoreLeft / denom) * 100) : 50);
   const pctB = 100 - pctA;
 
   const subLeft = onlyCoop
     ? `${vs.coopShared} coop juntos`
-    : isTogether
-      ? `${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo' : 'duelos'}${vs.avgA !== null && gameObj ? ` · Media ${vs.avgA}` : ''}`
-      : `${vs.playsA}P · ${vs.winRateA}% éxito${vs.avgA !== null && gameObj ? ` · Media ${vs.avgA}` : ''}`;
+    : `${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo' : 'duelos'}${vs.avgA !== null && gameObj ? ` · Media ${vs.avgA}` : ''}`;
 
   const subRight = onlyCoop
     ? `${vs.coopSharedWins} ${vs.coopSharedWins === 1 ? 'superada' : 'superadas'}`
-    : isTogether
-      ? `${vs.avgB !== null && gameObj ? `Media ${vs.avgB} · ` : ''}${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo' : 'duelos'}`
-      : `${vs.avgB !== null && gameObj ? `Media ${vs.avgB} · ` : ''}${vs.winRateB}% éxito · ${vs.playsB}P`;
+    : `${vs.avgB !== null && gameObj ? `Media ${vs.avgB} · ` : ''}${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo' : 'duelos'}`;
 
   const togetherParts = [];
   if (vs.topSharedGame && !gameObj) togetherParts.push(`Top juntos: ${esc(vs.topSharedGame)}`);
@@ -10067,33 +10060,21 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
 
   const footerNote = onlyCoop
     ? 'Partidas cooperativas · no cuentan como duelo'
-    : isTogether
-      ? togetherParts.join(' · ')
-      : `${vs.sharedCompPlays} ${vs.sharedCompPlays === 1 ? 'duelo juntos' : 'duelos juntos'} (${vs.winsA}–${vs.winsB})${vs.coopShared > 0 ? ` · +${vs.coopShared} coop` : ''}`;
+    : togetherParts.join(' · ');
 
   return `
     <div class="cover-sheen rounded-[26px] p-4 sm:p-5 text-white shadow-elevated anim-in border border-white/10"
       style="background: linear-gradient(130deg, #10261F 0%, #18362C 48%, #3B2810 100%);">
-      <div class="flex flex-wrap items-center justify-between gap-2 mb-3.5 relative z-10">
-        <div class="flex items-center gap-2">
-          <span class="px-2 py-0.5 rounded-lg bg-amber-400/20 border border-amber-300/30 text-[10px] font-extrabold uppercase tracking-widest text-amber-200">
-            ${onlyCoop ? 'En Equipo' : (isTogether ? 'Cara a Cara' : 'Comparativa')}
+      <div class="flex items-center justify-between gap-2 mb-3.5 relative z-10">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="px-2 py-0.5 rounded-lg bg-amber-400/20 border border-amber-300/30 text-[10px] font-extrabold uppercase tracking-widest text-amber-200 shrink-0">
+            ${onlyCoop ? 'En Equipo' : 'Cara a Cara'}
           </span>
-          ${gameObj ? `<span class="text-[11px] font-bold text-white/75 truncate">${esc(gameObj.name)}</span>` : ''}
+          ${gameObj ? `<span class="text-[11px] font-bold text-white/80 truncate">${esc(gameObj.name)}</span>` : ''}
         </div>
-
-        <!-- Interruptor rápido Solo juntos / Todas -->
-        <div class="seg-control bg-black/25 border border-white/15" data-seg-id="vs-scope">
-          <span class="seg-thumb seg-thumb-white"></span>
-          <button type="button" data-action="set-stats-vs-scope" data-val="together" data-seg-active="${isTogether ? 'true' : 'false'}"
-            class="seg-btn btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-extrabold ${isTogether ? 'text-pine' : 'text-white/75 hover:text-white'}">
-            Solo juntos
-          </button>
-          <button type="button" data-action="set-stats-vs-scope" data-val="all" data-seg-active="${!isTogether ? 'true' : 'false'}"
-            class="seg-btn btn-tap px-2.5 py-1 rounded-lg text-[10.5px] font-extrabold ${!isTogether ? 'text-pine' : 'text-white/75 hover:text-white'}">
-            Todas
-          </button>
-        </div>
+        <span class="px-2.5 py-0.5 rounded-lg bg-white/10 border border-white/15 text-[10.5px] font-extrabold text-white/80 tabular-nums shrink-0">
+          ${vs.sharedPlays} ${vs.sharedPlays === 1 ? 'partida juntos' : 'partidas juntos'}
+        </span>
       </div>
 
       <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 relative z-10">
@@ -10119,7 +10100,7 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
               <span style="color:${colorBOnDark};">${scoreRight}</span>
             `}
           </div>
-          <div class="text-[9px] font-bold uppercase tracking-wider text-white/55 mt-0.5 text-center">${onlyCoop ? 'Equipo' : (isTogether ? 'Duelos' : 'Victorias')}</div>
+          <div class="text-[9px] font-bold uppercase tracking-wider text-white/55 mt-0.5 text-center">${onlyCoop ? 'Equipo' : 'Duelos'}</div>
         </div>
 
         <!-- Jugador B -->
@@ -10149,7 +10130,7 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
         </div>
       </div>
 
-      ${!onlyCoop && isTogether && Array.isArray(vs.recentDuels) && vs.recentDuels.length > 0 ? (() => {
+      ${!onlyCoop && Array.isArray(vs.recentDuels) && vs.recentDuels.length > 0 ? (() => {
         const latestDuel = vs.recentDuels[vs.recentDuels.length - 1];
         const latestLabel = latestDuel.outcome === 'A'
           ? pCtx.playerA
@@ -10706,15 +10687,15 @@ function renderStatsTab() {
           <h3 class="font-display text-base font-extrabold text-ink dark:text-white">Sin partidas juntos todavía</h3>
           <p class="text-xs text-inkMuted dark:text-white/60 mt-1 max-w-xs mx-auto leading-relaxed">
             ${pCtx.mode === 'vs'
-              ? `${esc(pCtx.playerA)} y ${esc(pCtx.playerB)} aún no han coincidido en la misma mesa. Puedes ver sus historiales por separado cambiando a "Todas sus partidas".`
+              ? `${esc(pCtx.playerA)} y ${esc(pCtx.playerB)} aún no han coincidido en la misma mesa${selectedGameObj ? ` en ${esc(selectedGameObj.name)}` : ''}.`
               : 'No hay partidas que coincidan con este filtro.'}
           </p>
         </div>
         <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
-          ${pCtx.mode === 'vs' && pCtx.vsScope === 'together' ? `
-            <button type="button" data-action="set-stats-vs-scope" data-val="all"
+          ${pCtx.mode === 'vs' ? `
+            <button type="button" data-action="open-stats-player-filter"
               class="btn-tap btn-primary-pro px-4 py-2 rounded-xl text-white text-xs font-bold">
-              Ver todas sus partidas
+              Cambiar jugadores
             </button>
           ` : ''}
           <button type="button" data-action="clear-stats-player-filter"
@@ -10732,7 +10713,7 @@ function renderStatsTab() {
 
   // ==================== SUB-VISTA: RANKING 0.0 – 10.0 ====================
   if (uiState.statsSubTab === 'ranking') {
-    const leader = ratingData.players[0] || null;
+    const leader = ratingData.calibratedPlayers[0] || ratingData.players[0] || null;
     const highlightKeys = pCtx.allowedKeys || null;
     const scopeLabel = selectedGameObj ? `En ${selectedGameObj.name}` : 'Toda la ludoteca';
 
@@ -10779,6 +10760,62 @@ function renderStatsTab() {
       </div>
     ` : '';
 
+    const renderRankingRow = (pl) => {
+      const isHighlighted = highlightKeys && highlightKeys.has(pl.key);
+      const deltaCls = pl.lastDelta > 0 ? 'is-pos' : pl.lastDelta < 0 ? 'is-neg' : 'is-flat';
+      const deltaTxt = pl.lastHitCap && pl.lastDelta === 0
+        ? '+0 · Tope'
+        : (pl.lastDelta > 0 ? `+${pl.lastDelta}` : `${pl.lastDelta}`);
+      const noteColorCls = pl.rank === 1
+        ? 'text-goldBrand dark:text-amber-400'
+        : pl.points >= 550
+          ? 'text-emeraldBrand dark:text-emerald-400'
+          : pl.points < 450
+            ? 'text-coralBrand'
+            : 'text-ink dark:text-white';
+      // Máximo 1 etiqueta de estado activo por fila (Racha 2+ o Prov./Calibración)
+      const statusPillHtml = pl.isCalibrating
+        ? `<span class="px-1.5 py-0.5 rounded-md bg-black/[0.06] dark:bg-white/10 text-[9.5px] font-bold text-inkMuted dark:text-white/55 tabular-nums shrink-0">${pl.ratedPlays}/3P</span>`
+        : (pl.currentStreak >= 2
+            ? renderStreakPillHtml(pl.currentStreak)
+            : (pl.provisional
+                ? `<span class="px-1.5 py-0.5 rounded-md bg-black/[0.06] dark:bg-white/10 text-[9.5px] font-bold text-inkMuted dark:text-white/55 shrink-0">Prov.</span>`
+                : ''));
+      return `
+        <button type="button" data-action="open-player-rating-detail" data-key="${esc(pl.key)}"
+          class="hairline-row btn-tap w-full text-left flex items-center justify-between gap-2.5 ${isHighlighted ? 'bg-emeraldBrand/10 rounded-xl px-2 -mx-1' : ''}">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-7 h-7 rounded-xl flex items-center justify-center font-display font-extrabold text-xs shrink-0 ${
+              pl.rank === 1
+                ? 'bg-gradient-to-br from-amber-300 to-amber-500 text-[#142620] shadow-xs'
+                : pl.rank === 2
+                  ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900'
+                  : pl.rank === 3
+                    ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-amber-50'
+                    : 'bg-black/[0.06] dark:bg-white/10 text-inkMuted dark:text-white/65'
+            }">${pl.rank ? `#${pl.rank}` : '—'}</span>
+            ${renderPlayerAvatarHtml(pl.name, 'w-8 h-8 text-[11px]')}
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="text-sm font-extrabold text-ink dark:text-white truncate">${esc(pl.name)}</span>
+                ${statusPillHtml}
+              </div>
+              <div class="text-[11px] text-inkMuted dark:text-white/55 truncate tabular-nums mt-0.5">
+                ${pl.wins}V / ${pl.ratedPlays}P · Pico ${pl.peakNote}
+              </div>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="font-display text-lg font-extrabold tabular-nums leading-none ${noteColorCls}">${pl.note}</div>
+            <div class="mt-1 inline-flex items-center justify-end gap-1">
+              <span class="text-[10px] font-semibold text-inkMuted dark:text-white/50 tabular-nums">${pl.points} pts</span>
+              <span class="rating-delta-chip ${deltaCls}">${deltaTxt}</span>
+            </div>
+          </div>
+        </button>
+      `;
+    };
+
     const rankingRowsHtml = ratingData.players.length > 0 ? `
       <div class="card-pro rounded-[24px] p-4 sm:p-5 anim-in">
         <div class="flex items-center justify-between gap-2 mb-3">
@@ -10786,64 +10823,24 @@ function renderStatsTab() {
             <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">Clasificación por Nota</h3>
             <p class="text-[11px] text-inkMuted dark:text-white/55">Toca un jugador para ver su historial de puntos</p>
           </div>
-          <span class="text-[11px] font-bold text-inkMuted dark:text-white/55 tabular-nums">${ratingData.players.length} jug.</span>
+          <span class="text-[11px] font-bold text-inkMuted dark:text-white/55 tabular-nums">${ratingData.calibratedPlayers.length} jug.</span>
         </div>
 
         <div class="hairline-list">
-          ${ratingData.players.map((pl) => {
-            const isHighlighted = highlightKeys && highlightKeys.has(pl.key);
-            const deltaCls = pl.lastDelta > 0 ? 'is-pos' : pl.lastDelta < 0 ? 'is-neg' : 'is-flat';
-            const deltaTxt = pl.lastHitCap && pl.lastDelta === 0
-              ? '+0 · Tope'
-              : (pl.lastDelta > 0 ? `+${pl.lastDelta}` : `${pl.lastDelta}`);
-            const noteColorCls = pl.rank === 1
-              ? 'text-goldBrand dark:text-amber-400'
-              : pl.points >= 550
-                ? 'text-emeraldBrand dark:text-emerald-400'
-                : pl.points < 450
-                  ? 'text-coralBrand'
-                  : 'text-ink dark:text-white';
-            // Máximo 1 etiqueta de estado activo por fila (Racha 2+ o Prov.)
-            const statusPillHtml = pl.currentStreak >= 2
-              ? renderStreakPillHtml(pl.currentStreak)
-              : (pl.provisional
-                  ? `<span class="px-1.5 py-0.5 rounded-md bg-black/[0.06] dark:bg-white/10 text-[9.5px] font-bold text-inkMuted dark:text-white/55 shrink-0">Prov.</span>`
-                  : '');
-            return `
-              <button type="button" data-action="open-player-rating-detail" data-key="${esc(pl.key)}"
-                class="hairline-row btn-tap w-full text-left flex items-center justify-between gap-2.5 ${isHighlighted ? 'bg-emeraldBrand/10 rounded-xl px-2 -mx-1' : ''}">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <span class="w-7 h-7 rounded-xl flex items-center justify-center font-display font-extrabold text-xs shrink-0 ${
-                    pl.rank === 1
-                      ? 'bg-gradient-to-br from-amber-300 to-amber-500 text-[#142620] shadow-xs'
-                      : pl.rank === 2
-                        ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900'
-                        : pl.rank === 3
-                          ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-amber-50'
-                          : 'bg-black/[0.06] dark:bg-white/10 text-inkMuted dark:text-white/65'
-                  }">#${pl.rank}</span>
-                  ${renderPlayerAvatarHtml(pl.name, 'w-8 h-8 text-[11px]')}
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-1.5 min-w-0">
-                      <span class="text-sm font-extrabold text-ink dark:text-white truncate">${esc(pl.name)}</span>
-                      ${statusPillHtml}
-                    </div>
-                    <div class="text-[11px] text-inkMuted dark:text-white/55 truncate tabular-nums mt-0.5">
-                      ${pl.wins}V / ${pl.ratedPlays}P · Pico ${pl.peakNote}
-                    </div>
-                  </div>
-                </div>
-                <div class="text-right shrink-0">
-                  <div class="font-display text-lg font-extrabold tabular-nums leading-none ${noteColorCls}">${pl.note}</div>
-                  <div class="mt-1 inline-flex items-center justify-end gap-1">
-                    <span class="text-[10px] font-semibold text-inkMuted dark:text-white/50 tabular-nums">${pl.points} pts</span>
-                    <span class="rating-delta-chip ${deltaCls}">${deltaTxt}</span>
-                  </div>
-                </div>
-              </button>
-            `;
-          }).join('')}
+          ${ratingData.calibratedPlayers.map(renderRankingRow).join('')}
         </div>
+
+        ${ratingData.calibratingPlayers.length > 0 ? `
+          <div class="mt-4 pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <span class="text-[10.5px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/50">En calibración (menos de 3 partidas)</span>
+              <span class="text-[10px] font-semibold text-inkMuted/70 dark:text-white/40 tabular-nums">${ratingData.calibratingPlayers.length}</span>
+            </div>
+            <div class="hairline-list">
+              ${ratingData.calibratingPlayers.map(renderRankingRow).join('')}
+            </div>
+          </div>
+        ` : ''}
       </div>
     ` : `
       <div class="card-pro rounded-[26px] border-dashed p-9 text-center anim-in space-y-2">
@@ -10894,7 +10891,7 @@ function renderStatsTab() {
         : 'Medallero General';
 
     const medalSubLabel = pCtx.mode === 'vs'
-      ? (pCtx.vsScope === 'together' ? 'Solo partidas juntos' : 'Todas sus partidas')
+      ? 'Duelo Cara a Cara'
       : 'Sala de Trofeos';
 
     const medalTableHtml = uiState.statsFilterGame === 'all' && badgesData.medalTable.length > 0 ? `
@@ -11058,8 +11055,19 @@ function renderStatsTab() {
     const topWonEntry = Object.entries(st.winsByGame).sort((a, b) => b[1] - a[1])[0] || null;
     const topWonGame = topWonEntry ? topWonEntry[0] : '';
     const topWonCount = topWonEntry ? topWonEntry[1] : 0;
-    return { ...st, effectivePlays, wins, winRate, avg, favGame, topWonGame, topWonCount, coopOnly: useCoopOnly };
-  }).sort((a, b) => (b.wins - a.wins) || (b.winRate - a.winRate) || (b.effectivePlays - a.effectivePlays));
+    const rInfo = !useCoopOnly ? (ratingData.byKey[normName(st.name)] || null) : null;
+    return { ...st, effectivePlays, wins, winRate, avg, favGame, topWonGame, topWonCount, coopOnly: useCoopOnly, ratingInfo: rInfo };
+  }).sort((a, b) => {
+    if (!isDirectDuel && !isPureCoopFilter) {
+      const aCal = a.ratingInfo && !a.ratingInfo.isCalibrating ? 2 : (a.ratingInfo ? 1 : 0);
+      const bCal = b.ratingInfo && !b.ratingInfo.isCalibrating ? 2 : (b.ratingInfo ? 1 : 0);
+      if (aCal !== bCal) return bCal - aCal;
+      if (a.ratingInfo && b.ratingInfo && a.ratingInfo.points !== b.ratingInfo.points) {
+        return b.ratingInfo.points - a.ratingInfo.points;
+      }
+    }
+    return (b.wins - a.wins) || (b.winRate - a.winRate) || (b.effectivePlays - a.effectivePlays);
+  });
 
   // Récord de puntuación del filtro (en Sea Salt & Paper, 4 Sirenas cuenta como récord máximo)
   let recordEntry = null;
@@ -11704,29 +11712,31 @@ function renderStatsTab() {
           <div class="flex items-center gap-3 min-w-0">
             ${renderPlayerAvatarHtml(st0.name, 'w-11 h-11 text-sm ring-2 ring-white/25')}
             <div class="min-w-0">
-              <div class="font-display text-lg font-extrabold leading-tight truncate">${esc(st0.name)}</div>
+              <div class="flex items-center gap-1.5 min-w-0">
+                <div class="font-display text-lg font-extrabold leading-tight truncate">${esc(st0.name)}</div>
+                ${ratingData.byKey[normName(st0.name)] ? renderStreakPillHtml(ratingData.byKey[normName(st0.name)].currentStreak, { onDark: true }) : ''}
+              </div>
               <div class="text-[11px] text-white/70 mt-0.5 truncate tabular-nums">
-                ${st0.wins} ${st0.wins === 1 ? 'victoria' : 'victorias'} en ${st0.effectivePlays}P${!st0.coopOnly && st0.coopPlays > 0 ? ` · +${st0.coopPlays} coop` : ''}
+                ${st0.wins}V / ${st0.effectivePlays}P · ${st0.winRate}% éxito${!st0.coopOnly && st0.coopPlays > 0 ? ` · +${st0.coopPlays} coop` : ''}
               </div>
             </div>
           </div>
-          <div class="flex items-center gap-1.5 shrink-0">
-            ${ratingData.byKey[normName(st0.name)] ? (() => {
-              const rSt = ratingData.byKey[normName(st0.name)];
-              return `
-                <button type="button" data-action="open-player-rating-detail" data-key="${esc(rSt.key)}"
-                  class="btn-tap px-3 py-1.5 rounded-2xl bg-amber-400/15 hover:bg-amber-400/24 border border-amber-300/35 text-center shrink-0"
-                  title="Ver desglose del rating (${rSt.points} pts)">
-                  <div class="font-display text-xl font-extrabold text-amber-300 tabular-nums leading-none">${rSt.note}</div>
-                  <div class="text-[9px] font-bold uppercase tracking-wider text-amber-100/80 mt-0.5">Nota #${rSt.rank}</div>
-                </button>
-              `;
-            })() : ''}
-            <div class="px-3 py-1.5 rounded-2xl bg-black/25 border border-white/15 text-center shrink-0">
+          ${ratingData.byKey[normName(st0.name)] ? (() => {
+            const rSt = ratingData.byKey[normName(st0.name)];
+            return `
+              <button type="button" data-action="open-player-rating-detail" data-key="${esc(rSt.key)}"
+                class="btn-tap px-3.5 py-1.5 rounded-2xl bg-amber-400/15 hover:bg-amber-400/24 border border-amber-300/35 text-center shrink-0"
+                title="Ver desglose del rating (${rSt.points} pts)">
+                <div class="font-display text-xl font-extrabold text-amber-300 tabular-nums leading-none">${rSt.note}</div>
+                <div class="text-[9px] font-bold uppercase tracking-wider text-amber-100/80 mt-0.5">${rSt.rank ? `Nota #${rSt.rank}` : `${rSt.ratedPlays}/3P`}</div>
+              </button>
+            `;
+          })() : `
+            <div class="px-3.5 py-1.5 rounded-2xl bg-black/25 border border-white/15 text-center shrink-0">
               <div class="font-display text-xl font-extrabold text-emerald-300 tabular-nums leading-none">${st0.winRate}%</div>
               <div class="text-[9px] font-bold uppercase tracking-wider text-white/55 mt-0.5">Éxito</div>
             </div>
-          </div>
+          `}
         </div>
         <div class="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between gap-2 text-[11px] text-white/75 relative z-10">
           <span class="truncate">${esc(topGameText)}</span>
@@ -11781,7 +11791,11 @@ function renderStatsTab() {
               <div class="text-[10px] font-bold uppercase tracking-wider text-amber-200">Líder en mesa</div>
               <div class="font-display text-lg font-extrabold leading-tight truncate">${leader ? esc(leader.name) : '—'}</div>
               <div class="text-[11px] text-white/70 mt-0.5 truncate tabular-nums">
-                ${leader ? `${leader.wins}V / ${leader.effectivePlays}P · ${leader.winRate}% éxito` : 'Sin datos todavía'}
+                ${leader
+                  ? (leader.ratingInfo
+                      ? `Nota ${leader.ratingInfo.note} · ${leader.wins}V / ${leader.effectivePlays}P`
+                      : `${leader.wins}V / ${leader.effectivePlays}P · ${leader.winRate}% éxito`)
+                  : 'Sin datos todavía'}
               </div>
             </div>
           </div>
@@ -11866,7 +11880,7 @@ function renderStatsTab() {
         <h3 class="font-display text-sm font-extrabold text-ink dark:text-white">
           ${pCtx.mode === 'vs' ? 'Comparativa Detallada' : pCtx.mode === 'single' ? `Resumen de ${esc(pCtx.playerA)}` : 'Clasificación Detallada'}
         </h3>
-        <span class="text-[11px] font-semibold text-inkMuted dark:text-white/55">${isDirectDuel ? 'Duelos y % éxito' : 'Victorias y % éxito'}</span>
+        <span class="text-[11px] font-semibold text-inkMuted dark:text-white/55">${isDirectDuel ? 'Duelos y % éxito' : (isPureCoopFilter ? 'Victorias y % éxito' : 'Nota y % éxito')}</span>
       </div>
       <div class="hairline-list">
         ${leaderboard.map((st, idx) => `
@@ -11886,6 +11900,7 @@ function renderStatsTab() {
                   <div class="flex items-center gap-1.5 min-w-0">
                     ${renderPlayerAvatarHtml(st.name, 'w-5 h-5 text-[9px]')}
                     <span class="text-sm font-extrabold text-ink dark:text-white truncate">${esc(st.name)}</span>
+                    ${st.ratingInfo && !isDirectDuel ? `<span class="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold tabular-nums shrink-0">${st.ratingInfo.note}</span>` : ''}
                   </div>
                   <div class="text-[11px] text-inkMuted dark:text-white/55 truncate">
                     ${st.wins}V / ${st.effectivePlays}P${!st.coopOnly && st.coopPlays > 0 ? ` (+${st.coopPlays} coop)` : ''}${st.avg !== null && uiState.statsFilterGame !== 'all' ? ` · Media ${st.avg}` : (st.favGame ? ` · Top: ${esc(st.favGame)}` : '')}
@@ -14703,11 +14718,6 @@ function bindGlobalEvents() {
         uiState.statsPlayerMode = 'all';
         uiState.statsPlayerA = '';
         uiState.statsPlayerB = '';
-        renderStatsTab();
-        break;
-      }
-      case 'set-stats-vs-scope': {
-        uiState.statsVsScope = el.dataset.val === 'all' ? 'all' : 'together';
         renderStatsTab();
         break;
       }
