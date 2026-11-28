@@ -79,12 +79,12 @@ img, svg, video, canvas {
       padding: 0;
       overflow: hidden;
       background-color: #081410;
+      background-image: linear-gradient(180deg, #081410 0%, #081410 38%, #F5F1E8 38%, #F5F1E8 100%);
       -webkit-tap-highlight-color: transparent;
       overscroll-behavior: none;
     }
 
     body {
-      background-color: #081410;
       color: #161513;
       text-rendering: optimizeLegibility;
       -webkit-font-smoothing: antialiased;
@@ -92,15 +92,17 @@ img, svg, video, canvas {
 
     html.dark, html.dark body {
       background-color: #060E0B;
+      background-image: linear-gradient(180deg, #060E0B 0%, #060E0B 40%, #080E0C 40%, #080E0C 100%);
       color: #F3F0EA;
     }
 
-    /* App Shell fijo con atmósfera cálida editorial / obsidiana esmeralda */
+    /* App Shell fijo full-bleed (sin 100dvh para cubrir siempre hasta el borde inferior del iPhone) */
     #app-bg {
       position: fixed;
-      inset: 0;
-      height: 100%;
-      height: 100dvh;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -125,27 +127,27 @@ img, svg, video, canvas {
       overscroll-behavior-y: contain;
     }
 
-    /* Cabecera editorial premium (v3.7) con margen limpio bajo Dynamic Island */
+    /* Cabecera editorial flagship (v3.8) — compacta, precisa y proporcionada */
     .header-pro {
       position: relative;
       overflow: hidden;
-      padding-top: calc(var(--safe-top) + 1.05rem) !important;
-      padding-bottom: 0.82rem !important;
+      padding-top: var(--safe-top) !important;
+      padding-bottom: 0 !important;
       background:
-        radial-gradient(ellipse 62% 110% at 8% 100%, rgba(34, 117, 84, 0.34) 0%, transparent 66%),
-        radial-gradient(ellipse 52% 100% at 92% 96%, rgba(212, 138, 23, 0.20) 0%, transparent 64%),
-        linear-gradient(180deg, #081410 0%, #0C1E18 54%, #10271F 100%);
-      border-bottom: 1px solid rgba(251, 191, 36, 0.18);
+        radial-gradient(ellipse 56% 120% at 10% 100%, rgba(34, 117, 84, 0.34) 0%, transparent 64%),
+        radial-gradient(ellipse 48% 110% at 92% 100%, rgba(212, 138, 23, 0.18) 0%, transparent 62%),
+        linear-gradient(180deg, #081410 0%, #0C1F18 58%, #102920 100%);
+      border-bottom: 1px solid rgba(251, 191, 36, 0.16);
       box-shadow:
         inset 0 -1px 0 rgba(255, 255, 255, 0.05),
-        0 14px 30px -14px rgba(4, 12, 9, 0.56);
+        0 10px 26px -14px rgba(4, 12, 9, 0.56);
     }
     .header-pro::before {
       content: "";
       position: absolute;
       inset: 0;
-      opacity: 0.055;
-      background-image: radial-gradient(rgba(255, 255, 255, 0.9) 0.85px, transparent 0.85px);
+      opacity: 0.045;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.9) 0.8px, transparent 0.8px);
       background-size: 14px 14px;
       pointer-events: none;
     }
@@ -156,77 +158,109 @@ img, svg, video, canvas {
       right: 0;
       bottom: 0;
       height: 1.5px;
-      background: linear-gradient(90deg, transparent 4%, rgba(52, 211, 153, 0.42) 28%, rgba(251, 191, 36, 0.50) 56%, rgba(52, 211, 153, 0.25) 82%, transparent 96%);
+      background: linear-gradient(90deg, transparent 5%, rgba(52, 211, 153, 0.44) 28%, rgba(251, 191, 36, 0.52) 56%, rgba(52, 211, 153, 0.24) 82%, transparent 95%);
       pointer-events: none;
     }
     .header-pro > * {
       position: relative;
       z-index: 2;
     }
+    .header-pro > div {
+      padding-top: 0.46rem !important;
+      padding-bottom: 0.56rem !important;
+    }
     html.dark .header-pro {
       background:
-        radial-gradient(ellipse 62% 110% at 8% 100%, rgba(34, 117, 84, 0.26) 0%, transparent 66%),
-        radial-gradient(ellipse 52% 100% at 92% 96%, rgba(212, 138, 23, 0.16) 0%, transparent 64%),
-        linear-gradient(180deg, #060E0B 0%, #0A1813 54%, #0E211A 100%);
-      border-bottom-color: rgba(251, 191, 36, 0.16);
+        radial-gradient(ellipse 56% 120% at 10% 100%, rgba(34, 117, 84, 0.25) 0%, transparent 64%),
+        radial-gradient(ellipse 48% 110% at 92% 100%, rgba(212, 138, 23, 0.14) 0%, transparent 62%),
+        linear-gradient(180deg, #060E0B 0%, #0A1813 58%, #0E211A 100%);
+      border-bottom-color: rgba(251, 191, 36, 0.15);
       box-shadow:
         inset 0 -1px 0 rgba(255, 255, 255, 0.045),
-        0 14px 32px -12px rgba(0, 0, 0, 0.72);
+        0 12px 28px -12px rgba(0, 0, 0, 0.72);
     }
     .header-brand-icon {
-      background: linear-gradient(145deg, rgba(52, 211, 153, 0.20) 0%, rgba(16, 37, 30, 0.75) 60%, rgba(212, 138, 23, 0.22) 100%) !important;
-      border: 1px solid rgba(252, 211, 77, 0.30) !important;
+      width: 36px !important;
+      height: 36px !important;
+      border-radius: 12px !important;
+      background: linear-gradient(145deg, rgba(52, 211, 153, 0.22) 0%, rgba(13, 33, 26, 0.84) 58%, rgba(212, 138, 23, 0.24) 100%) !important;
+      border: 1px solid rgba(252, 211, 77, 0.34) !important;
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.22),
-        0 4px 14px -4px rgba(0, 0, 0, 0.55),
-        0 0 16px -6px rgba(52, 211, 153, 0.35);
+        inset 0 1px 0 rgba(255, 255, 255, 0.26),
+        0 4px 12px -4px rgba(0, 0, 0, 0.55),
+        0 0 14px -5px rgba(52, 211, 153, 0.36);
+    }
+    .header-title-text {
+      font-size: 15.5px !important;
+      line-height: 1.15 !important;
+      letter-spacing: -0.025em !important;
+    }
+    #header-subtitle {
+      font-size: 11px !important;
+      line-height: 1.2 !important;
+      color: rgba(255, 255, 255, 0.62) !important;
+      margin-top: 1px;
     }
     .header-version-pill {
       display: inline-flex;
       align-items: center;
-      padding: 0.12rem 0.42rem;
+      padding: 0.1rem 0.4rem;
       border-radius: 999px;
-      background: linear-gradient(135deg, rgba(251, 191, 36, 0.20), rgba(212, 138, 23, 0.10));
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(212, 138, 23, 0.10));
       border: 1px solid rgba(252, 211, 77, 0.34);
       color: #FDE68A;
       font-family: 'Inter', system-ui, sans-serif;
-      font-size: 9.5px;
+      font-size: 9px;
       font-weight: 800;
-      line-height: 1.1;
+      line-height: 1.15;
       letter-spacing: 0.02em;
       font-variant-numeric: tabular-nums;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
     }
     .header-glass-btn {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.06) 100%) !important;
+      width: 32px !important;
+      height: 32px !important;
+      border-radius: 999px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
       border: 1px solid rgba(255, 255, 255, 0.15) !important;
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.16),
-        0 4px 12px -4px rgba(0, 0, 0, 0.40);
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        0 4px 10px -4px rgba(0, 0, 0, 0.42);
     }
     .header-glass-btn:hover {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.19) 0%, rgba(255, 255, 255, 0.10) 100%) !important;
-      border-color: rgba(252, 211, 77, 0.30) !important;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.10) 100%) !important;
+      border-color: rgba(252, 211, 77, 0.32) !important;
     }
     .header-sync-pill {
+      height: 32px !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.15),
-        0 4px 12px -4px rgba(0, 0, 0, 0.38);
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        0 4px 10px -4px rgba(0, 0, 0, 0.40);
     }
 
-    /* Barra inferior translúcida estilo iOS de alta gama */
+    /* Barra inferior flagship estilo iOS nativo (v3.8) */
     #bottom-nav {
-      background-color: rgba(251, 249, 245, 0.88);
-      -webkit-backdrop-filter: blur(20px) saturate(160%);
-      backdrop-filter: blur(20px) saturate(160%);
-      border-top: 1px solid rgba(20, 36, 30, 0.08);
-      padding-bottom: max(0.28rem, calc(var(--safe-bottom) * 0.56));
-      box-shadow: 0 -8px 24px -14px rgba(18, 36, 30, 0.14);
+      background-color: rgba(253, 251, 247, 0.92);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      backdrop-filter: blur(24px) saturate(180%);
+      border-top: 1px solid rgba(20, 36, 30, 0.085);
+      padding-top: 0.34rem;
+      padding-bottom: max(0.5rem, var(--safe-bottom));
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.92),
+        0 -10px 28px -14px rgba(18, 36, 30, 0.14);
     }
     html.dark #bottom-nav {
-      background-color: rgba(12, 20, 17, 0.88);
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 -8px 26px -12px rgba(0, 0, 0, 0.65);
+      background-color: rgba(11, 20, 17, 0.92);
+      border-top: 1px solid rgba(255, 255, 255, 0.09);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 -12px 28px -12px rgba(0, 0, 0, 0.72);
     }
 
     .nav-btn {
@@ -235,14 +269,14 @@ img, svg, video, canvas {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2.5px;
-      padding: 5.5px 4px 3.5px;
+      gap: 3px;
+      padding: 3px 4px 2px;
       border-radius: 14px;
-      color: rgba(109, 104, 95, 0.82);
+      color: rgba(102, 97, 89, 0.84);
       transition: color 0.18s ease, transform 0.13s cubic-bezier(0.22, 1, 0.36, 1);
     }
     html.dark .nav-btn {
-      color: rgba(242, 239, 233, 0.45);
+      color: rgba(242, 239, 233, 0.46);
     }
     .nav-btn:hover {
       color: #161513;
@@ -251,53 +285,75 @@ img, svg, video, canvas {
       color: rgba(242, 239, 233, 0.88);
     }
     .nav-btn .nav-ind {
-      position: absolute;
-      top: -1px;
-      left: 50%;
-      width: 26px;
-      height: 2.5px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #227554, #E5A93B);
-      transform: translateX(-50%) scaleX(0);
-      opacity: 0;
-      transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+      display: none;
     }
     .nav-btn .nav-icon-wrap {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 25px;
+      width: 48px;
+      height: 28px;
       border-radius: 999px;
-      transition: background-color 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+      transition: background 0.22s ease, color 0.18s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease;
+    }
+    .nav-btn .nav-icon-wrap svg {
+      width: 19px;
+      height: 19px;
     }
     .nav-btn.is-active {
-      color: #10241D;
+      color: #0E231C;
     }
     html.dark .nav-btn.is-active {
-      color: #34D399;
-    }
-    .nav-btn.is-active .nav-ind {
-      transform: translateX(-50%) scaleX(1);
-      opacity: 1;
+      color: #6EE7B7;
     }
     .nav-btn.is-active .nav-icon-wrap {
-      background: linear-gradient(135deg, rgba(34, 117, 84, 0.14), rgba(212, 138, 23, 0.10));
-      box-shadow: inset 0 0 0 1px rgba(34, 117, 84, 0.14);
+      background: linear-gradient(135deg, #10261F 0%, #1E6D4E 100%);
+      color: #FFFFFF;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.26),
+        0 6px 14px -5px rgba(16, 38, 31, 0.52);
     }
     html.dark .nav-btn.is-active .nav-icon-wrap {
-      background: linear-gradient(135deg, rgba(52, 211, 153, 0.18), rgba(251, 191, 36, 0.08));
-      box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.20);
+      background: linear-gradient(135deg, rgba(52, 211, 153, 0.26) 0%, rgba(16, 185, 129, 0.16) 100%);
+      color: #6EE7B7;
+      box-shadow:
+        inset 0 0 0 1px rgba(52, 211, 153, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        0 5px 14px -5px rgba(16, 185, 129, 0.42);
+    }
+    #nav-history-badge {
+      top: -4px !important;
+      right: 1px !important;
+      min-width: 17px !important;
+      height: 16px !important;
+      padding: 0 4.5px !important;
+      font-size: 9px !important;
+      font-weight: 800 !important;
+      line-height: 14px !important;
+      border-radius: 999px !important;
+      background: linear-gradient(135deg, #227554, #14533A) !important;
+      color: #FFFFFF !important;
+      border: 1.5px solid rgba(253, 251, 247, 0.96) !important;
+      box-shadow: 0 2px 6px rgba(16, 38, 31, 0.28);
+    }
+    html.dark #nav-history-badge {
+      border-color: rgba(11, 20, 17, 0.96) !important;
+      background: linear-gradient(135deg, #34D399, #10B981) !important;
+      color: #06130E !important;
     }
     @media (min-width: 640px) {
       .nav-btn {
         flex-direction: row;
         gap: 6px;
-        padding: 7px 10px;
+        padding: 6px 10px;
       }
       .nav-btn .nav-icon-wrap {
-        width: 28px;
-        height: 24px;
+        width: 34px;
+        height: 26px;
+      }
+      #nav-history-badge {
+        right: -5px !important;
       }
     }
 
@@ -1751,7 +1807,7 @@ html.dark .dark\:hover\:text-white:hover { color: #ffffff; }
 /* === Pulido Nativo v3.0 (Pull-to-Refresh, Duelo últimos 5, Perfiles en Ludoteca) === */
 .ptr-pill {
   position: fixed;
-  top: calc(4.75rem + var(--safe-top));
+  top: calc(4.05rem + var(--safe-top));
   left: 50%;
   z-index: 45;
   display: inline-flex;
@@ -1959,10 +2015,10 @@ html.dark .rating-mid-mark {
   background: rgba(255, 255, 255, 0.11);
 }
 .podium-slot.is-first {
-  padding-top: 0.9rem;
-  padding-bottom: 0.85rem;
-  background: linear-gradient(180deg, rgba(251, 191, 36, 0.22) 0%, rgba(251, 191, 36, 0.07) 100%);
-  border-color: rgba(252, 211, 77, 0.40);
+  padding-top: 0.72rem;
+  padding-bottom: 0.68rem;
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.22) 0%, rgba(251, 191, 36, 0.06) 100%);
+  border-color: rgba(252, 211, 77, 0.42);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 22px -12px rgba(0, 0, 0, 0.55);
 }
 .podium-medal {
@@ -2023,16 +2079,19 @@ html.dark .ranking-arena-hero {
     linear-gradient(150deg, #07120E 0%, #0E221B 52%, #1D1408 100%);
 }
 .podium-slot.is-second {
-  padding-top: 0.72rem;
-  padding-bottom: 0.72rem;
+  padding-top: 0.58rem;
+  padding-bottom: 0.58rem;
   background: linear-gradient(180deg, rgba(226, 232, 240, 0.12) 0%, rgba(226, 232, 240, 0.04) 100%);
   border-color: rgba(203, 213, 225, 0.24);
 }
 .podium-slot.is-third {
-  padding-top: 0.56rem;
-  padding-bottom: 0.58rem;
+  padding-top: 0.48rem;
+  padding-bottom: 0.52rem;
   background: linear-gradient(180deg, rgba(217, 119, 6, 0.13) 0%, rgba(217, 119, 6, 0.04) 100%);
   border-color: rgba(217, 119, 6, 0.24);
+}
+.podium-slot.is-vs-focus {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 0 1px rgba(52, 211, 153, 0.35);
 }
 .podium-crown-halo {
   display: inline-flex;
@@ -2526,4 +2585,53 @@ html.dark .ledger-row-expand {
 .max-w-\[78px\] { max-width: 78px; }
 @media (min-width: 640px) {
   .sm\:text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+}
+
+/* === Ranking Harmony & Uniform Row Cards (v3.8) === */
+.ranking-row-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.72rem 0.78rem;
+  border-radius: 1.05rem;
+  background-color: rgba(244, 240, 232, 0.62);
+  border: 1px solid rgba(20, 36, 30, 0.065);
+  transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.13s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ranking-row-card:hover {
+  background-color: rgba(244, 240, 232, 0.92);
+  border-color: rgba(20, 36, 30, 0.11);
+}
+html.dark .ranking-row-card {
+  background-color: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.075);
+}
+html.dark .ranking-row-card:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.ranking-row-card.is-highlighted {
+  background-color: rgba(34, 117, 84, 0.065);
+  border-color: rgba(34, 117, 84, 0.24);
+  box-shadow: inset 3px 0 0 var(--row-accent, #227554);
+}
+html.dark .ranking-row-card.is-highlighted {
+  background-color: rgba(52, 211, 153, 0.085);
+  border-color: rgba(52, 211, 153, 0.24);
+  box-shadow: inset 3px 0 0 var(--row-accent, #34D399);
+}
+.form-dots-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.18rem 0.42rem;
+  border-radius: 999px;
+  background-color: rgba(20, 36, 30, 0.045);
+  border: 1px solid rgba(20, 36, 30, 0.05);
+  flex-shrink: 0;
+}
+html.dark .form-dots-pill {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.07);
 }

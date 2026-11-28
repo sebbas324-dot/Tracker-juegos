@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v3.7';
+const APP_VERSION = 'v3.8';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -3765,8 +3765,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v38 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v38';
+  return `// Ludoteca — Service Worker Offline v39 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v39';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -4123,7 +4123,7 @@ function renderAppVersionBadge() {
   const h1 = hdr?.querySelector('h1') || document.getElementById('header-subtitle')?.previousElementSibling;
   if (!h1) return;
 
-  h1.classList.add('flex', 'items-center', 'gap-1.5');
+  h1.classList.add('flex', 'items-center', 'gap-1.5', 'header-title-text');
   let tag = document.getElementById('app-version-tag');
   if (!tag) {
     tag = document.createElement('span');
@@ -11636,7 +11636,7 @@ function renderStatsTab() {
     if (gapPts !== null) {
       pulseItems.push({
         label: gapPts <= 30 ? 'Duelo al rojo' : 'Ventaja #1',
-        value: gapPts === 0 ? 'Empatados' : `±${gapPts} pts`,
+        value: gapPts === 0 ? 'Empatados' : `${gapPts} pts`,
         accent: gapPts <= 30 ? 'text-amber-300' : 'text-emerald-300',
       });
     }
@@ -11657,6 +11657,7 @@ function renderStatsTab() {
 
     const renderPodiumSlot = (pl) => {
       const isFirst = pl.rank === 1;
+      const isFocused = highlightKeys && highlightKeys.has(pl.key);
       const slotCls = isFirst ? 'is-first' : (pl.rank === 2 ? 'is-second' : 'is-third');
       const ringCls = isFirst
         ? 'ring-2 ring-amber-400/60'
@@ -11670,18 +11671,18 @@ function renderStatsTab() {
         : (pl.lastDelta > 0 ? `+${pl.lastDelta}` : `${pl.lastDelta}`);
       return `
         <button type="button" data-action="open-player-rating-detail" data-key="${esc(pl.key)}"
-          class="podium-slot btn-tap ${slotCls}">
-          <div class="flex items-center justify-center gap-1 mb-1.5">
+          class="podium-slot btn-tap ${slotCls} ${isFocused ? 'is-vs-focus' : ''}">
+          <div class="flex items-center justify-center gap-1 mb-1">
             ${isFirst
               ? `<span class="podium-crown-halo">${gameIconSvg('crown', 'w-3 h-3')}</span>`
               : `<span class="podium-medal is-${pl.rank}">#${pl.rank}</span>`}
             ${pl.currentStreak >= 2 ? renderStreakPillHtml(pl.currentStreak, { onDark: true }) : ''}
           </div>
           <span class="podium-avatar-glow" style="--glow-col:${getPlayerColor(pl.name)};">
-            ${renderPlayerAvatarHtml(pl.name, `${isFirst ? 'w-12 h-12 text-sm' : 'w-10 h-10 text-xs'} ${ringCls} relative z-10`)}
+            ${renderPlayerAvatarHtml(pl.name, `${isFirst ? 'w-11 h-11 text-xs' : 'w-9 h-9 text-[11px]'} ${ringCls} relative z-10`)}
           </span>
-          <div class="font-display text-xs sm:text-sm font-extrabold text-white truncate max-w-full mt-2 leading-tight">${esc(pl.name)}</div>
-          <div class="text-[9.5px] font-bold leading-none mt-1" style="color:${tier.color};">${esc(tier.label)}</div>
+          <div class="font-display text-xs sm:text-sm font-extrabold text-white truncate max-w-full mt-1.5 leading-tight">${esc(pl.name)}</div>
+          <div class="text-[9.5px] font-bold leading-none mt-0.5" style="color:${tier.color};">${esc(tier.label)}</div>
           <div class="flex items-center justify-center gap-1 mt-1.5">
             <span class="font-display ${isFirst ? 'text-2xl' : 'text-xl'} font-extrabold ${isFirst ? 'text-amber-300' : 'text-white'} tabular-nums leading-none">${pl.note}</span>
             <span class="podium-delta ${dCls}">${dTxt}</span>
@@ -11772,7 +11773,6 @@ function renderStatsTab() {
             ? 'text-coralBrand'
             : 'text-ink dark:text-white';
       const pctScale = Math.max(2, Math.min(100, Math.round(pl.points / 10)));
-      const peakPctScale = Math.max(2, Math.min(100, Math.round(pl.peakPoints / 10)));
       const recentForm = (pl.recentForm && pl.recentForm.length > 0) ? pl.recentForm : (pl.history || []).slice(-5);
       const playerCol = getPlayerColor(pl.name);
       // Etiqueta principal: Tier o Calibración, más llama de racha si >= 2
@@ -11783,9 +11783,10 @@ function renderStatsTab() {
             : `<span class="tier-pill ${tier.cls}">${esc(tier.label)}</span>`);
       return `
         <button type="button" data-action="open-player-rating-detail" data-key="${esc(pl.key)}"
-          class="hairline-row btn-tap w-full text-left block ${isHighlighted ? 'bg-emeraldBrand/10 rounded-xl px-2 -mx-1' : ''}">
-          <div class="flex items-center justify-between gap-2.5">
-            <div class="flex items-center gap-2.5 min-w-0">
+          class="ranking-row-card btn-tap ${isHighlighted ? 'is-highlighted' : ''}"
+          style="${isHighlighted ? `--row-accent:${playerCol};` : ''}">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
               <span class="w-7 h-7 rounded-xl flex items-center justify-center font-display font-extrabold text-xs shrink-0 ${
                 pl.rank === 1
                   ? 'bg-gradient-to-br from-amber-300 to-amber-500 text-[#142620] shadow-xs'
@@ -11795,18 +11796,18 @@ function renderStatsTab() {
                       ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-amber-50'
                       : 'bg-black/[0.06] dark:bg-white/10 text-inkMuted dark:text-white/65'
               }">${pl.rank ? `#${pl.rank}` : '—'}</span>
-              ${renderPlayerAvatarHtml(pl.name, 'w-9 h-9 text-[11px]')}
+              ${renderPlayerAvatarHtml(pl.name, 'w-8 h-8 text-[11px]')}
               <div class="min-w-0">
                 <div class="flex items-center gap-1.5 min-w-0">
                   <span class="text-sm font-extrabold text-ink dark:text-white truncate">${esc(pl.name)}</span>
                   ${primaryBadgeHtml}
                 </div>
-                <div class="text-[11px] text-inkMuted dark:text-white/55 truncate tabular-nums mt-0.5">
-                  ${pl.wins}V / ${pl.ratedPlays}P · ${pl.winRate}% · Pico ${pl.peakNote}${!pl.isCalibrating && pl.provisional ? ' · Prov.' : ''}
+                <div class="text-[10.5px] text-inkMuted dark:text-white/55 truncate tabular-nums mt-0.5">
+                  ${pl.wins}V/${pl.ratedPlays}P · ${pl.winRate}% · Máx ${pl.peakNote}
                 </div>
               </div>
             </div>
-            <div class="flex items-center gap-2 shrink-0">
+            <div class="flex items-center gap-1.5 shrink-0">
               <div class="text-right">
                 <div class="font-display text-xl font-extrabold tabular-nums leading-none ${noteColorCls}">${pl.note}</div>
                 <div class="mt-1 inline-flex items-center justify-end gap-1">
@@ -11821,10 +11822,9 @@ function renderStatsTab() {
             <div class="flex-1 rating-row-track">
               <div class="h-full rounded-full transition-all duration-500" style="width:${pctScale}%; background: linear-gradient(90deg, ${playerCol}B8, ${playerCol});"></div>
               <span class="rating-mid-mark" title="Base neutra: 5.0"></span>
-              ${pl.peakPoints > pl.points + 8 ? `<span class="rating-peak-pin" style="left:${peakPctScale}%;" title="Pico histórico: ${pl.peakNote}"></span>` : ''}
             </div>
             ${recentForm.length > 0 ? `
-              <div class="inline-flex items-center gap-1 shrink-0" title="Forma reciente (últimas ${recentForm.length})">
+              <div class="form-dots-pill" title="Forma reciente (últimas ${recentForm.length})">
                 ${recentForm.map((h) => `<span class="form-dot ${h.won ? 'is-win' : 'is-loss'}"></span>`).join('')}
               </div>
             ` : ''}
@@ -11843,17 +11843,17 @@ function renderStatsTab() {
           <span class="text-[11px] font-bold text-inkMuted dark:text-white/55 tabular-nums">${ratingData.calibratedPlayers.length} jug.</span>
         </div>
 
-        <div class="hairline-list">
+        <div class="space-y-2">
           ${ratingData.calibratedPlayers.map(renderRankingRow).join('')}
         </div>
 
         ${ratingData.calibratingPlayers.length > 0 ? `
           <div class="mt-4 pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
-            <div class="flex items-center justify-between gap-2 mb-1.5">
+            <div class="flex items-center justify-between gap-2 mb-2">
               <span class="text-[10.5px] font-extrabold uppercase tracking-wider text-inkMuted dark:text-white/50">En calibración (menos de 3 partidas)</span>
               <span class="text-[10px] font-semibold text-inkMuted/70 dark:text-white/40 tabular-nums">${ratingData.calibratingPlayers.length}</span>
             </div>
-            <div class="hairline-list">
+            <div class="space-y-2">
               ${ratingData.calibratingPlayers.map(renderRankingRow).join('')}
             </div>
           </div>
