@@ -1,5 +1,5 @@
-// Ludoteca — Service Worker Offline v39 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v39';
+// Ludoteca — Service Worker Offline v40 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v40';
 const PRECACHE_URLS = [
   './',
   './index.html',

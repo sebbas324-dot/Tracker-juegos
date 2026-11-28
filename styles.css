@@ -79,7 +79,9 @@ img, svg, video, canvas {
       padding: 0;
       overflow: hidden;
       background-color: #081410;
-      background-image: linear-gradient(180deg, #081410 0%, #081410 38%, #F5F1E8 38%, #F5F1E8 100%);
+      background-image: linear-gradient(180deg, #081410 0px, #081410 170px, #F5F1E8 170px, #F5F1E8 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
       -webkit-tap-highlight-color: transparent;
       overscroll-behavior: none;
     }
@@ -92,11 +94,21 @@ img, svg, video, canvas {
 
     html.dark, html.dark body {
       background-color: #060E0B;
-      background-image: linear-gradient(180deg, #060E0B 0%, #060E0B 40%, #080E0C 40%, #080E0C 100%);
+      background-image: linear-gradient(180deg, #060E0B 0px, #060E0B 170px, #080E0C 170px, #080E0C 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
       color: #F3F0EA;
     }
 
-    /* App Shell fijo full-bleed (sin 100dvh para cubrir siempre hasta el borde inferior del iPhone) */
+    /* Corrección iOS PWA Standalone (black-translucent): expande al 100% físico de pantalla */
+    html.ios-standalone-full,
+    html.ios-standalone-full body {
+      height: var(--app-height, 100vh) !important;
+      min-height: var(--app-height, 100vh) !important;
+      background-size: 100% var(--app-height, 100vh);
+    }
+
+    /* App Shell fijo full-bleed */
     #app-bg {
       position: fixed;
       top: 0;
@@ -122,12 +134,17 @@ img, svg, video, canvas {
         radial-gradient(ellipse 65% 45% at 50% 100%, rgba(124, 58, 237, 0.09) 0%, transparent 70%);
     }
 
+    html.ios-standalone-full #app-bg {
+      bottom: auto;
+      height: var(--app-height, 100vh) !important;
+    }
+
     #main-scroll {
       -webkit-overflow-scrolling: touch;
       overscroll-behavior-y: contain;
     }
 
-    /* Cabecera editorial flagship (v3.8) — compacta, precisa y proporcionada */
+    /* Cabecera editorial flagship (v3.9) — nítida bajo Dynamic Island y proporcionada */
     .header-pro {
       position: relative;
       overflow: hidden;
@@ -165,8 +182,11 @@ img, svg, video, canvas {
       position: relative;
       z-index: 2;
     }
+    html.ios-standalone .header-pro {
+      padding-top: calc(var(--safe-top) + 16px) !important;
+    }
     .header-pro > div {
-      padding-top: 0.46rem !important;
+      padding-top: 0.42rem !important;
       padding-bottom: 0.56rem !important;
     }
     html.dark .header-pro {
@@ -191,9 +211,11 @@ img, svg, video, canvas {
         0 0 14px -5px rgba(52, 211, 153, 0.36);
     }
     .header-title-text {
+      color: #FFFFFF !important;
       font-size: 15.5px !important;
       line-height: 1.15 !important;
       letter-spacing: -0.025em !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
     }
     #header-subtitle {
       font-size: 11px !important;
@@ -218,29 +240,29 @@ img, svg, video, canvas {
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
     }
     .header-glass-btn {
-      width: 32px !important;
-      height: 32px !important;
+      width: 34px !important;
+      height: 34px !important;
       border-radius: 999px !important;
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
-      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.06) 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.17) !important;
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.18),
-        0 4px 10px -4px rgba(0, 0, 0, 0.42);
+        inset 0 1px 0 rgba(255, 255, 255, 0.22),
+        0 4px 12px -4px rgba(0, 0, 0, 0.45);
     }
     .header-glass-btn:hover {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.10) 100%) !important;
-      border-color: rgba(252, 211, 77, 0.32) !important;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.11) 100%) !important;
+      border-color: rgba(252, 211, 77, 0.34) !important;
     }
     .header-sync-pill {
-      height: 32px !important;
+      height: 34px !important;
       padding-top: 0 !important;
       padding-bottom: 0 !important;
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.16),
-        0 4px 10px -4px rgba(0, 0, 0, 0.40);
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        0 4px 12px -4px rgba(0, 0, 0, 0.42);
     }
 
     /* Barra inferior flagship estilo iOS nativo (v3.8) */
@@ -254,6 +276,9 @@ img, svg, video, canvas {
       box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.92),
         0 -10px 28px -14px rgba(18, 36, 30, 0.14);
+    }
+    html.ios-standalone-full #bottom-nav {
+      padding-bottom: max(22px, var(--safe-bottom));
     }
     html.dark #bottom-nav {
       background-color: rgba(11, 20, 17, 0.92);
@@ -324,7 +349,7 @@ img, svg, video, canvas {
     }
     #nav-history-badge {
       top: -4px !important;
-      right: 1px !important;
+      right: -2px !important;
       min-width: 17px !important;
       height: 16px !important;
       padding: 0 4.5px !important;
@@ -1826,6 +1851,9 @@ html.dark .dark\:hover\:text-white:hover { color: #ffffff; }
   transform: translate3d(-50%, -22px, 0) scale(0.92);
   transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s ease;
 }
+html.ios-standalone .ptr-pill {
+  top: calc(5.05rem + var(--safe-top));
+}
 .ptr-pill.is-dragging {
   transition: background-color 0.18s ease;
 }
@@ -2612,14 +2640,52 @@ html.dark .ranking-row-card:hover {
   border-color: rgba(255, 255, 255, 0.12);
 }
 .ranking-row-card.is-highlighted {
-  background-color: rgba(34, 117, 84, 0.065);
-  border-color: rgba(34, 117, 84, 0.24);
-  box-shadow: inset 3px 0 0 var(--row-accent, #227554);
+  background-color: rgba(34, 117, 84, 0.055);
+  border-color: rgba(34, 117, 84, 0.22);
+}
+.ranking-row-card.is-highlighted::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3.5px;
+  border-radius: 0 4px 4px 0;
+  background: var(--row-accent, #227554);
+  pointer-events: none;
 }
 html.dark .ranking-row-card.is-highlighted {
-  background-color: rgba(52, 211, 153, 0.085);
+  background-color: rgba(52, 211, 153, 0.08);
   border-color: rgba(52, 211, 153, 0.24);
-  box-shadow: inset 3px 0 0 var(--row-accent, #34D399);
+}
+.rating-peak-trail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.24), rgba(245, 158, 11, 0.56));
+  pointer-events: none;
+}
+.rating-peak-dot {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #FDE047, #F59E0B);
+  border: 1.5px solid #FFFFFF;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.28), 0 1px 5px rgba(245, 158, 11, 0.62);
+  z-index: 2;
+}
+html.dark .rating-peak-dot {
+  border-color: #111A17;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.45), 0 0 7px rgba(251, 191, 36, 0.65);
+}
+.rating-delta-chip.is-col {
+  min-width: 34px;
+  justify-content: center;
 }
 .form-dots-pill {
   display: inline-flex;
@@ -2635,3 +2701,4 @@ html.dark .form-dots-pill {
   background-color: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.07);
 }
+.z-\[1\] { z-index: 1; }

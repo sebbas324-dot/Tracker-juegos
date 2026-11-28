@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v3.8';
+const APP_VERSION = 'v3.9';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -1104,6 +1104,36 @@ function applyTheme(theme) {
   if (typeof uiState !== 'undefined' && uiState.activeTab === 'stats' && document.getElementById('view-stats')) {
     renderStatsTab();
   }
+}
+
+function syncIosStandaloneViewport() {
+  try {
+    const root = document.documentElement;
+    const isIos = /iP(hone|ad|od)/i.test(navigator.userAgent || '')
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isStandalone = window.navigator.standalone === true
+      || Boolean(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+
+    root.classList.toggle('ios-standalone', Boolean(isIos && isStandalone));
+
+    if (isIos && isStandalone) {
+      const isLandscape = window.innerWidth > window.innerHeight;
+      const screenH = isLandscape
+        ? Math.min(window.screen.width || 0, window.screen.height || 0)
+        : Math.max(window.screen.width || 0, window.screen.height || 0);
+      const shortfall = screenH - window.innerHeight;
+      if (screenH > 0 && shortfall > 10 && shortfall < 140) {
+        root.style.setProperty('--app-height', `${screenH}px`);
+        root.classList.add('ios-standalone-full');
+      } else {
+        root.classList.remove('ios-standalone-full');
+        root.style.removeProperty('--app-height');
+      }
+    } else {
+      root.classList.remove('ios-standalone-full');
+      root.style.removeProperty('--app-height');
+    }
+  } catch (e) {}
 }
 
 function initTheme() {
@@ -3765,8 +3795,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v39 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v39';
+  return `// Ludoteca — Service Worker Offline v40 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v40';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -8250,9 +8280,10 @@ function openPlayerRatingDetailModal(playerKey, filterGameId = 'all') {
 
           <div class="mt-3.5 relative z-10 space-y-1.5">
             <div class="rating-bar-track bg-white/15">
-              <div class="h-full rounded-full transition-all duration-500" style="width:${pctBar}%; background:${getPlayerColorOnDark(st.name)};"></div>
+              ${st.peakPoints > st.points + 3 ? `<span class="rating-peak-trail" style="left:${pctBar}%; width:${Math.max(1, peakPctBar - pctBar)}%;"></span>` : ''}
+              <div class="h-full rounded-full transition-all duration-500 relative z-[1]" style="width:${pctBar}%; background:${getPlayerColorOnDark(st.name)};"></div>
               <span class="rating-mid-mark" style="background:rgba(255,255,255,0.45);"></span>
-              ${st.peakPoints > st.points + 8 ? `<span class="rating-peak-pin" style="left:${peakPctBar}%;" title="Pico histórico: ${st.peakNote}"></span>` : ''}
+              ${st.peakPoints > st.points + 3 ? `<span class="rating-peak-dot" style="left:${peakPctBar}%;" title="Pico histórico: ${st.peakNote}"></span>` : ''}
             </div>
             <div class="flex items-center justify-between text-[9.5px] font-bold text-white/55 tabular-nums">
               <span>0.0</span>
@@ -11773,6 +11804,8 @@ function renderStatsTab() {
             ? 'text-coralBrand'
             : 'text-ink dark:text-white';
       const pctScale = Math.max(2, Math.min(100, Math.round(pl.points / 10)));
+      const peakPctScale = Math.max(2, Math.min(100, Math.round(pl.peakPoints / 10)));
+      const showPeakMark = pl.peakPoints > pl.points + 3;
       const recentForm = (pl.recentForm && pl.recentForm.length > 0) ? pl.recentForm : (pl.history || []).slice(-5);
       const playerCol = getPlayerColor(pl.name);
       // Etiqueta principal: Tier o Calibración, más llama de racha si >= 2
@@ -11809,10 +11842,12 @@ function renderStatsTab() {
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               <div class="text-right">
-                <div class="font-display text-xl font-extrabold tabular-nums leading-none ${noteColorCls}">${pl.note}</div>
-                <div class="mt-1 inline-flex items-center justify-end gap-1">
-                  <span class="text-[10px] font-semibold text-inkMuted dark:text-white/50 tabular-nums">${pl.points} pts</span>
-                  <span class="rating-delta-chip ${deltaCls}">${deltaTxt}</span>
+                <div class="flex items-center justify-end gap-1.5">
+                  <span class="font-display text-xl font-extrabold tabular-nums leading-none ${noteColorCls}">${pl.note}</span>
+                  <span class="rating-delta-chip is-col ${deltaCls}">${deltaTxt}</span>
+                </div>
+                <div class="text-[10px] font-semibold text-inkMuted dark:text-white/50 tabular-nums mt-0.5 leading-tight">
+                  ${pl.points} pts
                 </div>
               </div>
               <svg class="w-3.5 h-3.5 text-inkMuted/50 dark:text-white/30 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -11820,8 +11855,10 @@ function renderStatsTab() {
           </div>
           <div class="mt-2.5 flex items-center gap-2.5">
             <div class="flex-1 rating-row-track">
-              <div class="h-full rounded-full transition-all duration-500" style="width:${pctScale}%; background: linear-gradient(90deg, ${playerCol}B8, ${playerCol});"></div>
+              ${showPeakMark ? `<span class="rating-peak-trail" style="left:${pctScale}%; width:${Math.max(1, peakPctScale - pctScale)}%;"></span>` : ''}
+              <div class="h-full rounded-full transition-all duration-500 relative z-[1]" style="width:${pctScale}%; background: linear-gradient(90deg, ${playerCol}B8, ${playerCol});"></div>
               <span class="rating-mid-mark" title="Base neutra: 5.0"></span>
+              ${showPeakMark ? `<span class="rating-peak-dot" style="left:${peakPctScale}%;" title="Máximo histórico: ${pl.peakNote}"></span>` : ''}
             </div>
             ${recentForm.length > 0 ? `
               <div class="form-dots-pill" title="Forma reciente (últimas ${recentForm.length})">
@@ -16061,6 +16098,10 @@ function bindGlobalEvents() {
 // =========================================================================
 // 16. ARRANQUE
 // =========================================================================
+syncIosStandaloneViewport();
+window.addEventListener('resize', syncIosStandaloneViewport, { passive: true });
+window.addEventListener('orientationchange', () => setTimeout(syncIosStandaloneViewport, 120), { passive: true });
+window.addEventListener('pageshow', syncIosStandaloneViewport, { passive: true });
 initTheme();
 renderAppVersionBadge();
 setupPwaAssets();
