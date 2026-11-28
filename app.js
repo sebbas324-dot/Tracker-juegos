@@ -4,7 +4,7 @@
 // Para privacidad en GitHub Pages público, deja esto tal cual y pega tu URL /exec
 // + PIN secreto desde el botón superior de la app en tu móvil.
 const GOOGLE_SHEETS_API_URL = "PEGA_AQUI_TU_URL_EXEC";
-const APP_VERSION = 'v3.6';
+const APP_VERSION = 'v3.7';
 
 // =========================================================================
 // 2. CLAVES DE ALMACENAMIENTO LOCAL
@@ -1099,7 +1099,7 @@ function applyTheme(theme) {
     moon.classList.toggle('hidden', isDark);
   }
   const meta = document.getElementById('meta-theme-color');
-  if (meta) meta.content = isDark ? '#0F1815' : '#142620';
+  if (meta) meta.content = isDark ? '#060E0B' : '#081410';
   try { localStorage.setItem(KEYS.THEME, isDark ? 'dark' : 'light'); } catch (e) {}
   if (typeof uiState !== 'undefined' && uiState.activeTab === 'stats' && document.getElementById('view-stats')) {
     renderStatsTab();
@@ -3765,8 +3765,8 @@ function rebuildStatsSheet(ss, matchSh) {
 }
 
 function getServiceWorkerSource() {
-  return `// Ludoteca — Service Worker Offline v37 (Auto-actualización + Network-First en app)
-const CACHE_NAME = 'ludoteca-offline-v37';
+  return `// Ludoteca — Service Worker Offline v38 (Auto-actualización + Network-First en app)
+const CACHE_NAME = 'ludoteca-offline-v38';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -4119,16 +4119,32 @@ function triggerBackgroundSync(minIntervalMs = 20000) {
 }
 
 function renderAppVersionBadge() {
-  const h1 = document.querySelector('header h1') || document.getElementById('header-subtitle')?.previousElementSibling;
+  const hdr = document.querySelector('header.header-pro') || document.querySelector('header');
+  const h1 = hdr?.querySelector('h1') || document.getElementById('header-subtitle')?.previousElementSibling;
   if (!h1) return;
+
+  h1.classList.add('flex', 'items-center', 'gap-1.5');
   let tag = document.getElementById('app-version-tag');
   if (!tag) {
     tag = document.createElement('span');
     tag.id = 'app-version-tag';
-    tag.className = 'text-[11px] font-semibold text-white/55 ml-1 tabular-nums';
     h1.appendChild(tag);
   }
+  tag.className = 'header-version-pill';
   tag.textContent = APP_VERSION;
+
+  // Mejora estética de la insignia del logo y botones circulares de la cabecera
+  if (hdr) {
+    const titleWrap = h1.parentElement;
+    const brandIcon = titleWrap?.previousElementSibling;
+    if (brandIcon && brandIcon.tagName === 'DIV') {
+      brandIcon.classList.add('header-brand-icon');
+    }
+    const themeBtn = document.getElementById('btn-theme-toggle');
+    if (themeBtn) themeBtn.classList.add('header-glass-btn');
+    const toolsBtn = hdr.querySelector('[data-action="open-table-tools"]');
+    if (toolsBtn) toolsBtn.classList.add('header-glass-btn');
+  }
 }
 
 function renderSyncBadge() {
@@ -4138,19 +4154,19 @@ function renderSyncBadge() {
 
   const pending = getPendingSyncCount();
   if (syncState.connected && pending === 0) {
-    btn.className = 'btn-tap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all bg-emerald-500/20 border-emerald-300/35 text-emerald-100';
+    btn.className = 'btn-tap header-sync-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all bg-emerald-500/20 border-emerald-300/35 text-emerald-100';
     dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.9)]';
     label.textContent = 'Sheets activo';
   } else if (syncState.mode === 'connecting') {
-    btn.className = 'btn-tap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all bg-white/10 border-white/18 text-white/85';
+    btn.className = 'btn-tap header-sync-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all bg-white/10 border-white/18 text-white/85';
     dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0 animate-pulse';
     label.textContent = 'Sincronizando...';
   } else if (pending > 0) {
-    btn.className = 'btn-tap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all bg-amber-400/24 border-amber-300/45 text-amber-100';
+    btn.className = 'btn-tap header-sync-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all bg-amber-400/24 border-amber-300/45 text-amber-100';
     dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0 animate-pulse';
     label.textContent = `${pending} pend.`;
   } else {
-    btn.className = 'btn-tap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all bg-amber-400/18 border-amber-300/35 text-amber-100';
+    btn.className = 'btn-tap header-sync-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all bg-amber-400/18 border-amber-300/35 text-amber-100';
     dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0';
     label.textContent = 'Modo local';
   }
@@ -10881,30 +10897,35 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
   const pctB = 100 - pctA;
 
   const leaderSide = onlyCoop ? null : (scoreLeft > scoreRight ? 'A' : scoreRight > scoreLeft ? 'B' : null);
-  const diffWins = Math.abs(scoreLeft - scoreRight);
 
-  const subLeft = onlyCoop
-    ? `${vs.coopShared} coop juntos`
-    : (vs.avgA !== null && gameObj
-        ? `Med. ${vs.avgA} · ${pctA}%`
-        : `${pctA}%${leaderSide === 'A' ? ` · +${diffWins}` : ''}`);
-
+  const subLeft = onlyCoop ? `${vs.coopShared} coop` : `${pctA}%`;
   const subRight = onlyCoop
     ? `${vs.coopSharedWins} ${vs.coopSharedWins === 1 ? 'superada' : 'superadas'}`
-    : (vs.avgB !== null && gameObj
-        ? `${pctB}% · Med. ${vs.avgB}`
-        : `${leaderSide === 'B' ? `+${diffWins} · ` : ''}${pctB}%`);
+    : `${pctB}%`;
 
-  const togetherParts = [];
-  if (vs.topSharedGame && !gameObj) togetherParts.push(`Top juntos: ${esc(vs.topSharedGame)}`);
-  else if (gameObj) togetherParts.push(`Duelo en ${esc(gameObj.name)}`);
-  else togetherParts.push('Cara a cara en mesa');
-  if (vs.ties > 0) togetherParts.push(`${vs.ties} ${vs.ties === 1 ? 'empate' : 'empates'}`);
-  if (vs.coopShared > 0) togetherParts.push(`+${vs.coopShared} coop`);
+  const extraMetaParts = [];
+  if (vs.ties > 0) extraMetaParts.push(`${vs.ties} ${vs.ties === 1 ? 'empate' : 'empates'}`);
+  if (vs.coopShared > 0) extraMetaParts.push(`+${vs.coopShared} coop`);
 
-  const footerNote = onlyCoop
-    ? 'Partidas cooperativas · no cuentan como duelo'
-    : togetherParts.join(' · ');
+  const hasGameAverages = !onlyCoop && Boolean(gameObj) && (vs.avgA !== null || vs.avgB !== null);
+  const globalFooterParts = [];
+  if (vs.topSharedGame && !gameObj) globalFooterParts.push(`Top juntos: ${esc(vs.topSharedGame)}`);
+  else if (!gameObj) globalFooterParts.push('Cara a cara en mesa');
+  globalFooterParts.push(...extraMetaParts);
+
+  const barFooterHtml = onlyCoop
+    ? `<div class="mt-1.5 text-center text-[10.5px] font-medium text-white/65 leading-tight truncate">Partidas cooperativas · no cuentan como duelo</div>`
+    : hasGameAverages
+      ? `
+        <div class="mt-2 flex items-center justify-between gap-2 text-[10.5px] leading-tight">
+          <span class="font-bold tabular-nums shrink-0" style="color:${colorAOnDark};">Med. ${vs.avgA !== null ? vs.avgA : '—'}</span>
+          <span class="text-white/55 font-medium text-center truncate">${extraMetaParts.length > 0 ? extraMetaParts.join(' · ') : 'Media de puntos'}</span>
+          <span class="font-bold tabular-nums shrink-0" style="color:${colorBOnDark};">Med. ${vs.avgB !== null ? vs.avgB : '—'}</span>
+        </div>
+      `
+      : (globalFooterParts.length > 0
+          ? `<div class="mt-1.5 text-center text-[10.5px] font-medium text-white/65 leading-tight truncate">${globalFooterParts.join(' · ')}</div>`
+          : '');
 
   const heroBg = onlyCoop
     ? 'radial-gradient(ellipse 65% 60% at 15% 15%, rgba(52, 211, 153, 0.24) 0%, transparent 65%), radial-gradient(ellipse 65% 60% at 85% 15%, rgba(251, 191, 36, 0.18) 0%, transparent 65%), linear-gradient(155deg, #081511 0%, #10261E 54%, #1A170D 100%)'
@@ -10984,9 +11005,7 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
             ${pctA > 4 && pctA < 96 ? `<span class="vs-dom-split" style="left:${pctA}%;"></span>` : ''}
           `}
         </div>
-        <div class="mt-1.5 text-center text-[10.5px] font-medium text-white/65 leading-tight truncate">
-          ${footerNote}
-        </div>
+        ${barFooterHtml}
       </div>
 
       <!-- Dock inferior: Últimos 5 con fichas de iniciales + Racha de fuego -->
@@ -11012,7 +11031,7 @@ function renderVsDuelCardHtml(vs, pCtx, gameObj) {
           <div class="mt-3 vs-momentum-dock relative z-10">
             <div class="flex items-center gap-2 min-w-0">
               <span class="text-[9px] font-extrabold uppercase tracking-[0.12em] text-white/50 shrink-0">Últ. ${vs.recentDuels.length}</span>
-              <div class="flex items-center gap-1.5 pb-0.5">
+              <div class="flex items-center gap-1.5">
                 ${vs.recentDuels.map((d, i) => {
                   const isLast = i === vs.recentDuels.length - 1;
                   const isA = d.outcome === 'A';
