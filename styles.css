@@ -1858,3 +1858,419 @@ html.dark .rating-mid-mark {
 .to-pine { --grad-to: #12241E; }
 .hover\:bg-amber-400\/24:hover { background-color: rgba(251, 191, 36, 0.24); }
 .text-amber-100\/80 { color: rgba(254, 243, 199, 0.8); }
+
+/* === Podio Visual Top 3 en Ranking (v3.2) === */
+.ranking-podium-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.45rem;
+}
+.ranking-podium-grid.is-duo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.podium-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.7rem 0.45rem 0.65rem;
+  border-radius: 1.15rem;
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.15s ease;
+}
+.podium-slot:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+.podium-slot.is-first {
+  padding-top: 0.9rem;
+  padding-bottom: 0.85rem;
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.22) 0%, rgba(251, 191, 36, 0.07) 100%);
+  border-color: rgba(252, 211, 77, 0.40);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 22px -12px rgba(0, 0, 0, 0.55);
+}
+.podium-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.15rem;
+  padding: 0 0.42rem;
+  border-radius: 999px;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1;
+}
+.podium-medal.is-1 {
+  background: linear-gradient(135deg, #FDE68A, #F59E0B);
+  color: #142620;
+}
+.podium-medal.is-2 {
+  background: linear-gradient(135deg, #F1F5F9, #94A3B8);
+  color: #0F172A;
+}
+.podium-medal.is-3 {
+  background: linear-gradient(135deg, #D97706, #92400E);
+  color: #FFFBEB;
+}
+.rating-row-track {
+  position: relative;
+  height: 0.34rem;
+  width: 100%;
+  border-radius: 999px;
+  background-color: rgba(20, 36, 30, 0.08);
+  overflow: visible;
+}
+html.dark .rating-row-track {
+  background-color: rgba(255, 255, 255, 0.09);
+}
+.ring-slate-300\/60 { --tw-ring-color: rgba(203, 213, 225, 0.6); }
+.ring-amber-600\/60 { --tw-ring-color: rgba(217, 119, 6, 0.6); }
+.max-w-full { max-width: 100%; }
+
+/* === Ranking Visual Upgrade v3.3 (Podio Escalonado, Tiers, Forma y Pico) === */
+.ranking-arena-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 68% 58% at 50% 8%, rgba(251, 191, 36, 0.22) 0%, transparent 66%),
+    radial-gradient(ellipse 52% 45% at 12% 88%, rgba(52, 211, 153, 0.16) 0%, transparent 62%),
+    linear-gradient(150deg, #0A1B15 0%, #122B22 52%, #241A0B 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 20px 40px -16px rgba(6, 15, 12, 0.68);
+}
+html.dark .ranking-arena-hero {
+  background:
+    radial-gradient(ellipse 68% 58% at 50% 8%, rgba(251, 191, 36, 0.20) 0%, transparent 66%),
+    radial-gradient(ellipse 52% 45% at 12% 88%, rgba(52, 211, 153, 0.14) 0%, transparent 62%),
+    linear-gradient(150deg, #07120E 0%, #0E221B 52%, #1D1408 100%);
+}
+.podium-slot.is-second {
+  padding-top: 0.72rem;
+  padding-bottom: 0.72rem;
+  background: linear-gradient(180deg, rgba(226, 232, 240, 0.12) 0%, rgba(226, 232, 240, 0.04) 100%);
+  border-color: rgba(203, 213, 225, 0.24);
+}
+.podium-slot.is-third {
+  padding-top: 0.56rem;
+  padding-bottom: 0.58rem;
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.13) 0%, rgba(217, 119, 6, 0.04) 100%);
+  border-color: rgba(217, 119, 6, 0.24);
+}
+.podium-crown-halo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #FDE68A, #F59E0B);
+  color: #142620;
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.65);
+}
+.podium-avatar-glow {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.podium-avatar-glow::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  background: var(--glow-col, rgba(251, 191, 36, 0.45));
+  opacity: 0.32;
+  filter: blur(7px);
+  pointer-events: none;
+}
+.podium-delta {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.08rem 0.36rem;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.podium-delta.is-pos {
+  background: rgba(52, 211, 153, 0.20);
+  color: #6EE7B7;
+}
+.podium-delta.is-neg {
+  background: rgba(251, 113, 133, 0.20);
+  color: #FDA4AF;
+}
+.podium-delta.is-flat {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.league-pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+.league-pulse-grid.is-duo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.league-pulse-item {
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.85rem;
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  min-width: 0;
+}
+
+.tier-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.42rem;
+  border-radius: 0.42rem;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  flex-shrink: 0;
+}
+.tier-pill.tier-legend { background: rgba(245, 158, 11, 0.18); color: #B45309; }
+html.dark .tier-pill.tier-legend { background: rgba(251, 191, 36, 0.18); color: #FDE68A; }
+.tier-pill.tier-gm { background: rgba(139, 92, 246, 0.16); color: #6D28D9; }
+html.dark .tier-pill.tier-gm { background: rgba(167, 139, 250, 0.18); color: #DDD6FE; }
+.tier-pill.tier-master { background: rgba(37, 99, 235, 0.14); color: #1D4ED8; }
+html.dark .tier-pill.tier-master { background: rgba(96, 165, 250, 0.18); color: #BFDBFE; }
+.tier-pill.tier-strategist { background: rgba(34, 117, 84, 0.15); color: #1B6346; }
+html.dark .tier-pill.tier-strategist { background: rgba(52, 211, 153, 0.18); color: #A7F3D0; }
+.tier-pill.tier-competitor { background: rgba(13, 148, 136, 0.14); color: #0F766E; }
+html.dark .tier-pill.tier-competitor { background: rgba(45, 212, 191, 0.16); color: #99F6E4; }
+.tier-pill.tier-challenger { background: rgba(217, 119, 6, 0.14); color: #B45309; }
+html.dark .tier-pill.tier-challenger { background: rgba(251, 191, 36, 0.15); color: #FCD34D; }
+.tier-pill.tier-climb { background: rgba(208, 78, 54, 0.14); color: #B83D28; }
+html.dark .tier-pill.tier-climb { background: rgba(251, 113, 133, 0.16); color: #FDA4AF; }
+.tier-pill.is-on-dark {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.form-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.form-dot.is-win {
+  background-color: #22C55E;
+  box-shadow: 0 0 5px rgba(34, 197, 94, 0.45);
+}
+.form-dot.is-loss {
+  background-color: #F43F5E;
+  opacity: 0.78;
+}
+
+.rating-peak-pin {
+  position: absolute;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 1.5px;
+  background-color: #F59E0B;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  transform: translate(-50%, -50%) rotate(45deg);
+  pointer-events: none;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
+}
+.text-white\/50 { color: rgba(255, 255, 255, 0.5); }
+
+/* === Radiografía de Rating del Jugador (v3.4) === */
+.weight-stat-card {
+  position: relative;
+  overflow: hidden;
+  padding: 0.58rem 0.5rem 0.55rem;
+  border-radius: 1rem;
+  background-color: #FFFFFF;
+  border: 1px solid rgba(20, 36, 30, 0.08);
+  text-align: center;
+}
+html.dark .weight-stat-card {
+  background-color: #1A2622;
+  border-color: rgba(255, 255, 255, 0.09);
+}
+.weight-stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: rgba(100, 116, 139, 0.25);
+}
+.weight-stat-card.is-pos::before {
+  background: linear-gradient(90deg, #227554, #34D399);
+}
+.weight-stat-card.is-neg::before {
+  background: linear-gradient(90deg, #D04E36, #FB7185);
+}
+.elo-mini-track {
+  height: 4px;
+  width: 100%;
+  border-radius: 999px;
+  background-color: rgba(20, 36, 30, 0.07);
+  overflow: hidden;
+}
+html.dark .elo-mini-track {
+  background-color: rgba(255, 255, 255, 0.09);
+}
+.rivalry-mini-card {
+  padding: 0.6rem 0.7rem;
+  border-radius: 1rem;
+  background-color: #FFFFFF;
+  border: 1px solid rgba(20, 36, 30, 0.08);
+}
+html.dark .rivalry-mini-card {
+  background-color: #1A2622;
+  border-color: rgba(255, 255, 255, 0.09);
+}
+.rivalry-mini-card.is-pos {
+  border-color: rgba(34, 117, 84, 0.26);
+  background-image: linear-gradient(145deg, rgba(34, 117, 84, 0.07) 0%, transparent 65%);
+}
+html.dark .rivalry-mini-card.is-pos {
+  border-color: rgba(52, 211, 153, 0.24);
+  background-image: linear-gradient(145deg, rgba(52, 211, 153, 0.10) 0%, transparent 65%);
+}
+.rivalry-mini-card.is-neg {
+  border-color: rgba(208, 78, 54, 0.26);
+  background-image: linear-gradient(145deg, rgba(208, 78, 54, 0.07) 0%, transparent 65%);
+}
+html.dark .rivalry-mini-card.is-neg {
+  border-color: rgba(251, 113, 133, 0.24);
+  background-image: linear-gradient(145deg, rgba(251, 113, 133, 0.10) 0%, transparent 65%);
+}
+
+/* === Interactive Star Scrubber & History Player Ledger (v3.5) === */
+.star-rater-stage {
+  position: relative;
+  border-radius: 1.25rem;
+  padding: 0.9rem 0.9rem 0.8rem;
+  background: linear-gradient(155deg, rgba(251, 191, 36, 0.11) 0%, rgba(244, 240, 232, 0.72) 55%, rgba(255, 255, 255, 0.85) 100%);
+  border: 1px solid rgba(212, 138, 23, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+html.dark .star-rater-stage {
+  background: linear-gradient(155deg, rgba(251, 191, 36, 0.11) 0%, rgba(19, 28, 25, 0.82) 55%, rgba(26, 38, 34, 0.92) 100%);
+  border-color: rgba(251, 191, 36, 0.20);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.star-scrubber-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  justify-items: center;
+  width: 100%;
+  max-width: 270px;
+  margin: 0 auto;
+  padding: 0.35rem 0.2rem;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+}
+.star-scrubber-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  pointer-events: none;
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), filter 0.16s ease;
+}
+.star-scrubber-item.is-lit {
+  filter: drop-shadow(0 3px 8px rgba(245, 158, 11, 0.36));
+}
+.star-scrubber-item.is-pop {
+  transform: scale(1.18);
+  filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.55));
+}
+
+.star-rail-track {
+  position: relative;
+  width: 100%;
+  max-width: 244px;
+  height: 4px;
+  margin: 0.2rem auto 0;
+  border-radius: 999px;
+  background-color: rgba(20, 36, 30, 0.09);
+  overflow: hidden;
+}
+html.dark .star-rail-track {
+  background-color: rgba(255, 255, 255, 0.10);
+}
+.star-rail-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #F59E0B, #FBBF24, #FDE047);
+  transition: width 0.12s ease-out;
+}
+
+.star-verdict-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  background-color: rgba(212, 138, 23, 0.14);
+  color: #B45309;
+  border: 1px solid rgba(212, 138, 23, 0.24);
+  transition: all 0.16s ease;
+}
+html.dark .star-verdict-pill {
+  background-color: rgba(251, 191, 36, 0.16);
+  color: #FDE68A;
+  border-color: rgba(251, 191, 36, 0.28);
+}
+.star-verdict-pill.is-empty {
+  background-color: rgba(20, 36, 30, 0.055);
+  color: #6D685F;
+  border-color: transparent;
+}
+html.dark .star-verdict-pill.is-empty {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.ledger-row-btn {
+  width: 100%;
+  text-align: left;
+  display: block;
+  transition: background-color 0.15s ease;
+}
+.ledger-row-expand {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px dashed rgba(20, 36, 30, 0.09);
+}
+html.dark .ledger-row-expand {
+  border-top-color: rgba(255, 255, 255, 0.10);
+}
+.rating-delta-chip.is-lg {
+  padding: 0.16rem 0.5rem;
+  font-size: 11.5px;
+  border-radius: 0.52rem;
+}
+
+.w-16 { width: 4rem; }
+.h-16 { height: 4rem; }
+.text-rose-300 { color: #fda4af; }
+.hover\:bg-amber-400\/35:hover { background-color: rgba(251, 191, 36, 0.35); }
+.hover\:bg-white\/25:hover { background-color: rgba(255, 255, 255, 0.25); }
